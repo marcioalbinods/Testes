@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Divisão Passo a Passo</title>
+  <meta name="description" content="Resolva divisões pelo método da chave, escolhendo cada algarismo do quociente.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Divisão Passo a Passo</h1>
+    <p>Método da chave: escolha cada algarismo do quociente e veja o produto e a diferença.</p>
+  </header>
+
+  <main>
+    <section class="card setup" aria-label="Dados da divisão">
+      <div class="fields">
+        <label>Dividendo
+          <input id="dividendo" inputmode="numeric" autocomplete="off" placeholder="ex.: 7854" maxlength="15">
+        </label>
+        <span class="div-sign" aria-hidden="true">÷</span>
+        <label>Divisor
+          <input id="divisor" inputmode="numeric" autocomplete="off" placeholder="ex.: 6" maxlength="6">
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="praticar">
+        Quero fazer a subtração (diferença) sozinho
+      </label>
+      <div class="buttons">
+        <button id="btnComecar" class="primary">Começar</button>
+        <button id="btnExemplo">Exemplo aleatório</button>
+      </div>
+      <p id="erroInicial" class="feedback bad" hidden></p>
+    </section>
+
+    <section id="area" class="card" hidden>
+      <div class="paper-wrap">
+        <div class="paper">
+          <div id="conta" class="conta" aria-live="polite"></div>
+          <div class="chave">
+            <div id="divisorBox" class="divisor-box"></div>
+            <div id="quocienteBox" class="quociente-box"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="painel" class="painel"></div>
+
+      <details class="tabuada">
+        <summary>Ver a tabuada do divisor</summary>
+        <ul id="tabuada"></ul>
+      </details>
+
+      <h2>Passos</h2>
+      <ol id="passos" class="passos"></ol>
+
+      <div class="buttons">
+        <button id="btnRecomecar">Nova divisão</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

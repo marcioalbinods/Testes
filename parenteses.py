@@ -4,23 +4,23 @@
 # ()()(()()) ok
 # ()) erro
 
-
-def parenteses_validos(expressao):
-    pilha = []
-    for caractere in expressao:
-        if caractere == "(":
-            pilha.append(caractere)
-        elif caractere == ")":
-            # Fechou sem ter aberto: pilha vazia ou topo não é "("
-            if not pilha or pilha[-1] != "(":
-                return False
-            pilha.pop()
-    # Expressão correta deixa a pilha vazia
-    return len(pilha) == 0
-
-
 expressao = input("Digite a expressão: ")
-if parenteses_validos(expressao):
+pilha = []
+valida = True
+
+for caractere in expressao:
+    if caractere == "(":
+        pilha.append(caractere)
+    elif caractere == ")":
+        # Fechou sem ter aberto: pilha vazia ou topo não é "("
+        if len(pilha) > 0 and pilha[-1] == "(":
+            pilha.pop()
+        else:
+            valida = False
+            break
+
+# Expressão correta deixa a pilha vazia
+if valida and len(pilha) == 0:
     print("ok")
 else:
     print("erro")

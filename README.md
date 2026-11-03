@@ -24,3 +24,13 @@ Basta abrir o arquivo `index.html` no navegador. Não precisa instalar nada.
 No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
 escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos o site fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/`.
+
+---
+
+# Caçadores de Letras (pasta `CAÇA AS LETRAS/`)
+
+Jogo educativo de alfabetização em formato Escape Room, com 30 fases em 3 mundos.
+Veja as instruções completas em [`CAÇA AS LETRAS/README.md`](CA%C3%87A%20AS%20LETRAS/README.md).
+
+Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/CA%C3%87A%20AS%20LETRAS/`.

@@ -1,0 +1,84 @@
+/* =========================================================
+   CAÇADORES DE LETRAS — Adaptação para tablets e notebooks
+   ========================================================= */
+
+/* Notebooks com pouca altura (ex.: 1366x768 com barra do navegador) */
+@media (max-height: 720px) {
+  .hud { padding-top: 6px; padding-bottom: 4px; }
+  .hud .btn-round { width: 48px; height: 48px; font-size: 21px; }
+  .hud-mission, .hud-timer { min-height: 46px; }
+  .hud-word { font-size: 26px; }
+  .guide-lupa { width: 76px; height: 82px; }
+  .btn-hint { min-height: 64px; font-size: 17px; }
+  .btn-hint .ico { font-size: 24px; }
+  .slot { --s: 56px; }
+  .logo-top { font-size: clamp(40px, 6.2vw, 80px); }
+  .logo-bottom { font-size: clamp(48px, 8vw, 104px); }
+  .hero-lupa { width: clamp(130px, 16vw, 200px); }
+  .home-menu { gap: 12px; }
+  .btn-big { min-height: 60px; font-size: 23px; padding: 12px 26px; }
+  .panel { padding: 18px 24px; }
+  .stars { min-height: 74px; }
+  .star { width: 70px; height: 70px; }
+  .star:nth-child(2) { width: 82px; height: 82px; }
+  .complete-art { width: min(30vw, 200px); }
+  .medal { width: 170px; height: 200px; }
+}
+
+@media (max-height: 600px) {
+  .subtitle { display: none; }
+  .bubble-home { display: none; }
+  .intro-guide { display: none; }
+  .complete-stats { font-size: 16px; }
+}
+
+/* Tablets (iPad / Android ~1024px de largura) */
+@media (max-width: 1100px) {
+  .hud-timer .t-lbl { display: none; }
+  .guide { flex-basis: 230px; }
+  .bubble-guide { font-size: 15px; }
+  .home-row { gap: 24px; }
+  .home-menu { min-width: 290px; }
+  .worlds-grid { gap: 16px; padding: 10px 16px 24px; }
+}
+
+@media (max-width: 900px) {
+  .guide { position: absolute; left: 12px; bottom: calc(100% + 4px); flex: none; width: auto; max-width: 60vw; z-index: 4; pointer-events: none; }
+  .guide-lupa { width: 64px; height: 70px; }
+  .bubble-guide { font-size: 15px; }
+  .hud-word { font-size: 22px; letter-spacing: 2px; }
+  .hud-label { font-size: 13px; }
+  .hud-timer { font-size: 18px; padding: 6px 10px; }
+  .btn-hint { max-width: 160px; font-size: 15px; min-height: 64px; padding: 10px 12px; }
+  .home-row { flex-direction: column; gap: 12px; }
+  .home-hero { flex-direction: row; max-width: 92vw; }
+  .bubble-home::before { display: none; }
+  .hero-lupa { width: 120px; }
+  .worlds-grid { grid-template-columns: 1fr; max-width: 560px; align-content: start; }
+  .complete-body { flex-direction: column; text-align: center; }
+  .complete-art { width: 170px; }
+  .avatar-grid { grid-template-columns: repeat(4, 1fr); }
+  .intro-lupa { width: 80px; height: 90px; }
+}
+
+@media (max-width: 600px) {
+  .hud-timer.total { display: none; }
+  .hud { gap: 8px; padding-left: 8px; padding-right: 8px; }
+  .hud-mission { padding: 4px 10px; gap: 6px; }
+  .btn-hint span:not(.ico) { display: none; }
+  .btn-hint { min-width: 70px; justify-content: center; }
+  .slot { --s: 44px; }
+  .profile-chip .chip-name { display: none; }
+  .home-menu { min-width: 0; width: 100%; }
+  .map-arrow { display: none; }
+  .level-node .nword { display: none; }
+}
+
+/* telas sensíveis ao toque: sem efeitos de hover */
+@media (hover: none) {
+  .btn:hover { filter: none; }
+}
+@media (hover: hover) {
+  .btn:hover { filter: brightness(1.07); }
+  .level-node:hover, .world-card:hover, .profile-card:hover { filter: brightness(1.06); }
+}

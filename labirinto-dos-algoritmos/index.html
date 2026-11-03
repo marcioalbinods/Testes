@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Labirinto dos Algoritmos</title>
+  <meta name="description" content="Jogo educativo de programação em blocos para o 5º ano: ajude o robô Byte a escapar dos labirintos!">
+  <meta name="theme-color" content="#231f5c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Labirinto">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <noscript><p class="noscript">Este jogo precisa de JavaScript ativado no navegador.</p></noscript>
+
+  <div id="app">
+    <!-- ============ TELA INICIAL ============ -->
+    <section id="scr-home" class="screen" aria-label="Tela inicial">
+      <div class="home-stage" id="home-3d"></div>
+      <div class="home-panel">
+        <h1 class="logo">
+          <span class="logo-top">Labirinto</span>
+          <span class="logo-mid">dos</span>
+          <span class="logo-bottom">Algoritmos</span>
+        </h1>
+        <p class="tagline">Ajude o robô <b>Byte</b> a escapar programando com blocos!</p>
+        <button class="player-chip" id="home-player" type="button" aria-label="Trocar jogador"></button>
+        <nav class="home-menu">
+          <button class="btn btn-xl btn-yellow" data-action="play" type="button">▶ JOGAR</button>
+          <button class="btn btn-xl btn-teal" data-action="continue" type="button" id="btn-continue">⏩ CONTINUAR</button>
+          <div class="home-grid">
+            <button class="btn btn-tile" data-go="map" type="button"><span>🗺️</span>Mapa dos Mundos</button>
+            <button class="btn btn-tile" data-go="ranking" type="button"><span>🏆</span>Ranking</button>
+            <button class="btn btn-tile" data-go="achievements" type="button"><span>🏅</span>Conquistas</button>
+            <button class="btn btn-tile" data-go="howto" type="button"><span>❓</span>Como Jogar</button>
+            <button class="btn btn-tile" data-go="settings" type="button"><span>⚙️</span>Configurações</button>
+            <button class="btn btn-tile" data-action="lab" type="button" id="btn-lab"><span>🧩</span>Laboratório</button>
+          </div>
+        </nav>
+        <p class="privacy-note">🔒 Sem cadastro e sem internet: o progresso fica salvo só neste aparelho.</p>
+      </div>
+    </section>
+
+    <!-- ============ ESCOLHA DE JOGADOR ============ -->
+    <section id="scr-players" class="screen" aria-label="Quem vai jogar">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Quem vai jogar?</h2>
+      </header>
+      <div class="screen-body">
+        <p class="lead">Cada jogador guarda o próprio progresso <b>neste aparelho</b>. Não precisa digitar nada!</p>
+        <div class="players-grid" id="players-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ MAPA DOS MUNDOS ============ -->
+    <section id="scr-map" class="screen" aria-label="Mapa dos mundos">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Mapa dos Mundos</h2>
+        <div class="head-right" id="map-summary"></div>
+      </header>
+      <div class="screen-body map-body" id="map-body"></div>
+    </section>
+
+    <!-- ============ JOGO ============ -->
+    <section id="scr-game" class="screen" aria-label="Fase">
+      <header class="game-head">
+        <button class="btn btn-back" id="game-back" type="button" aria-label="Voltar ao mapa">←</button>
+        <div class="game-title">
+          <div class="game-world" id="game-world"></div>
+          <h2 id="game-level-title"></h2>
+        </div>
+        <div class="game-objective" id="game-objective"></div>
+        <button class="btn btn-small btn-yellow" id="btn-hint" type="button">💡 Dica</button>
+        <button class="btn btn-small" id="btn-info" type="button" aria-label="Ver missão">📜</button>
+      </header>
+      <div class="game-body" id="game-body">
+        <div class="stage-pane">
+          <div class="stage" id="stage">
+            <div class="hud" id="hud"></div>
+            <div class="variant-tabs" id="variant-tabs"></div>
+            <div class="cam-controls">
+              <button class="btn btn-icon" id="cam-rotate" type="button" aria-label="Girar câmera">🔄</button>
+              <button class="btn btn-icon" id="cam-in" type="button" aria-label="Aproximar">➕</button>
+              <button class="btn btn-icon" id="cam-out" type="button" aria-label="Afastar">➖</button>
+              <button class="btn btn-icon" id="stage-expand" type="button" aria-label="Aumentar labirinto">⛶</button>
+            </div>
+            <div class="bubble" id="bubble" hidden></div>
+            <div class="banner" id="stage-banner" hidden></div>
+            <div class="no-webgl" id="no-webgl" hidden>
+              <p>😕 Este navegador não conseguiu abrir o 3D.</p>
+              <p>Tente atualizar o navegador ou usar o Chrome / Safari mais recente.</p>
+            </div>
+          </div>
+          <div class="log" id="log" aria-live="polite"></div>
+        </div>
+        <div class="editor-pane">
+          <div class="editor-top">
+            <span class="blocks-count" id="blocks-count">Blocos: 0</span>
+            <span class="editor-tip">Arraste os blocos e encaixe embaixo de <b>▶ quando iniciar</b></span>
+          </div>
+          <div class="blockly-host">
+            <div id="blockly" class="blockly-div"></div>
+            <div class="editor-lock" id="editor-lock" hidden><span>▶ Executando… use ⏸️ ou ⏹️ para editar</span></div>
+          </div>
+        </div>
+      </div>
+      <footer class="controls">
+        <div class="pane-switch" id="pane-switch">
+          <button class="btn btn-small" data-pane="stage" type="button">🧭 Labirinto</button>
+          <button class="btn btn-small" data-pane="editor" type="button">🧩 Blocos</button>
+        </div>
+        <button class="btn btn-run btn-green" id="btn-run" type="button">▶ Executar</button>
+        <button class="btn btn-ctrl" id="btn-pause" type="button" disabled>⏸️<span class="lbl"> Pausar</span></button>
+        <button class="btn btn-ctrl" id="btn-stop" type="button" disabled>⏹️<span class="lbl"> Parar</span></button>
+        <button class="btn btn-ctrl" id="btn-reset" type="button">↺<span class="lbl"> Reiniciar</span></button>
+        <button class="btn btn-ctrl btn-danger-soft" id="btn-clear" type="button">🗑<span class="lbl"> Limpar</span></button>
+        <button class="btn btn-ctrl" id="btn-speed" type="button" aria-label="Velocidade">🐢 1x</button>
+      </footer>
+    </section>
+
+    <!-- ============ RANKING ============ -->
+    <section id="scr-ranking" class="screen" aria-label="Ranking">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Ranking</h2>
+        <div class="head-right">
+          <button class="btn btn-small" data-action="export" type="button">📤 Exportar</button>
+          <button class="btn btn-small" data-action="import" type="button">📥 Importar</button>
+        </div>
+      </header>
+      <div class="screen-body">
+        <div class="local-banner">📍 <b>Ranking deste aparelho.</b> Cada tablet ou computador tem o seu próprio ranking — não há competição online. Para juntar resultados de vários aparelhos, use <b>Exportar</b> em cada um e <b>Importar</b> no aparelho do professor.</div>
+        <div class="tabs" id="rank-tabs" role="tablist">
+          <button class="tab" data-tab="geral" type="button" role="tab">🌍 Geral</button>
+          <button class="tab" data-tab="mundo" type="button" role="tab">🗺️ Por mundo</button>
+          <button class="tab" data-tab="fase" type="button" role="tab">🎯 Por fase</button>
+          <button class="tab" data-tab="conquistas" type="button" role="tab">🏅 Conquistas</button>
+        </div>
+        <div class="chips" id="rank-filter"></div>
+        <div class="podium" id="podium"></div>
+        <div class="rank-table-wrap"><table class="rank-table" id="rank-table"></table></div>
+      </div>
+    </section>
+
+    <!-- ============ CONQUISTAS ============ -->
+    <section id="scr-achievements" class="screen" aria-label="Conquistas">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Conquistas</h2>
+        <div class="head-right" id="ach-summary"></div>
+      </header>
+      <div class="screen-body"><div class="ach-grid" id="ach-grid"></div></div>
+    </section>
+
+    <!-- ============ COMO JOGAR ============ -->
+    <section id="scr-howto" class="screen" aria-label="Como jogar">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Como Jogar</h2>
+      </header>
+      <div class="screen-body howto" id="howto-body"></div>
+    </section>
+
+    <!-- ============ CONFIGURAÇÕES ============ -->
+    <section id="scr-settings" class="screen" aria-label="Configurações">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>Configurações</h2>
+      </header>
+      <div class="screen-body settings" id="settings-body"></div>
+    </section>
+
+    <!-- ============ LABORATÓRIO DE CRIAÇÃO ============ -->
+    <section id="scr-lab" class="screen" aria-label="Laboratório de Criação">
+      <header class="screen-head">
+        <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
+        <h2>🧩 Laboratório de Criação</h2>
+      </header>
+      <div class="screen-body lab-body" id="lab-body"></div>
+    </section>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <input type="file" id="file-input" accept=".json,.csv,application/json,text/csv" hidden>
+
+  <!-- Bibliotecas locais (funcionam sem internet) -->
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/blockly/blockly_compressed.js"></script>
+  <script src="vendor/blockly/msg/pt-br.js"></script>
+  <!-- Jogo -->
+  <script src="js/levels.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/interpreter.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/byte3d.js"></script>
+  <script src="js/scene3d.js"></script>
+  <script src="js/blocks.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/illustrations.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ranking.js"></script>
+  <script src="js/lab.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

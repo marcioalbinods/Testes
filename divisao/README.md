@@ -21,6 +21,7 @@ Basta abrir o arquivo `divisao/index.html` no navegador. Não precisa instalar n
 
 ## Publicar online (GitHub Pages)
 
-No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos o site fica em
+No GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**
+(a publicação de todos os projetos é feita pelo arquivo `.github/workflows/pages.yml`, veja o README principal).
+A cada alteração no `main` o site é publicado sozinho em
 `https://marcioalbinods.github.io/Testes/divisao/`.

@@ -39,9 +39,9 @@ Navegadores testados: Chrome/Edge (notebook e desktop), Chrome Android e Safari 
 ## 🌐 Como publicar no GitHub Pages
 
 1. No GitHub, abra o repositório e vá em **Settings → Pages**.
-2. Em **Build and deployment → Source**, escolha **Deploy from a branch**.
-3. Selecione a branch `main` e a pasta `/ (root)` e clique em **Save**.
-4. Aguarde 1 ou 2 minutos. O jogo ficará disponível em:
+2. Em **Build and deployment → Source**, escolha **GitHub Actions** (a publicação de todos os projetos
+   do repositório é feita pelo arquivo `.github/workflows/pages.yml`, veja o README principal).
+3. A cada alteração no `main` o site é publicado sozinho. Em 1 ou 2 minutos o jogo ficará em:
 
    `https://marcioalbinods.github.io/Testes/caca-as-letras/`
 

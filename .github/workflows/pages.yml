@@ -1,0 +1,81 @@
+name: Publicar os sites no GitHub Pages
+
+# Monta os 4 projetos num site só:
+#   /                          página inicial
+#   /divisao/                  Divisão Passo a Passo
+#   /caca-as-letras/           Caçadores de Letras
+#   /labirinto-dos-algoritmos/ Labirinto dos Algoritmos
+#   /kodu-academy/             Kodu Academy (compilado aqui)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: kodu-academy
+
+jobs:
+  test-kodu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kodu-academy/package-lock.json
+      - run: npm ci
+      - name: Verificar tipos
+        run: npm run typecheck
+      - name: Testes automatizados (conteúdo, regras, interface)
+        run: npm test
+      - name: Testes do banco de dados e das regras de segurança (RLS)
+        run: npm run test:db
+
+  build-deploy:
+    needs: test-kodu
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kodu-academy/package-lock.json
+      - run: npm ci
+      - name: Validar a configuração do Supabase (arquivo .env.production)
+        run: npx tsx scripts/check-config.ts
+      - name: Compilar a Kodu Academy
+        run: npm run build
+      - name: Verificar que nenhuma chave secreta foi incluída
+        run: node scripts/check-secrets.mjs dist
+      - name: Juntar os 4 sites
+        working-directory: .
+        run: |
+          mkdir _site
+          cp index.html _site/
+          cp -r divisao caca-as-letras labirinto-dos-algoritmos _site/
+          cp -r kodu-academy/dist _site/kodu-academy
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

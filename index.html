@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Meus Sites Educativos</title>
-  <meta name="description" content="Atalhos para os sites educativos do Márcio: Divisão Passo a Passo, Caçadores de Letras e Kodu Academy.">
+  <meta name="description" content="Atalhos para os sites educativos: Divisão Passo a Passo, Caçadores de Letras, Labirinto dos Algoritmos e Kodu Academy.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -18,6 +18,7 @@
       --blue: #2f6fdb;   --blue-soft: #e3edff;
       --orange: #e07a1f; --orange-soft: #fdecd9;
       --green: #1d8a4e;  --green-soft: #def3e7;
+      --purple: #7a4fd6; --purple-soft: #ece4fd;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
@@ -25,6 +26,7 @@
         --blue: #7ea8ff;   --blue-soft: #263453;
         --orange: #f3a35c; --orange-soft: #43301f;
         --green: #5fcf91;  --green-soft: #1f3d2d;
+        --purple: #b69bff; --purple-soft: #33294f;
       }
     }
     :root[data-theme="dark"] {
@@ -32,6 +34,7 @@
       --blue: #7ea8ff;   --blue-soft: #263453;
       --orange: #f3a35c; --orange-soft: #43301f;
       --green: #5fcf91;  --green-soft: #1f3d2d;
+      --purple: #b69bff; --purple-soft: #33294f;
     }
 
     * { box-sizing: border-box; }
@@ -42,7 +45,7 @@
       font-family: "Nunito", system-ui, sans-serif;
       line-height: 1.5;
     }
-    .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 16px 40px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 56px 16px 40px; }
 
     header { text-align: center; margin-bottom: 44px; }
     header h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.7rem); font-weight: 900; letter-spacing: -0.02em; }
@@ -50,7 +53,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
       gap: 20px;
     }
     .card {
@@ -66,6 +69,7 @@
     .card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
     .card.orange { --c: var(--orange); --c-soft: var(--orange-soft); }
     .card.green  { --c: var(--green);  --c-soft: var(--green-soft); }
+    .card.purple { --c: var(--purple); --c-soft: var(--purple-soft); }
 
     .icon {
       width: 56px; height: 56px; border-radius: 14px;
@@ -102,7 +106,7 @@
   <div class="wrap">
     <header>
       <h1>Meus Sites Educativos</h1>
-      <p>Escolha um projeto para abrir. Cada um fica em sua própria pasta (ou repositório) no GitHub.</p>
+      <p>Escolha um projeto para abrir. Cada um fica em sua própria pasta no GitHub.</p>
     </header>
 
     <main class="grid">
@@ -128,14 +132,25 @@
         </div>
       </article>
 
+      <article class="card purple">
+        <div class="icon" aria-hidden="true">🤖</div>
+        <span class="tag">Educação Digital</span>
+        <h2>Labirinto dos Algoritmos</h2>
+        <p>Programação em blocos: monte algoritmos para o robô Byte escapar de 25 labirintos 3D em 5 mundos.</p>
+        <div class="actions">
+          <a class="btn main" href="labirinto-dos-algoritmos/">Jogar →</a>
+          <a class="btn ghost" href="https://github.com/marcioalbinods/Testes/tree/main/labirinto-dos-algoritmos">Código</a>
+        </div>
+      </article>
+
       <article class="card green">
         <div class="icon" aria-hidden="true">K</div>
         <span class="tag">Programação</span>
         <h2>Kodu Academy</h2>
         <p>Plataforma para aprender Kodu Game Lab em 20 fases, com painel do professor para acompanhar cada aluno.</p>
         <div class="actions">
-          <a class="btn main" href="https://marcioalbinods.github.io/KODUGAMELAB/">Abrir site →</a>
-          <a class="btn ghost" href="https://github.com/marcioalbinods/KODUGAMELAB">Código</a>
+          <a class="btn main" href="kodu-academy/">Abrir site →</a>
+          <a class="btn ghost" href="https://github.com/marcioalbinods/Testes/tree/main/kodu-academy">Código</a>
         </div>
       </article>
     </main>

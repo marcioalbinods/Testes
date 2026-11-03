@@ -4,7 +4,7 @@
    ========================================================= */
 window.CDL_CONFIG = {
   // PIN de acesso ao PAINEL DO PROFESSOR (apenas números, 4 a 6 dígitos).
-  teacherPin: '1234',
+  teacherPin: '0694',
 
   // Duração (ms) do destaque da Dica 3.
   hintHighlightMs: 4000,

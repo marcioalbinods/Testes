@@ -130,10 +130,10 @@ Há duas formas:
 Abra **`js/config.js`** e altere:
 
 ```js
-teacherPin: '1234',
+teacherPin: '0694',
 ```
 
-Use de 4 a 6 números. O PIN padrão é **1234**.
+Use de 4 a 6 números. O PIN atual é **0694**.
 
 > Observação: por ser um site estático, o PIN impede o acesso casual das crianças ao painel, mas não é uma proteção de segurança forte.
 

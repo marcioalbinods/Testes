@@ -237,7 +237,7 @@ async function playCurrentLevel(page, opts = {}) {
   ok(fs.readFileSync(path.join(OUT, 'historico.csv'), 'utf8').includes('Concluída'), 'CSV de histórico exportado');
   await page.click('.t-card:first-child [data-t="detail"]');
   await page.waitForSelector('.t-table');
-  const rows = await page.$$eval('.t-detail .t-table:first-of-type tbody tr', (e) => e.length);
+  const rows = await page.$$eval('.t-detail .t-table', (t) => t[0].tBodies[0].rows.length);
   ok(rows === 30, 'detalhe mostra as 30 fases');
   ok(/30<\/b>fases concluídas/.test(await page.innerHTML('.t-grid.wide')), 'detalhe mostra 30 fases concluídas');
   await page.screenshot({ path: path.join(OUT, 'professor-detalhe.png'), fullPage: false });

@@ -113,8 +113,9 @@
       .map((p) => ({ x: Math.round(clamp(p.x, BOUNDS.x0, BOUNDS.x1)), y: Math.round(clamp(p.y, BOUNDS.y0, BOUNDS.y1)) }))
       .filter((p) => { const k = p.x + ',' + p.y; if (seen.has(k)) return false; seen.add(k); return true; });
     let chosen = [];
-    let minD = style.minDist;
-    while (minD >= 90) {
+    const floorD = Math.round(style.size * 1.75); // distância mínima para nunca sobrepor letras
+    let minD = Math.max(style.minDist, floorD + 20);
+    while (minD >= floorD) {
       chosen = [];
       for (const p of shuffle(cand.slice(), r)) {
         if (chosen.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= minD)) chosen.push(p);
@@ -129,7 +130,7 @@
       for (let gx = BOUNDS.x0 + 40; gx <= BOUNDS.x1 - 40; gx += 120) for (let gy = BOUNDS.y0 + 40; gy <= BOUNDS.y1 - 20; gy += 110) grid.push({ x: gx, y: gy });
       for (const p of shuffle(grid, r)) {
         if (chosen.length >= total) break;
-        if (chosen.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= 110)) chosen.push(p);
+        if (chosen.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= floorD)) chosen.push(p);
       }
     }
     shuffle(chosen, r);

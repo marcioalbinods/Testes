@@ -721,6 +721,44 @@
     draw: (o) => `<path d="M-160 0 L-100 -110 H100 L160 0Z" fill="${o.color || '#5E35B1'}"/><path d="M-130 -30 H130 M-112 -62 H112 M-96 -92 H96" stroke="#000" stroke-width="5" opacity=".15"/><rect x="40" y="-160" width="34" height="60" fill="#8D6E63"/>`
   };
 
+  /* ---------------------- OBJETOS PEQUENOS (bagunça do cenário) ---------------------- */
+  P.leaf = {
+    spots: [],
+    draw: (o) => { const c = o.color || '#4CAF50'; return `<g transform="rotate(${o.rot || 0})"><path d="M0 0 Q18 -22 0 -48 Q-18 -22 0 0Z" fill="${c}"/><path d="M0 -2 V-42" stroke="#000" stroke-opacity=".2" stroke-width="3"/></g>`; }
+  };
+  P.apple = {
+    spots: [],
+    draw: (o) => `<circle cx="0" cy="-16" r="16" fill="${o.color || '#E53935'}"/><circle cx="-6" cy="-22" r="5" fill="#fff" opacity=".4"/><path d="M0 -30 V-40" stroke="#6D3F1A" stroke-width="4"/><ellipse cx="8" cy="-38" rx="7" ry="4" fill="#4CAF50"/>`
+  };
+  P.pebble = {
+    spots: [],
+    draw: (o) => `<ellipse cx="0" cy="-9" rx="22" ry="12" fill="${o.color || '#9AA5B1'}"/><ellipse cx="-6" cy="-14" rx="7" ry="3" fill="#fff" opacity=".3"/>`
+  };
+  P.bookStack = {
+    spots: [],
+    draw: (o) => { const c = ['#E84A5F', '#4FC3F7', '#FFD23F', '#7B61FF', '#3DDC84', '#FF8C42']; const k = o.k || 0; return `<rect x="-34" y="-18" width="68" height="18" rx="3" fill="${c[k % 6]}"/><rect x="-28" y="-34" width="58" height="16" rx="3" fill="${c[(k + 2) % 6]}"/><rect x="-32" y="-50" width="62" height="16" rx="3" fill="${c[(k + 4) % 6]}"/><path d="M-30 -12 H30 M-24 -28 H26 M-28 -44 H26" stroke="#fff" stroke-opacity=".5" stroke-width="3"/>`; }
+  };
+  P.coin = {
+    spots: [],
+    draw: () => `<circle cx="0" cy="-14" r="14" fill="#FFD23F" stroke="#E0A100" stroke-width="4"/><path d="M0 -22 V-6" stroke="#E0A100" stroke-width="4"/>`
+  };
+  P.key = {
+    spots: [],
+    draw: () => `<circle cx="-18" cy="-12" r="11" fill="none" stroke="#FFB400" stroke-width="7"/><path d="M-8 -12 H28 M18 -12 V-2 M26 -12 V-4" stroke="#FFB400" stroke-width="7" stroke-linecap="round"/>`
+  };
+  P.leafCluster = {
+    spots: [],
+    draw: (o) => { const c = o.color || '#43A047'; return [-40, 10, 60].map((a, i) => `<g transform="rotate(${a + (o.rot || 0)})"><path d="M0 0 Q${16 + i * 2} -20 0 ${-44 - i * 4} Q${-16 - i * 2} -20 0 0Z" fill="${c}" stroke="#1B5E20" stroke-opacity=".35" stroke-width="2"/></g>`).join(''); }
+  };
+  P.bubbleCluster = {
+    spots: [],
+    draw: () => [[0, 0, 18], [22, -14, 12], [-16, -20, 10], [8, -34, 8]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#E1F5FE" fill-opacity=".55" stroke="#fff" stroke-width="3"/>`).join('')
+  };
+  P.weed = {
+    spots: [],
+    draw: (o) => `<path d="M0 0 C-14 -20 14 -40 0 -64" stroke="${o.color || '#2E9E6A'}" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M8 0 C20 -16 0 -34 12 -50" stroke="${o.color || '#2E9E6A'}" stroke-width="9" fill="none" stroke-linecap="round" opacity=".85"/>`
+  };
+
   CDL.P = P;
 
   /* ---------- montagem ---------- */

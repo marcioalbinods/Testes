@@ -615,10 +615,83 @@
   } };
 
   CDL.SCENES = S;
-  CDL.buildScene = function (n, prefix = 's') {
+  /* =================== BAGUNÇA: muitos objetos espalhados (estilo "Onde está?") =================== */
+  const FLOWERS = ['#FF6FA5', '#FFD23F', '#7B61FF', '#E84A5F', '#4FC3F7', '#FF8C42', '#FFFFFF'];
+  const FISH = [['#FF8C42', '#FFD23F'], ['#7B61FF', '#B3A6FF'], ['#FF5A5F', '#FFE066'], ['#4DD0E1', '#E0F7FA'], ['#3DDC84', '#C8F7DC'], ['#F06292', '#FFD1DC']];
+  const LEAVES = ['#4CAF50', '#66BB6A', '#8BC34A', '#FFB300', '#E65100', '#2E7D32'];
+  const CORAL = ['#FF6F91', '#B388FF', '#FFB74D', '#4DD0E1', '#FFD23F', '#FF8A65'];
+  const STONE = ['#9AA5B1', '#B0A090', '#8D9AAE', '#C2B8A3'];
+  const anyOf = (arr) => (r) => arr[Math.floor(r() * arr.length)];
+  const col = anyOf(FLOWERS), leafC = anyOf(LEAVES), coralC = anyOf(CORAL), stoneC = anyOf(STONE);
+
+  // [nome, tipo (ground = no chão | float = no ar/água | wall = na parede), escala mín, escala máx, opções]
+  const CLUTTER = {
+    1: [
+      ['flower', 'ground', 0.5, 0.9, (r) => ({ color: col(r) })], ['flower', 'ground', 0.5, 0.9, (r) => ({ color: col(r) })],
+      ['tulip', 'ground', 0.6, 1, (r) => ({ color: col(r) })], ['tulip', 'ground', 0.6, 1, (r) => ({ color: col(r) })],
+      ['mushroom', 'ground', 0.3, 0.55, (r) => ({ color: col(r) })], ['bush', 'ground', 0.35, 0.6, (r) => ({ c1: leafC(r), c2: '#3B8E3F', berry: r() < 0.4 ? '#E84A5F' : '' })],
+      ['rock', 'ground', 0.3, 0.55, (r) => ({ color: stoneC(r), moss: r() < 0.3 })], ['grass', 'ground', 0.8, 1.4], ['grass', 'ground', 0.8, 1.4],
+      ['snail', 'ground', 0.4, 0.6], ['rabbit', 'ground', 0.4, 0.6], ['squirrel', 'ground', 0.4, 0.6], ['frog', 'ground', 0.4, 0.6],
+      ['ball', 'ground', 0.35, 0.55, (r) => ({ color: col(r) })], ['basket', 'ground', 0.35, 0.5], ['apple', 'ground', 0.8, 1.2], ['pebble', 'ground', 0.7, 1.3, (r) => ({ color: stoneC(r) })],
+      ['leaf', 'ground', 0.8, 1.4, (r) => ({ color: leafC(r), rot: r() * 360 })], ['log', 'ground', 0.3, 0.45], ['backpack', 'ground', 0.4, 0.55],
+      ['tree', 'ground', 0.3, 0.5, (r) => ({ c1: leafC(r), c2: '#3E9B4F', fruit: r() < 0.4 ? '#E53935' : '' })], ['pine', 'ground', 0.3, 0.5], ['owl', 'ground', 0.5, 0.7],
+      ['butterfly', 'float', 0.5, 0.9, (r) => ({ color: col(r), c2: col(r) })], ['bee', 'float', 0.6, 1], ['bird', 'float', 0.5, 0.8, (r) => ({ color: col(r) })],
+      ['leaf', 'float', 0.8, 1.3, (r) => ({ color: leafC(r), rot: r() * 360 })], ['firefly', 'float', 0.8, 1.2], ['kite', 'float', 0.35, 0.5, (r) => ({ color: col(r) })]
+    ],
+    2: [
+      ['fish', 'float', 0.35, 0.7, (r) => { const f = anyOf(FISH)(r); return { color: f[0], c2: f[1], flip: r() < 0.5 }; }],
+      ['fish', 'float', 0.35, 0.7, (r) => { const f = anyOf(FISH)(r); return { color: f[0], c2: f[1], flip: r() < 0.5 }; }],
+      ['jellyfish', 'float', 0.35, 0.6, (r) => ({ color: coralC(r) })], ['bubbleCluster', 'float', 0.8, 1.4], ['bubbles', 'float', 0.8, 1.3],
+      ['seahorse', 'float', 0.35, 0.55, (r) => ({ color: coralC(r) })], ['turtle', 'float', 0.3, 0.45],
+      ['shell', 'ground', 0.5, 0.9, (r) => ({ color: coralC(r) })], ['starfish', 'ground', 0.6, 1, (r) => ({ color: coralC(r) })],
+      ['coral', 'ground', 0.35, 0.6, (r) => ({ color: coralC(r) })], ['fanCoral', 'ground', 0.35, 0.6, (r) => ({ color: coralC(r) })],
+      ['brainCoral', 'ground', 0.35, 0.6, (r) => ({ color: coralC(r) })], ['anemone', 'ground', 0.45, 0.75, (r) => ({ color: coralC(r) })],
+      ['weed', 'ground', 0.8, 1.4, (r) => ({ color: r() < 0.5 ? '#2E9E6A' : '#3FBF7F' })], ['crab', 'ground', 0.35, 0.55], ['pebble', 'ground', 0.7, 1.2, (r) => ({ color: stoneC(r) })],
+      ['coin', 'ground', 0.8, 1.2], ['crystal', 'ground', 0.25, 0.4, (r) => ({ color: coralC(r) })], ['chest', 'ground', 0.3, 0.4], ['anchor', 'ground', 0.25, 0.35]
+    ],
+    3: [
+      ['barrel', 'ground', 0.35, 0.55], ['crate', 'ground', 0.35, 0.55], ['candle', 'ground', 0.4, 0.7, (r) => ({ color: r() < 0.5 ? '#FFF3E0' : '#F8BBD0' })],
+      ['bookStack', 'ground', 0.6, 0.9, (r) => ({ k: Math.floor(r() * 6) })], ['bookStack', 'ground', 0.6, 0.9, (r) => ({ k: Math.floor(r() * 6) })],
+      ['coin', 'ground', 0.8, 1.2], ['coin', 'ground', 0.8, 1.2], ['key', 'ground', 0.8, 1.1], ['crown', 'ground', 0.45, 0.65], ['gems', 'ground', 0.4, 0.6],
+      ['potions', 'ground', 0.4, 0.55], ['cat', 'ground', 0.35, 0.45, (r) => ({ color: r() < 0.5 ? '#9E9E9E' : '#FFA94D' })], ['pebble', 'ground', 0.7, 1.2, (r) => ({ color: stoneC(r) })],
+      ['shield', 'wall', 0.4, 0.6, (r) => ({ color: col(r) })], ['portrait', 'wall', 0.35, 0.5, (r) => ({ bg: col(r), robe: col(r) })],
+      ['torch', 'wall', 0.5, 0.7], ['banner', 'wall', 0.35, 0.5, (r) => ({ color: col(r), emblem: ['crown', 'star', 'shield'][Math.floor(r() * 3)] })],
+      ['web', 'wall', 0.5, 0.8], ['bat', 'float', 0.5, 0.8], ['bat', 'float', 0.5, 0.8], ['butterfly', 'float', 0.4, 0.6, (r) => ({ color: col(r), c2: col(r) })]
+    ]
+  };
+  const GROUND_Y = { 1: 540, 2: 760, 3: 730, 8: 600, 13: 640, 14: 600, 21: 780, 22: 640, 29: 790 };
+
+  function addClutter(b, n, seed) {
+    const world = n <= 10 ? 1 : n <= 20 ? 2 : 3;
+    const i = (n - 1) % 10;
+    const count = [0, 62, 70, 88][world] + i * 4;
+    const r = CDL.rng(n * 3571 + (seed || 0) * 7919 + 99);
+    const list = CLUTTER[world];
+    const gy = GROUND_Y[n] || GROUND_Y[world];
+    const items = [];
+    for (let k = 0; k < count; k++) {
+      const [name, kind, s0, s1, optFn] = list[Math.floor(r() * list.length)];
+      const s = s0 + r() * (s1 - s0);
+      const x = 40 + r() * 1520;
+      const y = kind === 'ground' ? gy + r() * (880 - gy) : kind === 'wall' ? 130 + r() * (gy - 220) : 90 + r() * (gy - 150);
+      const o = optFn ? optFn(r) : {};
+      if (o.flip === undefined) o.flip = r() < 0.5;
+      items.push({ name, x, y, s, o });
+    }
+    items.sort((a, c) => a.y - c.y); // profundidade: o que está mais embaixo fica na frente
+    let svg = '';
+    for (const it of items) {
+      svg += CDL.place(it.name, Math.round(it.x), Math.round(it.y), +it.s.toFixed(2), it.o);
+      b.spots.push({ x: it.x, y: it.y - 30 * it.s - 10 });
+    }
+    b.raw(`<g class="clutter">${svg}</g>`);
+  }
+
+  CDL.buildScene = function (n, prefix = 's', opts = {}) {
     const def = S[n];
     const b = new Builder();
     def.build(b);
+    if (opts.clutter) addClutter(b, n, opts.seed);
     // ids exclusivos por cenário (evita conflito de gradientes entre SVGs)
     const svg = b.svg().replace(/id="([\w-]+)"/g, `id="${prefix}${n}_$1"`).replace(/url\(#([\w-]+)\)/g, `url(#${prefix}${n}_$1)`);
     return { name: def.name, svg, spots: b.spots };

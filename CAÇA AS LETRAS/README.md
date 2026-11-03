@@ -8,7 +8,9 @@ A criança recebe uma missão, explora um cenário ilustrado, encontra as letras
 - 30 fases jogáveis em 3 mundos (Floresta das Letras, Oceano Misterioso e Castelo dos Desafios)
 - 30 cenários ilustrados em SVG, cada um com composição própria
 - Letras repetidas contadas corretamente (ex.: CASA tem dois **A** no cenário)
-- Letras distratoras que aumentam com a dificuldade
+- Cenários lotados de objetos, no estilo “Onde está?”: de 60 a 125 itens extras por fase, espalhados de um jeito diferente a cada partida
+- Letras camufladas: cores parecidas com o cenário, inclinadas e às vezes parcialmente cobertas por folhas, bolhas ou teias
+- Muitas letras distratoras (de 7 a 19 por fase), que aumentam com a dificuldade
 - Dicas progressivas, cronômetro por fase e da aventura, estrelas e recompensas
 - Perfis de estudantes (apenas apelidos), progresso salvo no navegador
 - Painel do Professor com PIN, histórico e exportação em CSV
@@ -70,6 +72,17 @@ Cada item é `['PALAVRA', quantidadeDeLetrasDistratoras]`.
 - Verifique se o cenário tem esconderijos suficientes (letras da palavra + distratoras). Se faltar, o jogo completa automaticamente com posições livres, mas o ideal é acrescentar esconderijos (veja abaixo).
 
 ---
+
+## 🎚️ Como deixar o jogo mais fácil ou mais difícil
+
+- **Quantidade de objetos espalhados:** em `js/scenes.js`, procure `const count = [0, 62, 70, 88][world] + i * 4;`. Os números 62, 70 e 88 são a base de cada mundo (Floresta, Oceano, Castelo). Diminua para deixar o cenário mais limpo.
+- **Letras distratoras:** em `js/levels.js`, o segundo número de cada palavra na lista `RAW`.
+- **Tamanho, inclinação e camuflagem das letras:** em `js/levels.js`, `CDL.LETTER_STYLE`:
+  - `size`: tamanho da letra;
+  - `rot`: inclinação máxima;
+  - `cover`: chance de a letra ficar parcialmente coberta (0 = nunca, 1 = sempre);
+  - `outline`: contorno claro (maior = mais fácil de ver).
+- **Cores de camuflagem:** em `js/levels.js`, `CDL.CAMO_COLORS`.
 
 ## ➕ Como adicionar novas fases
 

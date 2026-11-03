@@ -189,3 +189,8 @@
 /* foco: sem contorno ao tocar/clicar, contorno visível só no teclado */
 .letter:focus { outline: none; }
 .letter:focus-visible .hit { fill-opacity: .25; stroke: #FFD23F; stroke-width: 8; }
+
+/* objetos de "bagunça" ficam parados (deixa o jogo leve em tablets) */
+.clutter * { animation: none !important; }
+#cover-layer { pointer-events: none; }
+

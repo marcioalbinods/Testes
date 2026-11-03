@@ -1,5 +1,5 @@
 /* CAÇADORES DE LETRAS — Service worker: guarda os arquivos para jogar sem internet. */
-const CACHE = 'cacadores-de-letras-v1';
+const CACHE = 'cacadores-de-letras-v2';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './css/style.css', './css/game.css', './css/responsive.css',

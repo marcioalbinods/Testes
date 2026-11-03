@@ -32,14 +32,12 @@
 
   function letterSVG(L, style, world) {
     const s = style.size;
-    let halo = '';
-    if (world === 1) halo = `<circle class="halo" r="${s * 0.62}" fill="#fff" fill-opacity=".78" stroke="${L.color}" stroke-opacity=".45" stroke-width="6"/>`;
-    else if (world === 2) halo = `<circle class="halo" r="${s * 0.56}" fill="#fff" fill-opacity=".3"/>`;
+    const halo = '';
     return `<g class="letter" data-id="${L.id}" data-ch="${L.ch}" data-target="${L.target ? 1 : 0}" transform="translate(${L.x} ${L.y})" role="button" tabindex="0" aria-label="Letra ${L.ch}">
       <g class="letter-inner">
-        <circle class="hit" r="${Math.round(s * 0.76)}"/>
+        <circle class="hit" r="${Math.max(46, Math.round(s * 0.76))}"/>
         ${halo}
-        <text class="glyph" transform="rotate(${L.rot})" font-size="${s}" text-anchor="middle" dy="0.36em" fill="${L.color}" stroke="#fff" stroke-width="${Math.round(s * (world === 3 ? 0.12 : 0.15))}" filter="url(#lshadow)">${L.ch}</text>
+        <text class="glyph" transform="rotate(${L.rot})" font-size="${s}" text-anchor="middle" dy="0.36em" fill="${L.color}" stroke="#fff" stroke-opacity=".75" stroke-width="${style.outline || 4}" filter="url(#lshadow)">${L.ch}</text>
         ${L.deco ? decoSVG(L.deco, s) : ''}
         <g class="check" transform="translate(${s * 0.48} ${-s * 0.46})"><circle r="${s * 0.2}" fill="#2DBE60" stroke="#fff" stroke-width="4"/><path d="M${-s * 0.09} 0 L${-s * 0.02} ${s * 0.07} L${s * 0.1} ${-s * 0.07}" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/></g>
       </g>
@@ -85,6 +83,7 @@
       svg.innerHTML = `<defs><filter id="lshadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="5" stdDeviation="2" flood-color="#000" flood-opacity=".35"/></filter></defs>
         <g class="scene-art">${scene.svg}</g>
         <g id="letters-layer">${letters.map((L) => letterSVG(L, style, level.world)).join('')}</g>
+        <g id="cover-layer" pointer-events="none">${letters.filter((L) => L.cover).map((L) => CDL.place(L.cover.name, L.x + L.cover.dx, L.y + L.cover.dy, L.cover.s, { rot: L.cover.rot, color: L.cover.color })).join('')}</g>
         <g id="hint-layer"></g>`;
 
       $('hud-mission').textContent = 'MISSÃO ' + String(n).padStart(2, '0');
@@ -137,7 +136,7 @@
       if (!st) return;
       $('timer-level').textContent = CDL.formatTime(this.timer.elapsed());
       this.updateTotal();
-      if (st.started && !st.finished && this.timer.running && Date.now() - st.lastFound > 25000) {
+      if (st.started && !st.finished && this.timer.running && Date.now() - st.lastFound > 40000) {
         st.lastFound = Date.now();
         this.say(pick(MSG.idle));
         $('btn-hint').classList.add('glow');

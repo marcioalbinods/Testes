@@ -223,7 +223,7 @@ async function playCurrentLevel(page, opts = {}) {
   for (const k of '0000') await page.click(`.key[data-k="${k}"]`);
   ok(/incorreto/.test(await page.textContent('#pin-error')), 'PIN errado é recusado');
   await page.waitForTimeout(1300);
-  for (const k of '1234') await page.click(`.key[data-k="${k}"]`);
+  for (const k of '0694') await page.click(`.key[data-k="${k}"]`);
   await page.waitForSelector('.t-cards');
   ok((await page.$$('.t-card')).length === 2, 'painel lista os 2 perfis');
   await page.screenshot({ path: path.join(OUT, 'professor-lista.png') });

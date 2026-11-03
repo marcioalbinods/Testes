@@ -1,0 +1,17 @@
+{
+  "name": "Labirinto dos Algoritmos",
+  "short_name": "Labirinto",
+  "description": "Jogo educativo de programação em blocos: ajude o robô Byte a escapar dos labirintos!",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#231f5c",
+  "theme_color": "#231f5c",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

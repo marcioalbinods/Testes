@@ -34,3 +34,15 @@ Veja as instruções completas em [`CAÇA AS LETRAS/README.md`](CA%C3%87A%20AS%2
 
 Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/CA%C3%87A%20AS%20LETRAS/`.
+
+---
+
+# 🤖 Labirinto dos Algoritmos (pasta `labirinto-dos-algoritmos/`)
+
+Jogo educativo de programação em blocos para o 5º ano (Educação Digital): o robô Byte precisa escapar
+de 25 labirintos 3D em 5 mundos, e os estudantes montam algoritmos com blocos (sequência, repetição,
+condições, sensores e variáveis). Sem cadastro, sem banco de dados e funciona offline.
+Veja as instruções completas em [`labirinto-dos-algoritmos/README.md`](labirinto-dos-algoritmos/README.md).
+
+Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/labirinto-dos-algoritmos/`.

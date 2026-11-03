@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Caçadores de Letras</title>
+  <meta name="description" content="Caçadores de Letras — Uma aventura em busca das letras perdidas! Jogo educativo de alfabetização para crianças de 6 e 7 anos.">
+  <meta name="theme-color" content="#6C4BE0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="preload" href="assets/fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ================= TELA INICIAL ================= -->
+    <section id="screen-home" class="screen" aria-label="Tela inicial">
+      <div class="home-scene" aria-hidden="true"></div>
+      <div class="home-content">
+        <div class="logo" role="heading" aria-level="1">
+          <span class="logo-top">CAÇADORES</span>
+          <span class="logo-de">DE</span>
+          <span class="logo-bottom">LETRAS</span>
+        </div>
+        <p class="subtitle">Uma aventura em busca das letras perdidas!</p>
+        <div class="home-row">
+          <div class="home-hero">
+            <div class="hero-lupa" data-lupa></div>
+            <div class="bubble bubble-home">Explore cenários incríveis, encontre letras escondidas e descubra palavras para completar suas missões!</div>
+          </div>
+          <nav class="home-menu" aria-label="Menu principal">
+            <button class="btn btn-big btn-green" data-action="play"><span class="ico">▶</span> JOGAR</button>
+            <button class="btn btn-big btn-orange" data-action="continue"><span class="ico">⏩</span> CONTINUAR</button>
+            <button class="btn btn-big btn-blue" data-action="worlds"><span class="ico">🗺️</span> SELECIONAR MUNDO</button>
+            <button class="btn btn-big btn-purple" data-action="settings"><span class="ico">⚙️</span> CONFIGURAÇÕES</button>
+          </nav>
+        </div>
+      </div>
+      <button class="profile-chip" data-action="profiles" aria-label="Trocar explorador"><span class="chip-avatar"></span><span class="chip-name"></span></button>
+      <button class="btn-teacher" data-action="teacher">🔒 PAINEL DO PROFESSOR</button>
+    </section>
+
+    <!-- ================= PERFIS ================= -->
+    <section id="screen-profiles" class="screen" aria-label="Escolher explorador">
+      <header class="screen-header">
+        <button class="btn btn-round btn-back" data-action="home" aria-label="Voltar">⬅</button>
+        <h2>QUEM VAI JOGAR?</h2>
+        <span class="spacer"></span>
+      </header>
+      <div class="profiles-wrap">
+        <div class="profiles-grid" id="profiles-grid"></div>
+        <form class="profile-form card hidden" id="profile-form" autocomplete="off">
+          <h3>NOVO EXPLORADOR</h3>
+          <p class="form-label">1. Escolha seu personagem:</p>
+          <div class="avatar-grid" id="avatar-grid"></div>
+          <p class="form-label">2. Escreva um apelido <small>(opcional — não use o nome completo)</small>:</p>
+          <input id="profile-name" class="input-big" maxlength="20" placeholder="EX.: ESTRELA" aria-label="Apelido">
+          <div class="form-actions">
+            <button type="button" class="btn btn-gray" data-action="cancel-profile">CANCELAR</button>
+            <button type="submit" class="btn btn-green">CRIAR ✔</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================= MUNDOS ================= -->
+    <section id="screen-worlds" class="screen" aria-label="Selecionar mundo">
+      <header class="screen-header">
+        <button class="btn btn-round btn-back" data-action="home" aria-label="Voltar">⬅</button>
+        <h2>ESCOLHA UM MUNDO</h2>
+        <span class="header-stars" id="worlds-stars"></span>
+      </header>
+      <div class="worlds-grid" id="worlds-grid"></div>
+    </section>
+
+    <!-- ================= MAPA DO MUNDO ================= -->
+    <section id="screen-map" class="screen" aria-label="Mapa de fases">
+      <header class="screen-header">
+        <button class="btn btn-round btn-back" data-action="worlds" aria-label="Voltar aos mundos">⬅</button>
+        <h2 id="map-title">MUNDO</h2>
+        <span class="header-stars" id="map-stars"></span>
+      </header>
+      <div class="map-wrap">
+        <button class="btn btn-round map-arrow" id="map-prev" aria-label="Mundo anterior">◀</button>
+        <div class="map-board" id="map-board"></div>
+        <button class="btn btn-round map-arrow" id="map-next" aria-label="Próximo mundo">▶</button>
+      </div>
+    </section>
+
+    <!-- ================= JOGO ================= -->
+    <section id="screen-game" class="screen" aria-label="Missão">
+      <div class="hud">
+        <button class="btn btn-round btn-pause" data-action="pause" aria-label="Pausar"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="2" fill="currentColor"/></svg></button>
+        <div class="hud-mission">
+          <span class="hud-label" id="hud-mission">MISSÃO 01</span>
+          <span class="hud-word" id="hud-word">SOL</span>
+        </div>
+        <div class="hud-timers">
+          <div class="hud-timer" title="Tempo da fase"><span class="t-ico">⏱️</span><span class="t-lbl">FASE</span><span id="timer-level">00:00</span></div>
+          <div class="hud-timer total" title="Tempo total da aventura"><span class="t-ico">🧭</span><span class="t-lbl">AVENTURA</span><span id="timer-total">00:00</span></div>
+        </div>
+        <button class="btn btn-round btn-sound" data-action="toggle-sound" aria-label="Ligar ou desligar sons">🔊</button>
+      </div>
+      <div class="stage" id="stage">
+        <svg id="scene" class="scene-svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="Cenário"></svg>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+      </div>
+      <div class="bottom-bar">
+        <div class="guide">
+          <div class="guide-lupa" data-lupa id="guide-lupa"></div>
+          <div class="bubble bubble-guide" id="guide-bubble">Vamos lá!</div>
+        </div>
+        <div class="slots-wrap">
+          <div class="slots" id="slots" aria-label="Letras encontradas"></div>
+          <div class="progress-line"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <button class="btn btn-hint" data-action="hint" id="btn-hint"><span class="ico">💡</span><span>PRECISO DE UMA DICA!</span></button>
+      </div>
+    </section>
+
+    <!-- ================= CONFIGURAÇÕES ================= -->
+    <section id="screen-settings" class="screen" aria-label="Configurações">
+      <header class="screen-header">
+        <button class="btn btn-round btn-back" data-action="home" aria-label="Voltar">⬅</button>
+        <h2>CONFIGURAÇÕES</h2>
+        <span class="spacer"></span>
+      </header>
+      <div class="settings-list card" id="settings-list"></div>
+    </section>
+
+    <!-- ================= PAINEL DO PROFESSOR ================= -->
+    <section id="screen-teacher" class="screen" aria-label="Painel do professor">
+      <header class="screen-header teacher-header">
+        <button class="btn btn-round btn-back" data-action="teacher-exit" aria-label="Sair do painel">⬅</button>
+        <h2>PAINEL DO PROFESSOR</h2>
+        <span class="spacer"></span>
+      </header>
+      <div class="teacher-body" id="teacher-body"></div>
+    </section>
+
+    <!-- ================= SOBREPOSIÇÕES ================= -->
+    <div class="overlay" id="ov-intro" role="dialog" aria-modal="true">
+      <div class="panel panel-intro">
+        <div class="intro-world" id="intro-world"></div>
+        <div class="intro-mission" id="intro-mission">MISSÃO 01</div>
+        <div class="intro-scene" id="intro-scene"></div>
+        <div class="intro-text">ENCONTRE AS LETRAS PARA FORMAR:</div>
+        <div class="intro-word" id="intro-word"></div>
+        <div class="intro-guide">
+          <div class="intro-lupa" data-lupa></div>
+          <div class="bubble" id="intro-bubble"></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-blue" data-action="speak-word" id="btn-speak">🔈 OUVIR</button>
+          <button class="btn btn-big btn-green" data-action="start-level">COMEÇAR! ▶</button>
+        </div>
+        <button class="btn-link" data-action="intro-map">voltar ao mapa</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-complete" role="dialog" aria-modal="true">
+      <div class="panel panel-complete">
+        <div class="complete-title" id="complete-title">MISSÃO CUMPRIDA!</div>
+        <div class="stars" id="complete-stars"></div>
+        <div class="complete-body">
+          <div class="complete-art" id="complete-art"></div>
+          <div class="complete-info">
+            <div class="complete-word" id="complete-word"></div>
+            <p class="complete-msg" id="complete-msg"></p>
+            <ul class="complete-stats" id="complete-stats"></ul>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-gray" data-action="map">🗺️ MAPA</button>
+          <button class="btn btn-orange" data-action="replay">↻ DE NOVO</button>
+          <button class="btn btn-big btn-green" data-action="next" id="btn-next">PRÓXIMA MISSÃO ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-world" role="dialog" aria-modal="true">
+      <div class="panel panel-world">
+        <div class="world-reward-title">RECOMPENSA ESPECIAL!</div>
+        <div class="medal" id="world-medal"></div>
+        <div class="world-reward-name" id="world-reward-name"></div>
+        <p class="world-reward-msg" id="world-reward-msg"></p>
+        <p class="world-unlock" id="world-unlock"></p>
+        <div class="panel-actions">
+          <button class="btn btn-big btn-green" data-action="world-continue" id="btn-world-continue">CONTINUAR A AVENTURA ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-final" role="dialog" aria-modal="true">
+      <div class="panel panel-final" id="certificate">
+        <div class="final-trophy" id="final-trophy"></div>
+        <div class="final-title">VOCÊ É UM VERDADEIRO CAÇADOR DE LETRAS!</div>
+        <div class="final-name" id="final-name"></div>
+        <div class="final-stats" id="final-stats"></div>
+        <div class="final-words" id="final-words"></div>
+        <div class="panel-actions no-print">
+          <button class="btn btn-blue" data-action="print">🖨️ IMPRIMIR CERTIFICADO</button>
+          <button class="btn btn-big btn-green" data-action="final-close">VOLTAR AOS MUNDOS</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-pause" role="dialog" aria-modal="true">
+      <div class="panel panel-pause">
+        <h3>PAUSA</h3>
+        <div class="pause-lupa" data-lupa></div>
+        <div class="pause-actions">
+          <button class="btn btn-big btn-green" data-action="resume">▶ CONTINUAR</button>
+          <button class="btn btn-orange" data-action="restart">↻ RECOMEÇAR FASE</button>
+          <button class="btn btn-blue" data-action="pause-map">🗺️ VER MAPA</button>
+          <button class="btn btn-gray" data-action="pause-home">🏠 TELA INICIAL</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-confirm" role="dialog" aria-modal="true">
+      <div class="panel panel-confirm">
+        <p id="confirm-text"></p>
+        <div class="panel-actions">
+          <button class="btn btn-gray" data-action="confirm-no">CANCELAR</button>
+          <button class="btn btn-red" data-action="confirm-yes" id="confirm-yes">SIM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-rotate" role="dialog" aria-modal="true">
+      <div class="panel panel-confirm">
+        <div class="rotate-ico">📱↻</div>
+        <p>Gire o tablet para a <b>horizontal</b> para ver o cenário maior!</p>
+        <div class="panel-actions"><button class="btn btn-green" data-action="rotate-ok">ENTENDI</button></div>
+      </div>
+    </div>
+
+    <div id="confetti" aria-hidden="true"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="transition" aria-hidden="true"></div>
+  </div>
+
+  <noscript><p style="padding:20px;font-size:20px">Este jogo precisa de JavaScript para funcionar.</p></noscript>
+
+  <script src="js/config.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/illustrations.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/teacher-panel.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -5,7 +5,7 @@
    e responsividade.
 
    Uso (precisa de Node.js e Playwright):
-     cd "CAÇA AS LETRAS"
+     cd caca-as-letras
      python3 -m http.server 8765      (em outro terminal)
      node tests/teste-completo.js
    ========================================================= */

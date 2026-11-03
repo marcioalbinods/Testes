@@ -27,7 +27,7 @@ O jogo é um site estático. Você pode:
    (Nesse modo tudo funciona, exceto o modo offline, que exige um endereço `http`.)
 2. **Usar um servidor local** (recomendado para testar o modo offline):
    ```bash
-   cd "CAÇA AS LETRAS"
+   cd caca-as-letras
    python3 -m http.server 8000
    ```
    e acesse <http://localhost:8000>.
@@ -43,9 +43,7 @@ Navegadores testados: Chrome/Edge (notebook e desktop), Chrome Android e Safari 
 3. Selecione a branch `main` e a pasta `/ (root)` e clique em **Save**.
 4. Aguarde 1 ou 2 minutos. O jogo ficará disponível em:
 
-   `https://<seu-usuario>.github.io/<nome-do-repositorio>/CA%C3%87A%20AS%20LETRAS/`
-
-   (o `%C3%87` é o “Ç” e `%20` são os espaços do nome da pasta).
+   `https://marcioalbinods.github.io/Testes/caca-as-letras/`
 
 Todos os caminhos do projeto são relativos, então o jogo funciona em qualquer subpasta.
 Depois que a página abrir uma vez, ela fica guardada no aparelho e pode ser jogada sem internet.
@@ -173,7 +171,7 @@ Os dados ficam no **LocalStorage** do navegador do aparelho. Cada tablet/computa
 ## 🗂️ Estrutura do projeto
 
 ```
-CAÇA AS LETRAS/
+caca-as-letras/
 ├── index.html              telas do jogo
 ├── manifest.webmanifest    instalação como aplicativo
 ├── sw.js                   modo offline
@@ -212,7 +210,7 @@ Os sons são gerados pelo próprio navegador (Web Audio), por isso não há arqu
 O arquivo `tests/teste-completo.js` joga as 30 fases e verifica: letras de cada palavra (inclusive repetidas), distratoras, letras dentro do cenário e sem sobreposição, área de toque, mensagens de erro, impossibilidade de coletar a mesma letra duas vezes, dicas 1-2-3, cronômetro (inclusive com troca de aba simulada e pausa), salvamento após recarregar, recompensas de mundo, tela final, troca de perfis, painel do professor (PIN, CSV, liberar fases, reiniciar), configurações, responsividade (iPad, tablet Android, notebook, desktop) e erros no console.
 
 ```bash
-cd "CAÇA AS LETRAS"
+cd caca-as-letras
 python3 -m http.server 8765 &
 npm install playwright     # apenas na primeira vez
 npx playwright install chromium

@@ -3,68 +3,146 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Divisão Passo a Passo</title>
-  <meta name="description" content="Resolva divisões pelo método da chave, escolhendo cada algarismo do quociente.">
+  <title>Meus Sites Educativos</title>
+  <meta name="description" content="Atalhos para os sites educativos do Márcio: Divisão Passo a Passo, Caçadores de Letras e Kodu Academy.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --card: #ffffff;
+      --ink: #1f2a44;
+      --muted: #5b6478;
+      --line: #e4dfd3;
+      --blue: #2f6fdb;   --blue-soft: #e3edff;
+      --orange: #e07a1f; --orange-soft: #fdecd9;
+      --green: #1d8a4e;  --green-soft: #def3e7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #161a24; --card: #202634; --ink: #eef1f7; --muted: #a6aec0; --line: #2f3747;
+        --blue: #7ea8ff;   --blue-soft: #263453;
+        --orange: #f3a35c; --orange-soft: #43301f;
+        --green: #5fcf91;  --green-soft: #1f3d2d;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #161a24; --card: #202634; --ink: #eef1f7; --muted: #a6aec0; --line: #2f3747;
+      --blue: #7ea8ff;   --blue-soft: #263453;
+      --orange: #f3a35c; --orange-soft: #43301f;
+      --green: #5fcf91;  --green-soft: #1f3d2d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Nunito", system-ui, sans-serif;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 16px 40px; }
+
+    header { text-align: center; margin-bottom: 44px; }
+    header h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.7rem); font-weight: 900; letter-spacing: -0.02em; }
+    header p { margin: 8px auto 0; max-width: 34rem; color: var(--muted); font-size: 1.05rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      --c: var(--blue); --c-soft: var(--blue-soft);
+      display: flex; flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-top: 6px solid var(--c);
+      border-radius: 18px;
+      padding: 24px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+    .card.orange { --c: var(--orange); --c-soft: var(--orange-soft); }
+    .card.green  { --c: var(--green);  --c-soft: var(--green-soft); }
+
+    .icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: var(--c-soft); color: var(--c);
+      font-size: 1.7rem; font-weight: 900;
+      margin-bottom: 16px;
+    }
+    .tag {
+      align-self: flex-start;
+      font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--c); background: var(--c-soft);
+      padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
+    }
+    .card h2 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 800; }
+    .card p { margin: 0 0 20px; color: var(--muted); flex: 1; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 16px; border-radius: 12px;
+      font-weight: 800; text-decoration: none; font-size: .95rem;
+    }
+    .btn.main { background: var(--c); color: var(--card); }
+    .btn.ghost { color: var(--c); border: 2px solid var(--c-soft); }
+    .btn:hover { filter: brightness(1.07); }
+    .btn:focus-visible { outline: 3px solid var(--c); outline-offset: 2px; }
+
+    footer { margin-top: 44px; text-align: center; color: var(--muted); font-size: .9rem; }
+    footer a { color: inherit; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>Divisão Passo a Passo</h1>
-    <p>Método da chave: escolha cada algarismo do quociente e veja o produto e a diferença.</p>
-  </header>
+  <div class="wrap">
+    <header>
+      <h1>Meus Sites Educativos</h1>
+      <p>Escolha um projeto para abrir. Cada um fica em sua própria pasta (ou repositório) no GitHub.</p>
+    </header>
 
-  <main>
-    <section class="card setup" aria-label="Dados da divisão">
-      <div class="fields">
-        <label>Dividendo
-          <input id="dividendo" inputmode="numeric" autocomplete="off" placeholder="ex.: 7854" maxlength="15">
-        </label>
-        <span class="div-sign" aria-hidden="true">÷</span>
-        <label>Divisor
-          <input id="divisor" inputmode="numeric" autocomplete="off" placeholder="ex.: 6" maxlength="6">
-        </label>
-      </div>
-      <label class="check">
-        <input type="checkbox" id="praticar">
-        Quero fazer a subtração (diferença) sozinho
-      </label>
-      <div class="buttons">
-        <button id="btnComecar" class="primary">Começar</button>
-        <button id="btnExemplo">Exemplo aleatório</button>
-      </div>
-      <p id="erroInicial" class="feedback bad" hidden></p>
-    </section>
-
-    <section id="area" class="card" hidden>
-      <div class="paper-wrap">
-        <div class="paper">
-          <div id="conta" class="conta" aria-live="polite"></div>
-          <div class="chave">
-            <div id="divisorBox" class="divisor-box"></div>
-            <div id="quocienteBox" class="quociente-box"></div>
-          </div>
+    <main class="grid">
+      <article class="card">
+        <div class="icon" aria-hidden="true">÷</div>
+        <span class="tag">Matemática</span>
+        <h2>Divisão Passo a Passo</h2>
+        <p>Resolva divisões pelo método da chave, escolhendo cada algarismo do quociente, com produto, diferença e prova real.</p>
+        <div class="actions">
+          <a class="btn main" href="divisao/">Abrir site →</a>
+          <a class="btn ghost" href="https://github.com/marcioalbinods/Testes/tree/main/divisao">Código</a>
         </div>
-      </div>
+      </article>
 
-      <div id="painel" class="painel"></div>
+      <article class="card orange">
+        <div class="icon" aria-hidden="true">Aa</div>
+        <span class="tag">Alfabetização</span>
+        <h2>Caçadores de Letras</h2>
+        <p>Jogo estilo Escape Room com 30 fases em 3 mundos: encontre as letras escondidas no cenário e forme a palavra.</p>
+        <div class="actions">
+          <a class="btn main" href="caca-as-letras/">Jogar →</a>
+          <a class="btn ghost" href="https://github.com/marcioalbinods/Testes/tree/main/caca-as-letras">Código</a>
+        </div>
+      </article>
 
-      <details class="tabuada">
-        <summary>Ver a tabuada do divisor</summary>
-        <ul id="tabuada"></ul>
-      </details>
+      <article class="card green">
+        <div class="icon" aria-hidden="true">K</div>
+        <span class="tag">Programação</span>
+        <h2>Kodu Academy</h2>
+        <p>Plataforma para aprender Kodu Game Lab em 20 fases, com painel do professor para acompanhar cada aluno.</p>
+        <div class="actions">
+          <a class="btn main" href="https://marcioalbinods.github.io/KODUGAMELAB/">Abrir site →</a>
+          <a class="btn ghost" href="https://github.com/marcioalbinods/KODUGAMELAB">Código</a>
+        </div>
+      </article>
+    </main>
 
-      <h2>Passos</h2>
-      <ol id="passos" class="passos"></ol>
-
-      <div class="buttons">
-        <button id="btnRecomecar">Nova divisão</button>
-      </div>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
+    <footer>
+      Repositório: <a href="https://github.com/marcioalbinods/Testes">marcioalbinods/Testes</a>
+    </footer>
+  </div>
 </body>
 </html>

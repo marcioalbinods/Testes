@@ -1,36 +1,31 @@
-# Divisão Passo a Passo (método da chave)
+# 📚 Meus Sites Educativos
 
-Site para resolver divisões passo a passo, do jeito que se faz no caderno.
+Este repositório reúne os meus sites educativos, **cada um na sua própria pasta**.
+A página inicial (`index.html`) tem atalhos bonitinhos para todos eles.
 
-## Como usar
+| | Projeto | Onde está | Abrir online |
+|---|---|---|---|
+| ➗ | **Divisão Passo a Passo** — divisão pelo método da chave | [`divisao/`](divisao/) | [abrir](https://marcioalbinods.github.io/Testes/divisao/) |
+| 🦊 | **Caçadores de Letras** — jogo de alfabetização (30 fases) | [`caca-as-letras/`](caca-as-letras/) | [jogar](https://marcioalbinods.github.io/Testes/caca-as-letras/) |
+| 🎮 | **Kodu Academy** — plataforma do Kodu Game Lab | repositório próprio: [`KODUGAMELAB`](https://github.com/marcioalbinods/KODUGAMELAB) | [abrir](https://marcioalbinods.github.io/KODUGAMELAB/) |
 
-1. Digite o **dividendo** e o **divisor** e clique em **Começar**.
-2. O dividendo parcial fica destacado em amarelo. Escolha na **caixa de seleção** quantas vezes o divisor cabe nele.
-3. O **produto** (divisor × algarismo escolhido) aparece embaixo do dividendo parcial.
-   - Se o número for grande demais ou pequeno demais, o site avisa em vermelho.
-4. Faça a **subtração** (diferença): clique em *Subtrair* ou, se marcar
-   "Quero fazer a subtração sozinho", digite o resultado para conferir.
-5. **Baixe** o próximo algarismo e repita até o fim.
-6. No final aparecem o quociente, o resto e a prova real (divisor × quociente + resto = dividendo).
+🏠 **Página inicial com todos os sites:** <https://marcioalbinods.github.io/Testes/>
 
-Também é possível ver a tabuada do divisor e a lista de todos os passos.
+## Organização
 
-## Rodar
+```
+Testes/
+├── index.html          ← página inicial com os atalhos
+├── divisao/            ← Divisão Passo a Passo
+└── caca-as-letras/     ← Caçadores de Letras
+```
 
-Basta abrir o arquivo `index.html` no navegador. Não precisa instalar nada.
+A **Kodu Academy** fica em outro repositório ([`KODUGAMELAB`](https://github.com/marcioalbinods/KODUGAMELAB))
+porque é um projeto maior (React + Supabase), com publicação automática própria.
+
+Cada pasta tem um `README.md` com as instruções daquele site.
 
 ## Publicar online (GitHub Pages)
 
 No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos o site fica em
-`https://<seu-usuario>.github.io/<nome-do-repositorio>/`.
-
----
-
-# Caçadores de Letras (pasta `CAÇA AS LETRAS/`)
-
-Jogo educativo de alfabetização em formato Escape Room, com 30 fases em 3 mundos.
-Veja as instruções completas em [`CAÇA AS LETRAS/README.md`](CA%C3%87A%20AS%20LETRAS/README.md).
-
-Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
-`https://<seu-usuario>.github.io/<nome-do-repositorio>/CA%C3%87A%20AS%20LETRAS/`.
+escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos os endereços acima passam a funcionar.

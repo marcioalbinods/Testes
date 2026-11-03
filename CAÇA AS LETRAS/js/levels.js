@@ -24,17 +24,18 @@
     }
   ];
 
-  // distractors = quantidade de letras "distratoras" (que não fazem parte da palavra)
+  // Segundo número = quantidade de letras "distratoras" (que não fazem parte da palavra).
+  // Quanto mais distratoras, mais difícil a busca.
   const RAW = [
     // MUNDO 1 — FLORESTA DAS LETRAS (fácil)
-    ['SOL', 3], ['LUA', 3], ['GATO', 3], ['BOLA', 4], ['CASA', 4],
-    ['PATO', 4], ['BOLO', 5], ['SAPO', 5], ['MALA', 5], ['VELA', 6],
+    ['SOL', 7], ['LUA', 7], ['GATO', 8], ['BOLA', 8], ['CASA', 9],
+    ['PATO', 9], ['BOLO', 10], ['SAPO', 10], ['MALA', 11], ['VELA', 11],
     // MUNDO 2 — OCEANO MISTERIOSO (intermediário)
-    ['ESCOLA', 5], ['JANELA', 5], ['MACACO', 6], ['SAPATO', 6], ['BANANA', 6],
-    ['CAMISA', 7], ['BONECA', 7], ['PIPOCA', 7], ['GIRASSOL', 7], ['FLORESTA', 8],
+    ['ESCOLA', 11], ['JANELA', 11], ['MACACO', 12], ['SAPATO', 12], ['BANANA', 13],
+    ['CAMISA', 13], ['BONECA', 14], ['PIPOCA', 14], ['GIRASSOL', 15], ['FLORESTA', 15],
     // MUNDO 3 — CASTELO DOS DESAFIOS (difícil)
-    ['ELEFANTE', 8], ['BORBOLETA', 8], ['DINOSSAURO', 9], ['CHOCOLATE', 9], ['BICICLETA', 9],
-    ['ABACAXI', 10], ['TELEFONE', 10], ['GELADEIRA', 10], ['PASSARINHO', 11], ['BIBLIOTECA', 12]
+    ['ELEFANTE', 15], ['BORBOLETA', 16], ['DINOSSAURO', 16], ['CHOCOLATE', 17], ['BICICLETA', 17],
+    ['ABACAXI', 18], ['TELEFONE', 18], ['GELADEIRA', 18], ['PASSARINHO', 19], ['BIBLIOTECA', 19]
   ];
 
   CDL.LEVELS = RAW.map(([word, distractors], i) => {
@@ -43,14 +44,24 @@
     return { n, word, distractors, world };
   });
 
-  // Aparência das letras por mundo (tamanho em unidades do cenário 1600x900)
+  // Aparência das letras por mundo (tamanho em unidades do cenário 1600x900).
+  // rot = inclinação máxima; cover = chance de a letra ficar parcialmente coberta
+  // (folhas, bolhas, teias); outline = espessura do contorno claro.
   CDL.LETTER_STYLE = {
-    1: { size: 96, rot: 6, minDist: 175, halo: true, deco: 0 },
-    2: { size: 86, rot: 12, minDist: 150, halo: false, deco: 0 },
-    3: { size: 80, rot: 16, minDist: 135, halo: false, deco: 0.45 }
+    1: { size: 74, rot: 22, minDist: 125, cover: 0.35, outline: 5, deco: 0 },
+    2: { size: 66, rot: 32, minDist: 112, cover: 0.5, outline: 4, deco: 0 },
+    3: { size: 60, rot: 40, minDist: 100, cover: 0.6, outline: 3, deco: 0.3 }
   };
 
+  // Cores usadas nas telas de missão (peças da palavra)
   CDL.LETTER_COLORS = ['#FF4D6D', '#FF9F1C', '#2EC4B6', '#7B61FF', '#FF5DA2', '#21B35B', '#1E88E5', '#F15BB5', '#E36414', '#0FA3B1'];
+  // Cores de camuflagem das letras em cada mundo (parecidas com os objetos do cenário)
+  CDL.CAMO_COLORS = {
+    1: ['#4CAF50', '#66BB6A', '#8BC34A', '#FF6FA5', '#FFD23F', '#E84A5F', '#8D5524', '#7B61FF', '#FF8C42', '#4FC3F7'],
+    2: ['#FF6F91', '#B388FF', '#FFB74D', '#4DD0E1', '#FFD23F', '#FF8A65', '#3FBF7F', '#2E9E6A', '#7B61FF', '#FF5A5F'],
+    3: ['#E84A5F', '#FFD23F', '#FFB400', '#7B61FF', '#3B82F6', '#A1683A', '#C98B4F', '#B388FF', '#3DDC84', '#FF6FA5']
+  };
+  CDL.COVERS = { 1: ['leafCluster', 'leafCluster', 'grass'], 2: ['bubbleCluster', 'weed', 'bubbleCluster'], 3: ['web', 'leafCluster', 'bubbleCluster'] };
 
   // Gerador pseudoaleatório com semente (resultado reproduzível)
   function rng(seed) {
@@ -82,7 +93,7 @@
     const lvl = CDL.LEVELS[n - 1];
     const style = CDL.LETTER_STYLE[lvl.world];
     const r = rng(n * 7919 + (seed || 0) * 104729 + 17);
-    const scene = CDL.buildScene(n);
+    const scene = CDL.buildScene(n, 's', { clutter: true, seed });
 
     // letras necessárias: cada ocorrência da palavra + distratoras
     const wordLetters = lvl.word.split('');
@@ -103,7 +114,7 @@
       .filter((p) => { const k = p.x + ',' + p.y; if (seen.has(k)) return false; seen.add(k); return true; });
     let chosen = [];
     let minD = style.minDist;
-    while (minD >= 100) {
+    while (minD >= 90) {
       chosen = [];
       for (const p of shuffle(cand.slice(), r)) {
         if (chosen.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= minD)) chosen.push(p);
@@ -125,7 +136,8 @@
 
     const all = wordLetters.map((ch, i) => ({ ch, target: true, slot: i })).concat(distract.map((ch) => ({ ch, target: false, slot: -1 })));
     shuffle(all, r);
-    const colors = shuffle(CDL.LETTER_COLORS.slice(), r);
+    const colors = shuffle(CDL.CAMO_COLORS[lvl.world].slice(), r);
+    const covers = CDL.COVERS[lvl.world];
     const letters = all.map((l, i) => ({
       id: 'L' + i,
       ch: l.ch,
@@ -134,7 +146,13 @@
       y: chosen[i].y,
       rot: Math.round((r() * 2 - 1) * style.rot),
       color: colors[i % colors.length],
-      deco: r() < style.deco ? 1 + Math.floor(r() * 3) : 0
+      deco: r() < style.deco ? 1 + Math.floor(r() * 3) : 0,
+      // cobertura parcial: um objeto sobre um dos cantos da letra (nunca a esconde inteira)
+      cover: r() < style.cover ? (() => {
+        const a = r() * Math.PI * 2;
+        const d = style.size * (0.38 + r() * 0.12);
+        return { name: covers[Math.floor(r() * covers.length)], dx: Math.round(Math.cos(a) * d), dy: Math.round(Math.sin(a) * d + style.size * 0.25), s: +(style.size / 95 + r() * 0.15).toFixed(2), rot: Math.round(r() * 360), color: CDL.CAMO_COLORS[lvl.world][Math.floor(r() * 4)] };
+      })() : null
     }));
     return { level: lvl, scene, letters, style };
   };

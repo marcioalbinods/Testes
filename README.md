@@ -46,3 +46,16 @@ Veja as instruções completas em [`labirinto-dos-algoritmos/README.md`](labirin
 
 Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/labirinto-dos-algoritmos/`.
+
+---
+
+# 🤖 O que vem primeiro? — Missão Passo a Passo (pasta `3o ano/`)
+
+Jogo educativo para o 3º ano (habilidade EF03TPA03): o robô Pipo precisa da ajuda dos estudantes para
+organizar as etapas de tarefas do dia a dia. 15 missões em 3 níveis, ilustrações próprias, simulação
+do robô, várias ordens válidas aceitas, funciona com toque, mouse e teclado, sem cadastro e offline.
+Veja as instruções completas em [`3o ano/o-que-vem-primeiro/README.md`](3o%20ano/o-que-vem-primeiro/README.md).
+
+Depois de ativar o GitHub Pages, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/3o%20ano/o-que-vem-primeiro/`
+(a página `https://<seu-usuario>.github.io/<nome-do-repositorio>/3o%20ano/` lista os jogos do 3º ano).

@@ -33,18 +33,26 @@
       var card = document.createElement('button');
       card.type = 'button';
       card.className = 'player-card' + (cur && cur.id === p.id ? ' current' : '');
-      card.innerHTML = LA.ART.avatar(p, 84) + '<span class="pname">Jogador ' + p.num + '</span><span class="pstats">⭐ ' + t.stars + ' · ' + t.done + ' de 25 fases</span>';
+      card.innerHTML = LA.ART.avatar(p, 84) + '<span class="pname">' + esc(Store.name(p)) + '</span><span class="pstats">⭐ ' + t.stars + ' · ' + t.done + ' de 25 fases</span>';
       card.onclick = function () { LA.sfx('click'); Store.setPlayer(p.id); S.afterPick(); };
       var del = document.createElement('span');
-      del.className = 'del'; del.setAttribute('role', 'button'); del.setAttribute('aria-label', 'Remover Jogador ' + p.num); del.textContent = '🗑';
+      del.className = 'del'; del.setAttribute('role', 'button'); del.setAttribute('aria-label', 'Remover ' + Store.name(p)); del.textContent = '🗑';
       del.style.display = 'flex'; del.style.alignItems = 'center'; del.style.justifyContent = 'center';
       del.onclick = function (e) {
         e.stopPropagation();
-        UI.confirm('Remover o Jogador ' + p.num + '?', 'Todo o progresso desse jogador neste aparelho será apagado.', 'Remover', 'Cancelar', true).then(function (ok) {
+        UI.confirm('Remover ' + esc(Store.name(p)) + '?', 'Todo o progresso desse jogador neste aparelho será apagado.', 'Remover', 'Cancelar', true).then(function (ok) {
           if (ok) { Store.removePlayer(p.id); S.players(); }
         });
       };
       card.appendChild(del);
+      var ren = document.createElement('span');
+      ren.className = 'del ren'; ren.setAttribute('role', 'button'); ren.setAttribute('aria-label', 'Mudar o nome de ' + Store.name(p)); ren.textContent = '✏️';
+      ren.style.display = 'flex'; ren.style.alignItems = 'center'; ren.style.justifyContent = 'center';
+      ren.onclick = function (e) {
+        e.stopPropagation(); LA.sfx('click');
+        S.askName(p, false).then(function () { S.players(); });
+      };
+      card.appendChild(ren);
       grid.appendChild(card);
     });
     var nw = document.createElement('button');
@@ -53,10 +61,37 @@
     nw.onclick = function () {
       LA.sfx('unlock');
       var p = Store.newPlayer();
-      UI.toast('🤖', 'Olá, Jogador ' + p.num + '!', 'Seu progresso será salvo neste aparelho.');
-      S.afterPick();
+      S.askName(p, true).then(function () {
+        UI.toast('🤖', 'Olá, ' + esc(Store.name(p)) + '!', 'Seu progresso será salvo neste aparelho.');
+        S.afterPick();
+      });
     };
     grid.appendChild(nw);
+  };
+
+  /* Janela para digitar o nome do jogador (opcional). */
+  S.askName = function (p, isNew) {
+    var input = null;
+    return UI.modal({
+      title: isNew ? '🤖 Qual é o seu nome?' : '✏️ Mudar o nome',
+      html: '<p>Digite seu nome ou apelido. Ele aparece no mapa e no ranking <b>deste aparelho</b>.</p>' +
+        '<input id="player-name" class="name-input" type="text" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Jogador ' + p.num + '" aria-label="Nome do jogador">' +
+        (isNew ? '<p style="font-size:15px">Se preferir, toque em “Pular” e você será o <b>Jogador ' + p.num + '</b>.</p>' : '<p style="font-size:15px">Deixe vazio para voltar a ser o <b>Jogador ' + p.num + '</b>.</p>'),
+      closable: !isNew,
+      buttons: [
+        { label: isNew ? 'Pular' : 'Cancelar', value: 'skip', id: 'btn-name-skip' },
+        { label: '✅ Salvar', value: 'save', cls: 'btn-green', id: 'btn-name-save' }
+      ],
+      onOpen: function (box, close) {
+        input = box.querySelector('#player-name');
+        input.value = p.name || '';
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); close('save'); } });
+        setTimeout(function () { try { input.focus(); } catch (e) { /* ok */ } }, 80);
+      }
+    }).then(function (v) {
+      if (v === 'save' && input) Store.setName(p.id, input.value);
+      return p;
+    });
   };
   S.afterPick = function () {
     var dest = S._afterPick;
@@ -80,7 +115,7 @@
     if (!p) { UI.show('players', 'map'); return; }
     var body = $('#map-body');
     var tot = Store.totals(p);
-    $('#map-summary').innerHTML = '<span class="player-chip" style="cursor:default">' + LA.ART.avatar(p, 34) + ' Jogador ' + p.num + ' · ⭐ ' + tot.stars + '/75 · ' + tot.score + ' pts</span>';
+    $('#map-summary').innerHTML = '<span class="player-chip" style="cursor:default">' + LA.ART.avatar(p, 34) + ' ' + esc(Store.name(p)) + ' · ⭐ ' + tot.stars + '/75 · ' + tot.score + ' pts</span>';
     var next = Store.nextLevel(p);
     body.innerHTML = '';
     LA.WORLDS.forEach(function (w) {
@@ -134,7 +169,7 @@
     var p = Store.player();
     if (!p) { UI.show('players', 'achievements'); return; }
     var got = Object.keys(p.achievements).length;
-    $('#ach-summary').innerHTML = '<span class="player-chip" style="cursor:default">' + LA.ART.avatar(p, 34) + ' Jogador ' + p.num + ' · 🏅 ' + got + '/' + LA.ACHIEVEMENTS.length + '</span>';
+    $('#ach-summary').innerHTML = '<span class="player-chip" style="cursor:default">' + LA.ART.avatar(p, 34) + ' ' + esc(Store.name(p)) + ' · 🏅 ' + got + '/' + LA.ACHIEVEMENTS.length + '</span>';
     $('#ach-grid').innerHTML = LA.ACHIEVEMENTS.map(function (a) {
       var when = p.achievements[a.id];
       return '<div class="ach' + (when ? '' : ' locked') + (a.special ? ' special' : '') + '"><div class="ai">' + a.icon + '</div><div><h4>' + esc(a.name) + '</h4><p>' + esc(a.desc) + '</p>' +
@@ -185,9 +220,10 @@
       row('Qualidade gráfica', seg('quality', [['auto', 'Automática'], ['alta', 'Alta'], ['leve', 'Leve']], st.quality)) +
       '<p>Use “Leve” em tablets mais simples se o jogo ficar lento.</p>' +
       row('Tamanho dos blocos', seg('editorScale', [[0.8, 'P'], [1, 'M'], [1.25, 'G']], st.editorScale)) + '</div>' +
-      '<div class="set-card"><h3>🤖 Jogador</h3><p>Jogador atual: <b>' + (p ? 'Jogador ' + p.num : 'nenhum') + '</b></p>' +
+      '<div class="set-card"><h3>🤖 Jogador</h3><p>Jogador atual: <b>' + (p ? esc(Store.name(p)) : 'nenhum') + '</b></p>' +
+      (p ? '<button class="btn" type="button" id="set-rename">✏️ Mudar o nome</button>' : '') +
       '<button class="btn btn-blue" type="button" id="set-switch">🔁 Trocar de jogador</button>' +
-      (p ? '<button class="btn btn-danger-soft" type="button" id="set-reset-me">↺ Reiniciar progresso do Jogador ' + p.num + '</button>' : '') + '</div>' +
+      (p ? '<button class="btn btn-danger-soft" type="button" id="set-reset-me">↺ Reiniciar progresso de ' + esc(Store.name(p)) + '</button>' : '') + '</div>' +
       '<div class="set-card"><h3>💾 Resultados</h3><p>Exporte para guardar ou juntar resultados de vários aparelhos. Nada é enviado pela internet.</p>' +
       '<button class="btn btn-teal" type="button" data-action="export">📤 Exportar resultados</button>' +
       '<button class="btn" type="button" data-action="import">📥 Importar resultados</button>' +
@@ -195,7 +231,7 @@
       '<div class="set-card"><h3>👩‍🏫 Professor</h3><p>O <b>modo demonstração</b> libera todas as fases e o Laboratório, e mostra o botão “Ver solução” nas dicas. Para ativar ou desativar, <b>segure o botão por 3 segundos</b>.</p>' +
       '<button class="btn ' + (st.demo ? 'btn-purple' : '') + '" type="button" id="set-demo">' + (st.demo ? '✅ Modo demonstração LIGADO' : '🎓 Modo demonstração desligado') + '</button>' +
       '<p style="font-size:14px">Código deste aparelho: <b>' + esc(Store.device) + '</b> (aparece nos arquivos exportados).</p></div>' +
-      '<div class="set-card"><h3>🔒 Privacidade</h3><p>Este jogo não pede nome, e-mail, turma ou senha, não usa banco de dados externo e não envia nenhuma informação para a internet. O progresso fica no armazenamento local do navegador.</p>' +
+      '<div class="set-card"><h3>🔒 Privacidade</h3><p>Este jogo não pede e-mail, turma ou senha. O nome do jogador é opcional e fica só neste aparelho. O jogo não usa banco de dados externo e não envia nenhuma informação para a internet. O progresso fica no armazenamento local do navegador.</p>' +
       '<p style="font-size:14px">Labirinto dos Algoritmos · usa Three.js (MIT) e Blockly (Apache 2.0), guardados no próprio jogo.</p></div>';
 
     function row(label, ctrl) { return '<div class="set-row"><span>' + label + '</span>' + ctrl + '</div>'; }
@@ -220,9 +256,10 @@
       };
     });
     $('#set-switch').onclick = function () { UI.show('players', 'home'); };
+    if ($('#set-rename')) $('#set-rename').onclick = function () { S.askName(p, false).then(function () { S.settings(); }); };
     if ($('#set-reset-me')) $('#set-reset-me').onclick = function () {
-      UI.confirm('Reiniciar o progresso?', 'O Jogador ' + p.num + ' vai perder fases, estrelas e conquistas deste aparelho. Isso não pode ser desfeito.', 'Sim, reiniciar', 'Cancelar', true).then(function (ok) {
-        if (ok) { Store.resetPlayer(p.id); UI.toast('↺', 'Progresso reiniciado', 'Jogador ' + p.num); S.settings(); }
+      UI.confirm('Reiniciar o progresso?', esc(Store.name(p)) + ' vai perder fases, estrelas e conquistas deste aparelho. Isso não pode ser desfeito.', 'Sim, reiniciar', 'Cancelar', true).then(function (ok) {
+        if (ok) { Store.resetPlayer(p.id); UI.toast('↺', 'Progresso reiniciado', esc(Store.name(p))); S.settings(); }
       });
     };
     $('#set-reset-all').onclick = function () {
@@ -265,7 +302,7 @@
       cls: 'victory', wide: true, title: '🎆 BYTE ESTÁ LIVRE! 🎆',
       html: '<div style="display:flex;justify-content:center">' + LA.ART.byteFace('happy').replace('class="byte-face"', 'class="byte-face" style="width:140px;height:140px"') + '</div>' +
         '<p style="font-size:22px">Você concluiu as <b>25 fases</b> do Labirinto dos Algoritmos!</p>' +
-        '<p>O Jogador ' + p.num + ' juntou <b>' + t.score + ' pontos</b> e <b>' + t.stars + ' estrelas</b>.</p>' +
+        '<p>' + esc(Store.name(p)) + ' juntou <b>' + t.score + ' pontos</b> e <b>' + t.stars + ' estrelas</b>.</p>' +
         '<div class="learned"><b>📘 Agora você sabe:</b><p>Sequência · Repetição · Laços aninhados · Condições SE/SENÃO · Sensores · Variáveis · Depuração · Otimização</p></div>' +
         '<div class="next-card">🧩 <b>Laboratório de Criação liberado!</b> Crie seus próprios labirintos e desafie os colegas.</div>',
       buttons: [{ label: '🧩 Ir para o Laboratório', value: 'lab', cls: 'btn-purple' }, { label: '🏆 Ver ranking', value: 'rank', cls: 'btn-yellow' }]

@@ -185,3 +185,13 @@
 .maze-item span { flex: 1; font-weight: 600; }
 
 body:has(#scr-game.active) .demo-badge { display: none; }
+
+/* Nome do jogador (opcional) */
+.name-input {
+  width: 100%; min-height: 58px; border: 3px solid var(--line); border-radius: 16px; padding: 8px 16px;
+  font-family: inherit; font-size: 24px; font-weight: 600; color: var(--ink); background: var(--panel-2);
+  user-select: text; -webkit-user-select: text; margin: 6px 0;
+}
+.name-input:focus { outline: none; border-color: var(--purple); background: #fff; }
+.player-card .del.ren { right: auto; left: 8px; }
+.player-card .pname { text-align: center; word-break: break-word; }

@@ -101,13 +101,13 @@ Cada fase vale até **100 pontos**:
 
 ## 🏆 Ranking (local) e resultados
 
-- Não há cadastro: os estudantes escolhem **“Jogador 1”, “Jogador 2”…** (criados com um toque).
+- Não há cadastro: ao criar um jogador, o estudante pode **digitar o nome** (opcional, até 20 letras) ou tocar em “Pular” e ser o **“Jogador 1”, “Jogador 2”…**. O nome pode ser trocado no botão ✏️ ou em *Configurações*.
 - O ranking mostra posição, jogador, pontos, fases concluídas, estrelas e mundos desbloqueados, com
   pódio animado. Há ranking **geral, por mundo, por fase e de conquistas**.
 - **O ranking é local:** cada tablet ou computador tem o seu. Não existe competição online.
 - Para reunir resultados de vários aparelhos: em cada um, use **Ranking → Exportar** (JSON ou CSV) e,
   no aparelho do professor, **Ranking → Importar**. Os jogadores de outros aparelhos aparecem com o
-  código do aparelho (ex.: “Jogador 2 · aparelho K7MP”). Nada é enviado pela internet.
+  código do aparelho (ex.: “Ana · aparelho K7MP”). Os arquivos exportados levam o nome digitado. Nada é enviado pela internet.
 - O CSV abre no Excel / Google Planilhas (separador `;`).
 
 ## 👩‍🏫 Para o professor
@@ -187,7 +187,7 @@ Depois de mudar uma fase, rode `node tests/teste-motor.js` para conferir se ela 
 
 ## 🔒 Privacidade
 
-O jogo não pede nome, e-mail, turma, senha ou qualquer dado pessoal, não usa Supabase, Firebase ou
+O jogo não pede e-mail, turma ou senha. O nome do jogador é **opcional** e fica só no aparelho (e nos arquivos que o professor exportar). O jogo não usa Supabase, Firebase ou
 outro banco de dados e não envia nenhuma informação para a internet. Todo o progresso fica no
 `localStorage` do navegador do próprio aparelho.
 

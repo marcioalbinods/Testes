@@ -128,7 +128,7 @@ async function playWithSolution(page, id, ast) {
   ok(await page.isVisible('#scr-home.active'), 'tela inicial aberta');
   ok(await page.evaluate(() => LA.app.scene.ok && !!document.querySelector('#home-3d canvas')), 'cena 3D (WebGL) criada na tela inicial');
   for (const t of ['JOGAR', 'CONTINUAR', 'Mapa dos Mundos', 'Ranking', 'Conquistas', 'Como Jogar', 'Configurações']) ok(await page.locator('#scr-home').getByText(t).count() > 0, `botão “${t}” presente`);
-  ok(await page.locator('input:visible, textarea:visible').count() === 0, 'nenhum campo de digitação (sem cadastro)');
+  ok(await page.locator('input:visible, textarea:visible').count() === 0, 'tela inicial sem formulário de cadastro');
   await page.screenshot({ path: path.join(OUT, '01-inicio.png') });
   for (const s of ['ranking', 'howto', 'settings', 'lab']) {
     await page.click('#scr-home.active [data-go="' + s + '"], #scr-home.active [data-action="' + s + '"]');
@@ -140,6 +140,10 @@ async function playWithSolution(page, id, ast) {
   await page.click('[data-action="play"]');
   ok(await page.isVisible('#scr-players.active'), 'JOGAR abre a escolha de jogador (sem formulário)');
   await page.click('.player-card.new');
+  await page.click('#btn-name-skip');
+  await page.waitForSelector('#player-name');
+  ok(true, 'novo jogador: aparece a caixa para digitar o nome (opcional)');
+  await page.click('#btn-name-skip');
   await page.waitForSelector('#btn-intro-go');
   ok(await page.isVisible('#scr-game.active'), 'novo jogador começa direto na fase 1');
   ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Jogador 1', 'identificação genérica “Jogador 1”');
@@ -304,7 +308,25 @@ async function playWithSolution(page, id, ast) {
   ({ ctx, page } = await newPage(browser, base));
   const device2 = await page.evaluate(() => LA.Store.device);
   ok(device1 !== device2, 'cada aparelho tem seu código próprio');
-  await page.evaluate(() => { LA.Store.newPlayer(); LA.UI.show('ranking'); });
+  console.log('▶ Nome do jogador');
+  await page.evaluate(() => LA.UI.show('players', 'home'));
+  await page.click('.player-card.new');
+  await page.fill('#player-name', '  Ana <b>Clara</b> da Silva Santos  ');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const nm = await page.evaluate(() => LA.Store.name(LA.Store.player()));
+  ok(nm === 'Ana bClara/b da Silv', 'nome limpo (sem HTML) e limitado a 20 letras (' + nm + ')');
+  await page.evaluate(() => LA.UI.show('players', 'home'));
+  await page.click('.player-card .ren');
+  await page.fill('#player-name', 'Ana Clara');
+  await page.click('#btn-name-save');
+  await page.waitForTimeout(200);
+  ok((await page.textContent('#players-grid')).includes('Ana Clara'), 'nome alterado pelo botão ✏️ aparece no cartão');
+  await page.evaluate(() => { const p = LA.Store.player(); p.levels[1] = { best: 90, stars: 3, completed: true }; LA.Store.save(); LA.UI.show('ranking'); });
+  await page.waitForTimeout(300);
+  ok((await page.textContent('#rank-table')).includes('Ana Clara'), 'nome aparece no ranking');
+  ok(JSON.parse(await page.evaluate(() => LA.Store.exportJSON())).players.some((p) => p.name === 'Ana Clara'), 'nome vai no arquivo exportado');
+  await page.evaluate(() => LA.UI.show('ranking'));
   await page.click('#scr-ranking [data-action="import"]');
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.modal .btn-green')]);
   await chooser.setFiles(jsonPath);
@@ -368,6 +390,11 @@ async function playWithSolution(page, id, ast) {
     const cdp = await ctx.newCDPSession(page);
     await page.tap('[data-action="play"]');
     await page.tap('.player-card.new');
+    await page.waitForSelector('#player-name');
+    await page.tap('#player-name');
+    await page.keyboard.type('Bia ' + dev.w);
+    await page.tap('#btn-name-save');
+    ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Bia ' + dev.w, `${dev.name}: nome digitado pelo estudante`);
     await page.waitForSelector('#btn-intro-go');
     await page.tap('#btn-intro-go');
     await page.waitForTimeout(300);

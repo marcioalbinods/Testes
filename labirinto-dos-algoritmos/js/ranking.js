@@ -68,7 +68,7 @@
       : '<tr><th>#</th><th>Jogador</th><th>Pontos</th><th>Fases concluídas</th><th>Estrelas</th><th>Mundos</th></tr>';
     var maxDone = R.tab === 'mundo' ? 5 : R.tab === 'fase' ? 1 : 25;
     table.innerHTML = '<thead>' + head + '</thead><tbody>' + rows.map(function (r, i) {
-      var who = '<div class="rank-who">' + LA.ART.avatar(r.p, 36) + esc('Jogador ' + r.p.num) +
+      var who = '<div class="rank-who">' + LA.ART.avatar(r.p, 36) + esc(Store.name(r.p)) +
         (r.p.device !== Store.device ? '<span class="tag-imp">aparelho ' + esc(r.p.device) + '</span>' : '') + '</div>';
       var pos = i < 3 ? medals[i] : (i + 1) + 'º';
       var cls = me && r.p.id === me.id ? ' class="me"' : '';

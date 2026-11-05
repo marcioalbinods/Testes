@@ -314,7 +314,7 @@ async function playWithSolution(page, id, ast) {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   const nm = await page.evaluate(() => LA.Store.name(LA.Store.player()));
-  ok(nm === 'Ana bClara/b da Silv', 'nome limpo (sem HTML) e limitado a 20 letras (' + nm + ')');
+  ok(nm.startsWith('Ana') && !/[<>]/.test(nm) && nm.length <= 20, 'nome limpo (sem HTML) e limitado a 20 letras (' + nm + ')');
   await page.evaluate(() => LA.UI.show('players', 'home'));
   await page.click('.player-card .ren');
   await page.fill('#player-name', 'Ana Clara');

@@ -1,5 +1,5 @@
 /* LABIRINTO DOS ALGORITMOS — Service worker: guarda os arquivos para jogar sem internet. */
-const CACHE = 'labirinto-algoritmos-v1';
+const CACHE = 'labirinto-algoritmos-v2';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './css/base.css', './css/screens.css', './css/game.css', './css/responsive.css',

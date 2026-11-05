@@ -39,7 +39,7 @@
   function newPlayerRecord(num, device, imported) {
     return {
       id: (imported ? device + '-' : 'p') + num,
-      num: num, device: device, imported: !!imported,
+      num: num, device: device, imported: !!imported, name: '',
       created: Date.now(), updated: Date.now(),
       levels: {}, achievements: {},
       stats: { runs: 0, wins: 0, items: 0, attempts: {} },
@@ -81,8 +81,17 @@
       if (isObj(p.stats.attempts)) for (var t in p.stats.attempts) out.stats.attempts[t] = num(p.stats.attempts[t], 0);
     }
     if (p.last != null && LA.levelById(p.last)) out.last = p.last;
+    out.name = cleanName(p.name);
     return out;
   }
+  /* Nome opcional digitado pelo estudante: só texto simples, até 20 letras. */
+  function cleanName(n) {
+    if (typeof n !== 'string') return '';
+    return n.replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  }
+  LA.cleanName = cleanName;
+  // evita que a planilha interprete o nome como fórmula
+  function csvSafe(n) { n = n || ''; return /^[=+\-@]/.test(n) ? "'" + n : n; }
   function validate(d) {
     if (!isObj(d)) throw new Error('formato inválido');
     var out = defaults();
@@ -139,9 +148,17 @@
     },
     ensurePlayer: function () { return Store.player() || Store.localPlayers()[0] && Store.setPlayer(Store.localPlayers()[0].id) || Store.newPlayer(); },
     setPlayer: function (id) { if (data.players[id]) { data.current = id; Store.save(); } return data.players[id]; },
+    /* Nome do jogador: o que ele digitou ou “Jogador N”. */
+    name: function (p) { return p ? (p.name || 'Jogador ' + p.num) : ''; },
+    setName: function (id, name) {
+      var p = data.players[id]; if (!p) return null;
+      p.name = cleanName(name); p.updated = Date.now();
+      Store.save();
+      return p;
+    },
     label: function (p) {
       if (!p) return '';
-      return 'Jogador ' + p.num + (p.imported || p.device !== data.device ? ' · aparelho ' + p.device : '');
+      return Store.name(p) + (p.imported || p.device !== data.device ? ' · aparelho ' + p.device : '');
     },
     removePlayer: function (id) {
       delete data.players[id];
@@ -270,19 +287,20 @@
       return {
         app: 'labirinto-dos-algoritmos', format: FORMAT, exportedAt: new Date().toISOString(), device: data.device,
         players: Store.players().map(function (p) {
-          return { num: p.num, device: p.device, imported: p.device !== data.device, levels: p.levels, achievements: p.achievements, stats: { runs: p.stats.runs, wins: p.stats.wins, items: p.stats.items } };
+          return { num: p.num, name: p.name || '', device: p.device, imported: p.device !== data.device, levels: p.levels, achievements: p.achievements, stats: { runs: p.stats.runs, wins: p.stats.wins, items: p.stats.items } };
         })
       };
     },
     exportJSON: function () { return JSON.stringify(Store.exportObject(), null, 2); },
     exportCSV: function () {
-      var rows = [['tipo', 'aparelho', 'jogador', 'fase', 'mundo', 'titulo', 'pontos', 'estrelas', 'concluida', 'conquista']];
+      var rows = [['tipo', 'aparelho', 'jogador', 'fase', 'mundo', 'titulo', 'pontos', 'estrelas', 'concluida', 'conquista', 'nome']];
       Store.players().forEach(function (p) {
         LA.LEVELS.forEach(function (l) {
           var r = p.levels[l.id];
-          if (r) rows.push(['fase', p.device, p.num, l.id, l.world, l.title, r.best, r.stars, r.completed ? 'sim' : 'nao', '']);
+          if (r) rows.push(['fase', p.device, p.num, l.id, l.world, l.title, r.best, r.stars, r.completed ? 'sim' : 'nao', '', csvSafe(p.name)]);
         });
-        Object.keys(p.achievements).forEach(function (a) { rows.push(['conquista', p.device, p.num, '', '', '', '', '', '', a]); });
+        Object.keys(p.achievements).forEach(function (a) { rows.push(['conquista', p.device, p.num, '', '', '', '', '', '', a, csvSafe(p.name)]); });
+        if (!Object.keys(p.levels).length && !Object.keys(p.achievements).length && p.name) rows.push(['jogador', p.device, p.num, '', '', '', '', '', '', '', csvSafe(p.name)]);
       });
       return '﻿' + rows.map(function (r) {
         return r.map(function (c) { c = String(c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';');
@@ -314,7 +332,9 @@
         if (!dev || !n) return;
         var k = dev + ':' + n;
         var p = players[k] = players[k] || { num: n, device: dev, levels: {}, achievements: {} };
+        if (col('nome') >= 0 && c[col('nome')]) p.name = c[col('nome')].replace(/^'/, '');
         var tipo = col('tipo') >= 0 ? c[col('tipo')] : 'fase';
+        if (tipo === 'jogador') return;
         if (tipo === 'conquista') { var a = c[col('conquista')]; if (a) p.achievements[a.trim()] = Date.now(); return; }
         var fase = parseInt(c[col('fase')], 10);
         if (!LA.levelById(fase)) return;
@@ -352,6 +372,7 @@
           else { a.completed = a.completed || b.completed; a.stars = Math.max(a.stars, b.stars); }
         }
         for (var ac in p.achievements) if (!cur.achievements[ac]) cur.achievements[ac] = p.achievements[ac];
+        if (p.name && !cur.name) cur.name = p.name;
         cur.stats.runs = Math.max(cur.stats.runs, p.stats.runs);
         cur.stats.wins = Math.max(cur.stats.wins, p.stats.wins);
         cur.stats.items = Math.max(cur.stats.items, p.stats.items);

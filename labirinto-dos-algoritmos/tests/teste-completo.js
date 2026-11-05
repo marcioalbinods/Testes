@@ -140,7 +140,6 @@ async function playWithSolution(page, id, ast) {
   await page.click('[data-action="play"]');
   ok(await page.isVisible('#scr-players.active'), 'JOGAR abre a escolha de jogador (sem formulário)');
   await page.click('.player-card.new');
-  await page.click('#btn-name-skip');
   await page.waitForSelector('#player-name');
   ok(true, 'novo jogador: aparece a caixa para digitar o nome (opcional)');
   await page.click('#btn-name-skip');
@@ -434,6 +433,7 @@ async function playWithSolution(page, id, ast) {
   ok(await page.evaluate(() => typeof THREE !== 'undefined' && typeof Blockly !== 'undefined'), 'Three.js e Blockly carregados do cache local');
   await page.click('[data-action="play"]');
   await page.click('.player-card.new');
+  await page.click('#btn-name-skip');
   await page.waitForSelector('#btn-intro-go');
   await page.click('#btn-intro-go');
   await page.evaluate(() => LA.debug.loadSolution());

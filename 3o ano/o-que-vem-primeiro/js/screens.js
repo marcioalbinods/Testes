@@ -31,7 +31,9 @@
         h('div.deco-card.d1', { html: art.svg(cards[1]) }, h('span', null, '2')),
         h('div.deco-card.d2', { html: art.svg(cards[0]) }, h('span', null, '1')),
         h('div.deco-card.d3', { html: art.svg(cards[2]) }, h('span', null, '3'))),
-      h('div.home-top', null, soundToggle()),
+      h('div.home-top', null,
+        h('button.icon-btn.teacher-home', { type: 'button', 'aria-label': 'Área do professor', title: 'Área do professor', html: ICON.teacher, onclick: () => { audio.unlock(); teacherGate(app); } }),
+        soundToggle()),
       h('div.home-main', null,
         h('div.logo', null,
           h('span.logo-q', null, 'O que vem'),
@@ -106,7 +108,7 @@
       h('header.topbar.map-top', null,
         h('button.icon-btn', { type: 'button', 'aria-label': 'Tela inicial', title: 'Tela inicial', html: ICON.home, onclick: () => { audio.play('tap'); app.go('home'); } }),
         h('div.title-block', null, h('h1', null, 'Mapa das Missões'), h('span.sub', null, `${t.done} de 15 missões concluídas`)),
-        teacher ? h('span.teacher-badge', null, h('span', { html: ICON.teacher }), 'Modo professor') : null,
+        teacher ? h('button.teacher-badge', { type: 'button', title: 'Abrir a Área do professor', onclick: () => teacherGate(app) }, h('span', { html: ICON.teacher }), 'Mapa liberado (professor)') : null,
         h('div.score-pill', { title: 'Pontos acumulados' }, h('span', { html: ICON.star }), h('b', null, String(t.points))),
         h('button.icon-btn', { type: 'button', 'aria-label': 'Minhas conquistas', title: 'Minhas conquistas', html: ICON.trophy, onclick: () => { audio.play('tap'); app.go('achievements'); } }),
         soundToggle()),
@@ -222,28 +224,86 @@
   }
 
   function teacherPanel(app) {
+    const TYPE = { order: 'organizar', next: 'o que vem depois', missing: 'etapa que falta', fix: 'descobrir o erro', odd: 'ação desnecessária', choose: 'escolher o plano' };
     const p = store.load();
-    const toggle = h('button.btn' + (p.teacher ? '.primary' : ''), { type: 'button' });
-    const paint = () => { const on = store.load().teacher; toggle.innerHTML = `${on ? ICON.check : ICON.lock}<span>${on ? 'Todas as missões liberadas (modo de teste)' : 'Liberar todas as missões para teste'}</span>`; toggle.classList.toggle('primary', on); };
+    const t = L.totals(p);
+
+    // 1) Novo aluno: apaga tudo e volta para a tela inicial.
+    const reset = h('button.btn.danger.big-reset', { type: 'button', 'data-act': 'reset', html: `${ICON.trash}<span>NOVO ALUNO: APAGAR PROGRESSO</span>` });
+    reset.addEventListener('click', () => confirmReset(app, () => box.close()));
+
+    // 2) Abrir qualquer missão (sem precisar desbloquear e sem salvar o resultado).
+    const grid = h('div.teacher-levels');
+    D.LEVELS.forEach((lv) => {
+      const list = h('div.teacher-grid');
+      lv.missions.forEach((n) => {
+        const m = D.mission(n);
+        const done = L.isDone(p, n);
+        list.appendChild(h('button.tmission' + (done ? '.done' : ''), {
+          type: 'button', 'data-preview': n,
+          title: Array.from(new Set(m.stages.map((x) => TYPE[x.type]))).join(', '),
+          'aria-label': `Abrir a missão ${n}: ${m.title}`,
+          onclick: () => { box.close(); app.go('mission', n, { preview: true }); }
+        }, h('span.tm-num', null, String(n)), h('span.tm-title', null, m.title), done ? h('span.tm-done', { html: ICON.check, 'aria-label': 'concluída' }) : null));
+      });
+      grid.appendChild(h('section.teacher-level', { style: { '--lv': lv.color, '--lv-soft': lv.soft } },
+        h('h4', null, `Nível ${lv.n} · ${lv.name}`), list));
+    });
+
+    // 3) Liberar todas as missões no mapa.
+    const toggle = h('button.btn', { type: 'button', 'data-act': 'unlock' });
+    const paint = () => {
+      const on = store.load().teacher;
+      toggle.innerHTML = `${on ? ICON.check : ICON.lock}<span>${on ? 'Mapa liberado: toque para bloquear de novo' : 'Liberar todas as missões no mapa'}</span>`;
+      toggle.classList.toggle('primary', on);
+    };
     toggle.addEventListener('click', () => { store.update((q) => { q.teacher = !q.teacher; }); paint(); });
     paint();
-    const reset = h('button.btn.danger', { type: 'button', html: `${ICON.trash}<span>Apagar o progresso deste aparelho</span>` });
-    reset.addEventListener('click', () => {
-      if (reset.dataset.confirm) { store.reset(); reset.innerHTML = `${ICON.check}<span>Progresso apagado</span>`; reset.disabled = true; paint(); return; }
-      reset.dataset.confirm = '1'; reset.innerHTML = `${ICON.trash}<span>Toque de novo para confirmar</span>`;
-    });
-    const missionList = h('ol.teacher-missions');
-    D.MISSIONS.forEach((m) => missionList.appendChild(h('li', null, h('b', null, `${m.id}. ${m.title}`), ` — ${Array.from(new Set(m.stages.map((s) => s.type))).map((t) => ({ order: 'organizar', next: 'o que vem depois', missing: 'etapa que falta', fix: 'descobrir o erro', odd: 'ação desnecessária', choose: 'escolher o plano' }[t])).join(', ')}`,
-      h('button.btn.small', { type: 'button', onclick: () => { box.close(); app.go('mission', m.id); } }, 'Testar'))));
+
     const box = overlay(h('div.teacher-panel', null,
       h('h2', null, h('span', { html: ICON.teacher }), ' Área do professor'),
-      h('p', null, h('b', null, 'Habilidade EF03TPA03: '), 'Desenvolver a capacidade lógica por meio da identificação e estruturação passo a passo das ações para a resolução de tarefas propostas.'),
-      h('div.overlay-actions.col', null, toggle, reset),
-      h('p.small-note', null, 'O modo de teste libera todas as missões neste aparelho, sem marcar nenhuma como concluída. Desligue-o antes de entregar o aparelho aos estudantes.'),
-      h('h3', null, 'Missões'), missionList,
-      h('div.overlay-actions', null, h('button.btn.primary', { type: 'button', html: `${ICON.map}<span>IR PARA O MAPA</span>`, onclick: () => { box.close(); app.go('map'); } }),
+      h('div.teacher-status', null,
+        h('span', null, h('b', null, `${t.done}/15`), ' missões'),
+        h('span', null, h('b', null, String(t.points)), ' pontos'),
+        h('span', null, h('b', null, `${t.stars}/45`), ' estrelas')),
+
+      h('section.teacher-box', null,
+        h('h3', null, '1. Novo aluno'),
+        h('p.small-note', null, 'Apaga missões, pontos, estrelas e medalhas deste aparelho para outro aluno começar do zero. A Missão 1 volta a ser a única liberada.'),
+        reset),
+
+      h('section.teacher-box', null,
+        h('h3', null, '2. Abrir qualquer missão'),
+        h('p.small-note', null, 'Toque em uma missão para jogá-la agora, mesmo bloqueada. No modo professor o resultado não é salvo, então o progresso do aluno não muda.'),
+        grid),
+
+      h('section.teacher-box', null,
+        h('h3', null, '3. Mapa liberado'),
+        h('p.small-note', null, 'Deixa todas as missões abertas no mapa (também sem salvar resultados). Bloqueie de novo antes de entregar o aparelho a um aluno.'),
+        toggle),
+
+      h('p.small-note', null, h('b', null, 'Habilidade EF03TPA03: '), 'Desenvolver a capacidade lógica por meio da identificação e estruturação passo a passo das ações para a resolução de tarefas propostas.'),
+      h('div.overlay-actions', null,
+        h('button.btn.primary', { type: 'button', html: `${ICON.map}<span>IR PARA O MAPA</span>`, onclick: () => { box.close(); app.go('map'); } }),
         h('button.btn.ghost', { type: 'button', html: `${ICON.close}<span>FECHAR</span>`, onclick: () => box.close() }))
     ), { label: 'Área do professor', cls: 'teacher-ov wide' });
+  }
+
+  function confirmReset(app, closePanel) {
+    const t = L.totals(store.load());
+    const box = overlay(h('div.confirm.reset-confirm', null,
+      h('div.pause-robot', { html: robotLib.svg('surprised') }),
+      h('h2', null, 'Apagar todo o progresso?'),
+      h('p', null, `Serão apagados: ${t.done} missões concluídas, ${t.points} pontos, ${t.stars} estrelas e as medalhas. Isso não pode ser desfeito.`),
+      h('div.overlay-actions', null,
+        h('button.btn.danger', { type: 'button', 'data-act': 'confirm-reset', html: `${ICON.trash}<span>SIM, APAGAR TUDO</span>`, onclick: () => {
+          store.reset();
+          box.close(); if (closePanel) closePanel();
+          app.go('home');
+          toast(app, 'Progresso apagado! Pronto para um novo aluno.');
+        } }),
+        h('button.btn.ghost', { type: 'button', 'data-focus': '', html: `${ICON.close}<span>CANCELAR</span>`, onclick: () => box.close() }))
+    ), { label: 'Confirmar apagar progresso', cls: 'confirm-ov' });
   }
 
   /* ---------------- ENCERRAMENTO (depois da Missão 15) ---------------- */
@@ -275,5 +335,5 @@
   }
 
   root.OQVP = root.OQVP || {};
-  root.OQVP.screens = { home, map, howto, achievements, ending, teacherGate, teacherPanel };
+  root.OQVP.screens = { home, map, howto, achievements, ending, teacherGate, teacherPanel, toast };
 })(window);

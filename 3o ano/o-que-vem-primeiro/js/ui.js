@@ -84,7 +84,8 @@
 
   /* ---------- Sobreposições (janelas) ---------- */
   function overlay(content, opts = {}) {
-    const box = h('div.overlay' + (opts.cls ? '.' + opts.cls : ''), { role: 'dialog', 'aria-modal': 'true', 'aria-label': opts.label || 'Janela' },
+    const extra = (opts.cls || '').trim().split(/\s+/).filter(Boolean).map((c) => '.' + c).join('');
+    const box = h('div.overlay' + extra, { role: 'dialog', 'aria-modal': 'true', 'aria-label': opts.label || 'Janela' },
       h('div.overlay-card', null, content));
     doc.body.appendChild(box);
     requestAnimationFrame(() => box.classList.add('show'));

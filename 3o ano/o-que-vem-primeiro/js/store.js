@@ -18,7 +18,15 @@
     try { root.localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* navegador sem armazenamento: o jogo continua na memória */ }
   }
   function update(fn) { const p = JSON.parse(JSON.stringify(load())); fn(p); save(p); return p; }
-  function reset() { const keepSound = load().sound; mem = null; try { root.localStorage.removeItem(KEY); } catch (e) { /* ok */ } const p = fresh(); p.sound = keepSound; save(p); return p; }
+  // Novo aluno: apaga tudo (missões, pontos, estrelas, medalhas e o mapa liberado). Só o som é mantido.
+  function reset() {
+    const keepSound = load().sound;
+    mem = null;
+    try {
+      Object.keys(root.localStorage).filter((k) => k.startsWith('oqvp-')).forEach((k) => root.localStorage.removeItem(k));
+    } catch (e) { /* ok */ }
+    const p = fresh(); p.sound = keepSound; save(p); return p;
+  }
   root.OQVP = root.OQVP || {};
   root.OQVP.store = { load, save, update, reset, KEY };
 })(window);

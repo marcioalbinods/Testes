@@ -14,14 +14,15 @@
       if (h1) { h1.setAttribute('tabindex', '-1'); try { h1.focus({ preventScroll: true }); } catch (e) { /* ok */ } }
       window.scrollTo(0, 0);
     },
-    go(name, arg) {
+    go(name, arg, opts) {
       if (name !== 'mission') O.mission.stopAll();
       O.ui.stopSpeak();
       app.current = name;
       if (name === 'mission') {
         const p = O.store.load();
-        if (!O.logic.isUnlocked(p, arg, p.teacher)) { O.screens.map(app); return; }
-        O.mission.start(app, arg);
+        const preview = !!(opts && opts.preview);
+        if (!preview && !O.logic.isUnlocked(p, arg, p.teacher)) { O.screens.map(app); return; }
+        O.mission.start(app, arg, { preview });
       } else if (name === 'ending' && !O.logic.isDone(O.store.load(), 15)) {
         O.screens.map(app);
       } else if (O.screens[name]) {

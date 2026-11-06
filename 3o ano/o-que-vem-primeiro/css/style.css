@@ -186,6 +186,28 @@ svg.art { display: block; width: 100%; height: auto; }
   background: #ffe1e5; border: 2.5px solid #c4314b; color: #8f1b31; font-weight: 600; font-size: .95rem;
 }
 .teacher-badge svg { width: 20px; height: 20px; }
+button.teacher-badge { cursor: pointer; font-family: inherit; min-height: 44px; }
+.teacher-badge.small { font-size: .85rem; padding: 4px 10px; }
+.home-top { display: flex; gap: 10px; }
+.teacher-note { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #ffe1e5; color: #8f1b31; font-weight: 600; }
+.teacher-note svg { width: 22px; height: 22px; }
+.teacher-status { display: flex; flex-wrap: wrap; gap: 8px; }
+.teacher-status span { padding: 6px 12px; border-radius: 999px; background: #f4f6ff; border: 2px solid #d6dbef; }
+.teacher-box { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 3px solid var(--line); border-radius: 20px; background: #fbfcff; }
+.teacher-box h3 { margin: 0; font-size: 1.2rem; }
+.big-reset { align-self: flex-start; }
+.teacher-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.teacher-level { background: var(--lv-soft); border: 2.5px solid var(--line); border-radius: 16px; padding: 8px; }
+.teacher-level h4 { margin: 2px 4px 8px; font-size: .95rem; }
+.teacher-grid { display: flex; flex-direction: column; gap: 6px; }
+.tmission { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 4px 10px 4px 4px; text-align: left; background: #fff; border: 2.5px solid var(--line);
+  border-radius: 14px; box-shadow: 0 3px 0 var(--line); cursor: pointer; font-family: inherit; font-size: .92rem; font-weight: 600; touch-action: manipulation; }
+.tmission:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.tm-num { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--lv); color: #fff; font-weight: 700; border: 2px solid var(--line); }
+.tm-title { flex: 1; line-height: 1.15; }
+.tm-done { color: var(--green); }
+.tm-done svg { width: 20px; height: 20px; }
+@media (max-width: 760px) { .teacher-levels { grid-template-columns: 1fr; } }
 .map-body { flex: 1; padding: 18px 16px 28px; }
 .levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; max-width: 1280px; margin: 0 auto; }
 .level-panel {
@@ -631,3 +653,5 @@ svg.art { display: block; width: 100%; height: auto; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.reset-confirm .pause-robot { margin: 0 auto 6px; }

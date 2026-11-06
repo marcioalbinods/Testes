@@ -17,7 +17,11 @@
 
   let live = null; // missão em andamento
 
-  function start(app, n) {
+  function start(app, n, opts) {
+    opts = opts || {};
+    // Modo professor (missão aberta pelo painel ou mapa liberado): joga normalmente, mas não salva o resultado.
+    const teacherRun = !!opts.preview || !!store.load().teacher;
+    const again = (k) => start(app, k, opts);
     if (live) live.token.dead = true;
     const m = D.mission(n);
     const lv = D.level(m.level);
@@ -52,6 +56,7 @@
         h('div.title-block', null,
           h('span.level-chip', null, `Nível ${lv.n} · ${lv.name}`),
           h('h1.mission-title', null, h('span.mnum', null, `Missão ${m.id}`), ' ', m.title)),
+        teacherRun ? h('span.teacher-badge.small', { title: 'Modo professor: o resultado não é salvo' }, h('span', { html: ICON.teacher }), 'Professor') : null,
         dots, points, btnRestart, btnPause),
       h('div.guide', null, pipoBox, bubble),
       h('main.board-wrap', null, stageTitle, board),
@@ -162,12 +167,15 @@
         if (r === 'dead') return;
       }
       const before = store.load();
-      const medalsBefore = L.earnedMedals(before);
       const result = L.scoreMission(stats);
-      const after = L.recordMission(before, m.id, result);
-      store.save(Object.assign(store.load(), { missions: after.missions }));
-      const newMedals = L.earnedMedals(after).filter((x) => !medalsBefore.includes(x));
-      points.querySelector('b').textContent = L.totals(after).points;
+      let newMedals = [];
+      if (!teacherRun) {
+        const medalsBefore = L.earnedMedals(before);
+        const after = L.recordMission(before, m.id, result);
+        store.save(Object.assign(store.load(), { missions: after.missions }));
+        newMedals = L.earnedMedals(after).filter((x) => !medalsBefore.includes(x));
+        points.querySelector('b').textContent = L.totals(after).points;
+      }
       pipo.set('excited', 'dance');
       say(m.win, 'excited', 'dance');
       audio.play('win');
@@ -192,16 +200,17 @@
         };
         showNext();
       };
-      if (m.id === 15) btns.append(h('button.btn.primary.go', { type: 'button', 'data-focus': '', html: `${ICON.trophy}<span>GRANDE FINAL</span>`, onclick: afterMedals(() => { leave(); app.go('ending'); }) }));
-      else if (nextN) btns.append(h('button.btn.primary.go', { type: 'button', 'data-focus': '', html: `${ICON.go}<span>PRÓXIMA MISSÃO</span>`, onclick: afterMedals(() => start(app, nextN)) }));
+      if (m.id === 15 && !teacherRun) btns.append(h('button.btn.primary.go', { type: 'button', 'data-focus': '', html: `${ICON.trophy}<span>GRANDE FINAL</span>`, onclick: afterMedals(() => { leave(); app.go('ending'); }) }));
+      else if (nextN) btns.append(h('button.btn.primary.go', { type: 'button', 'data-focus': '', html: `${ICON.go}<span>PRÓXIMA MISSÃO</span>`, onclick: afterMedals(() => again(nextN)) }));
       btns.append(
         h('button.btn', { type: 'button', html: `${ICON.map}<span>MAPA</span>`, onclick: afterMedals(() => { leave(); app.go('map'); }) }),
-        h('button.btn.ghost', { type: 'button', html: `${ICON.restart}<span>JOGAR DE NOVO</span>`, onclick: afterMedals(() => start(app, m.id)) }));
+        h('button.btn.ghost', { type: 'button', html: `${ICON.restart}<span>JOGAR DE NOVO</span>`, onclick: afterMedals(() => again(m.id)) }));
       const box = overlay(h('div.result', null,
         h('div.result-head', null, h('div.result-robot', { html: robotLib.svg('excited') }),
           h('div', null, h('p.kicker', null, `Missão ${m.id} concluída!`), h('h2', null, 'Missão concluída!'), stars)),
         h('p.result-win', null, m.win),
         h('p.result-learn', null, h('b', null, 'Você aprendeu: '), m.learn),
+        teacherRun ? h('p.teacher-note', null, h('span', { html: ICON.teacher }), 'Modo professor: este resultado não foi salvo.') : null,
         list, btns), { label: 'Resultado da missão', cls: 'result-ov' });
     }
 
@@ -232,7 +241,7 @@
         h('p', null, `Missão ${m.id}: ${m.title}`),
         h('div.overlay-actions.col', null,
           h('button.btn.primary', { type: 'button', 'data-focus': '', html: `${ICON.play}<span>CONTINUAR</span>`, onclick: () => { box.close(); token.paused = false; } }),
-          h('button.btn', { type: 'button', html: `${ICON.restart}<span>REINICIAR MISSÃO</span>`, onclick: () => { box.close(); start(app, m.id); } }),
+          h('button.btn', { type: 'button', html: `${ICON.restart}<span>REINICIAR MISSÃO</span>`, onclick: () => { box.close(); again(m.id); } }),
           h('button.btn', { type: 'button', html: `${ICON.map}<span>VOLTAR AO MAPA</span>`, onclick: () => { box.close(); leave(); app.go('map'); } }),
           soundBtn)
       ), { label: 'Pausa', cls: 'pause-ov' });
@@ -243,7 +252,7 @@
         h('h2', null, 'Reiniciar a missão?'),
         h('p', null, 'Os cartões voltam a ficar embaralhados e você começa de novo.'),
         h('div.overlay-actions', null,
-          h('button.btn.primary', { type: 'button', 'data-focus': '', html: `${ICON.restart}<span>SIM, REINICIAR</span>`, onclick: () => { box.close(); start(app, m.id); } }),
+          h('button.btn.primary', { type: 'button', 'data-focus': '', html: `${ICON.restart}<span>SIM, REINICIAR</span>`, onclick: () => { box.close(); again(m.id); } }),
           h('button.btn.ghost', { type: 'button', html: `${ICON.close}<span>NÃO</span>`, onclick: () => { box.close(); token.paused = false; } }))
       ), { label: 'Reiniciar', cls: 'confirm-ov' });
     }

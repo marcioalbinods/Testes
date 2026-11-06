@@ -109,14 +109,17 @@ Medalhas: **Estrela de Aprendiz** (Nível 1), **Medalha de Organizador** (Nível
 
 ## 👩‍🏫 Área do professor
 
-As missões são liberadas uma de cada vez. Para testar qualquer fase:
+Toque no **botão de pessoa** (canto superior direito da tela inicial), em **Como jogar → Área do professor**,
+ou abra o endereço com `?professor` no final. Digite o código **3030**.
 
-1. Tela inicial → **Como jogar** → **Área do professor** (ou abra o endereço com `?professor` no final).
-2. Digite o código **3030**.
-3. Ative **“Liberar todas as missões para teste”** e use os botões **Testar** de cada missão.
+O painel tem três opções:
 
-No mesmo painel é possível **apagar o progresso** do aparelho. Desligue o modo de teste antes de entregar
-o aparelho aos estudantes.
+1. **Novo aluno: apagar progresso.** Apaga missões, pontos, estrelas e medalhas do aparelho (com
+   confirmação). O jogo volta para a tela inicial e só a Missão 1 fica liberada, pronto para outro aluno.
+2. **Abrir qualquer missão.** As 15 missões aparecem organizadas pelos 3 níveis. Toque em uma para jogá-la
+   na hora, mesmo bloqueada. No modo professor **o resultado não é salvo**, então o progresso do aluno não muda.
+3. **Liberar todas as missões no mapa.** Deixa o mapa todo aberto (também sem salvar resultados).
+   Toque de novo para bloquear antes de entregar o aparelho a um aluno.
 
 ## 🔒 Privacidade
 

@@ -318,21 +318,68 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.click('.pause-ov .btn:has-text("VOLTAR AO MAPA")'); await p.waitForSelector('.map-screen');
   await p.close();
 
-  /* ================== 4. Modo professor ================== */
+  /* ================== 4. Área do professor ================== */
   console.log('4) Área do professor...');
   const t = await newPage({ width: 1366, height: 768 });
   await t.click('#btn-como'); await t.waitForSelector('.howto-screen');
+  await sleep(300);
   await t.screenshot({ path: path.join(SHOTS, '08-como-jogar.png'), fullPage: true });
-  await t.click('.teacher-btn'); await t.waitForSelector('.teacher-gate');
-  for (const d of '1111') await t.click(`.pin-key[aria-label="${d}"]`);
+  await t.click('.howto-screen .icon-btn'); await t.waitForSelector('.home-screen');
+  const typePin = async (pin) => { for (const d of pin) await t.click(`.pin-key[aria-label="${d}"]`); };
+  const openPanel = async () => {
+    await t.click('.teacher-home'); await t.waitForSelector('.teacher-gate');
+    await typePin('3030'); await t.waitForSelector('.teacher-panel');
+  };
+  const goHome = async () => { await t.click('.map-top .icon-btn[aria-label="Tela inicial"]'); await t.waitForSelector('.home-screen'); };
+  ok(!!(await t.$('.teacher-home')), 'botão do professor na tela inicial');
+  await t.click('.teacher-home'); await t.waitForSelector('.teacher-gate');
+  await typePin('1111');
   ok((await t.textContent('.pin-msg')).includes('incorreto'), 'PIN errado recusado');
-  for (const d of '3030') await t.click(`.pin-key[aria-label="${d}"]`);
-  await t.waitForSelector('.teacher-panel');
-  await t.click('.teacher-panel .overlay-actions.col .btn');
+  await typePin('3030'); await t.waitForSelector('.teacher-panel');
+  ok((await t.$$('.tmission')).length === 15, 'painel mostra as 15 missões dos 3 níveis');
+  await sleep(300);
+  await t.screenshot({ path: path.join(SHOTS, '09-professor.png') });
+
+  // abre a missão 15 direto, sem ter liberado nada
+  await t.click('[data-preview="15"]'); await t.waitForSelector('.intro-ov');
+  ok((await t.textContent('.intro h2')).includes('grande desafio'), 'professor abre a missão 15 bloqueada');
+  ok(!!(await t.$('.mission-screen .teacher-badge')), 'aviso de modo professor na missão');
+  await t.click('.intro .btn.go'); await t.waitForSelector('.odd-row');
+  await t.click('.topbar [aria-label="Voltar ao mapa"]'); await t.waitForSelector('.map-screen');
+  ok((await t.$$('.node.locked')).length === 14, 'o mapa do aluno continua bloqueado');
+
+  // joga a missão 4 pelo painel: o resultado não é salvo
+  await goHome(); await openPanel();
+  await t.click('[data-preview="4"]'); await t.click('.intro .btn.go'); await t.waitForSelector('.order-row');
+  await arrangeByTaps(t, '.order-row', ['fatias', 'recheio', 'fechar']);
+  await t.click('.actions .action'); await waitNext(t); await t.click('.actions .action');
+  await t.waitForSelector('.result-ov');
+  ok(!!(await t.$('.teacher-note')), 'resultado avisa que não foi salvo');
+  ok((await t.evaluate(() => OQVP.logic.totals(OQVP.store.load()).done)) === 0, 'missão do professor não conta para o aluno');
+  await t.click('.result-ov .btn:has-text("MAPA")'); await t.waitForSelector('.map-screen');
+
+  // liberar o mapa inteiro
+  await goHome(); await openPanel();
+  await t.click('[data-act="unlock"]');
   await t.click('.teacher-panel .btn:has-text("IR PARA O MAPA")'); await t.waitForSelector('.map-screen');
-  ok((await t.$$('.node.locked')).length === 0, 'modo professor libera todas as missões');
-  ok(!!(await t.$('.teacher-badge')), 'aviso de modo professor no mapa');
-  ok((await t.evaluate(() => OQVP.logic.totals(OQVP.store.load()).done)) === 0, 'modo professor não marca missões como concluídas');
+  ok((await t.$$('.node.locked')).length === 0, 'mapa liberado abre todas as missões');
+  ok(!!(await t.$('.teacher-badge')), 'aviso de mapa liberado');
+
+  // novo aluno: apaga tudo
+  await t.evaluate(() => OQVP.store.update((p) => { p.missions = { 1: { done: true, best: 150, stars: 3 }, 2: { done: true, best: 150, stars: 3 } }; }));
+  await t.click('.teacher-badge'); await t.waitForSelector('.teacher-gate');
+  await typePin('3030'); await t.waitForSelector('.teacher-panel');
+  await t.click('[data-act="reset"]'); await t.waitForSelector('.reset-confirm');
+  ok((await t.textContent('.reset-confirm')).includes('2 missões'), 'confirmação mostra o que será apagado');
+  await t.click('.reset-confirm .btn.ghost'); await sleep(250);
+  ok((await t.evaluate(() => OQVP.logic.totals(OQVP.store.load()).done)) === 2, 'cancelar não apaga nada');
+  await t.click('[data-act="reset"]'); await t.waitForSelector('.reset-confirm');
+  await t.click('[data-act="confirm-reset"]'); await t.waitForSelector('.home-screen');
+  const after = await t.evaluate(() => ({ ...OQVP.logic.totals(OQVP.store.load()), teacher: OQVP.store.load().teacher }));
+  ok(after.done === 0 && after.points === 0 && !after.teacher, 'novo aluno: progresso e mapa liberado apagados');
+  ok(!!(await t.$('.toast')), 'aviso de progresso apagado');
+  await t.reload(); await t.click('#btn-jogar'); await t.waitForSelector('.map-screen');
+  ok((await t.$$('.node.locked')).length === 14, 'depois de recarregar, só a missão 1 está liberada');
 
   /* ================== 5. Tamanhos de tela ================== */
   console.log('5) Tamanhos de tela...');

@@ -19,7 +19,7 @@ export function Step1({ form, update, errors }: StepProps) {
       <div className="enter flex items-start gap-3 rounded-[22px] border border-mint/30 bg-mint/10 p-4 text-[15px]">
         <ShieldCheck className="mt-0.5 shrink-0 text-mint" size={22} aria-hidden />
         <p>
-          <strong>Seus dados ficam só neste aparelho.</strong> Nada é enviado para a internet e não é preciso fazer cadastro. O preenchimento é salvo automaticamente neste navegador. Antes de limpar os dados do navegador ou trocar de dispositivo, baixem os arquivos (slides, guia ou uma cópia do trabalho).
+          <strong>Seus dados ficam neste aparelho.</strong> Não é preciso fazer cadastro e o preenchimento é salvo automaticamente neste navegador. O trabalho só é enviado quando, no final, o grupo tocar em “Enviar ao professor”: aí ele vai para o Google Drive do professor orientador. Antes de limpar os dados do navegador ou trocar de dispositivo, baixem os arquivos (slides, guia ou uma cópia do trabalho).
         </p>
       </div>
 

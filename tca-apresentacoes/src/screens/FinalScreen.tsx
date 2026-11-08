@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { BookOpenCheck, ChevronLeft, ChevronRight, CircleAlert, FileText, MonitorPlay, Pencil, PartyPopper, Presentation, SquarePen } from 'lucide-react';
+import { CloudUpload, BookOpenCheck, ChevronLeft, ChevronRight, CircleAlert, FileText, MonitorPlay, Pencil, PartyPopper, Presentation, SquarePen } from 'lucide-react';
 import type { Deck, ProjectForm } from '../types';
 import { layoutDeck } from '../engine/layout';
 import { themeById } from '../engine/themes';
 import { fixText } from '../engine/text';
 import { SlideCanvas } from '../render/SlideView';
+import type { DriveStatus } from '../lib/teacherDrive';
 
 export type DownloadKind = 'pptx' | 'pdf' | 'guide' | 'summary' | 'backup';
 
@@ -16,9 +17,12 @@ interface Props {
   onEditResearch: () => void;
   onEditSlides: () => void;
   onGuide: () => void;
+  drive: DriveStatus | null;
+  sentAt?: string;
+  onSend: () => void;
 }
 
-export function FinalScreen({ deck, form, busy, onDownload, onEditResearch, onEditSlides, onGuide }: Props) {
+export function FinalScreen({ deck, form, busy, onDownload, onEditResearch, onEditSlides, onGuide, drive, sentAt, onSend }: Props) {
   const th = themeById(deck.themeId);
   const pages = useMemo(() => layoutDeck(deck.slides, th, fixText(form.theme) || 'Nosso tema'), [deck, th, form.theme]);
   const visible = deck.slides.filter((s) => !s.hidden);
@@ -92,6 +96,8 @@ export function FinalScreen({ deck, form, busy, onDownload, onEditResearch, onEd
         <DlButton icon={BookOpenCheck} title="Baixar guia de apresentação" sub="PDF para estudar em grupo" onClick={() => onDownload('guide')} busy={busy === 'guide'} />
       </section>
 
+      <SendCard drive={drive} sentAt={sentAt} busy={busy === 'send'} onSend={onSend} advisor={form.advisor} />
+
       <div className="flex flex-wrap gap-3">
         <button type="button" className="btn btn-ghost" onClick={onGuide}>
           <MonitorPlay size={20} aria-hidden /> Ver guia na tela
@@ -120,5 +126,44 @@ function DlButton({ icon: Icon, title, sub, onClick, busy, primary }: { icon: ty
         <span className={`block text-[14px] ${primary ? 'opacity-85' : 'text-muted'}`}>{sub}</span>
       </span>
     </button>
+  );
+}
+
+function SendCard({ drive, sentAt, busy, onSend, advisor }: { drive: DriveStatus | null; sentAt?: string; busy: boolean; onSend: () => void; advisor: string }) {
+  const [ok, setOk] = useState(false);
+  const who = advisor.trim() || 'o professor orientador';
+  return (
+    <section className="card enter flex flex-col gap-4 border-mint/40 p-5 sm:p-6" aria-labelledby="send-title">
+      <h2 id="send-title" className="flex items-center gap-2 font-display text-[22px] font-extrabold">
+        <CloudUpload className="text-mint" aria-hidden /> Enviar ao professor
+      </h2>
+      {drive === null ? (
+        <p className="text-muted">Verificando…</p>
+      ) : drive.kind === 'off' ? (
+        <p className="text-[15px] text-muted">
+          {drive.reason === 'artifact'
+            ? 'O envio ao professor funciona no site da escola (GitHub Pages). Aqui, baixem os arquivos e entreguem como o professor combinar.'
+            : 'O professor ainda não ativou o envio pelo site. Por enquanto, baixem os arquivos e entreguem como o professor combinar.'}
+        </p>
+      ) : (
+        <>
+          <p className="text-[15px]">
+            O trabalho vai para a pasta do TCA no Google Drive de <strong>{who}</strong>: as respostas de todas as etapas (com os nomes dos integrantes), o PowerPoint, o guia em PDF e uma cópia do trabalho. Só o professor tem acesso a essa pasta.
+          </p>
+          {sentAt && (
+            <p className="rounded-2xl bg-mint/10 p-3 text-[15px] font-bold text-mint">
+              Enviado em {new Date(sentAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}. Mudaram alguma coisa depois? Enviem de novo: o professor recebe a versão nova.
+            </p>
+          )}
+          <label className="flex cursor-pointer items-start gap-3 text-[15px]">
+            <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-[rgb(var(--brand))]" checked={ok} onChange={(e) => setOk(e.target.checked)} />
+            <span>Conferimos as informações e o grupo concorda em enviar o trabalho ao professor.</span>
+          </label>
+          <button type="button" className="btn btn-primary self-start" disabled={!ok || busy} onClick={onSend}>
+            <CloudUpload size={20} aria-hidden /> {busy ? 'Enviando…' : sentAt ? 'Enviar de novo' : 'Enviar ao professor'}
+          </button>
+        </>
+      )}
+    </section>
   );
 }

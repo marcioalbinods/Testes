@@ -17,6 +17,7 @@ import { Modal } from './components/ui';
 import { buildDeck, workTitle } from './engine/buildDeck';
 import { buildGuide } from './engine/guide';
 import { saveFile, slug } from './lib/save';
+import { loadDriveStatus, sendToTeacher, type DriveStatus } from './lib/teacherDrive';
 
 export default function App() {
   const { state, update, set, reset, replace, storageOk } = useProject();
@@ -27,6 +28,11 @@ export default function App() {
   const [modal, setModal] = useState<'new' | 'backup' | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
+  const [drive, setDrive] = useState<DriveStatus | null>(null);
+
+  useEffect(() => {
+    loadDriveStatus().then(setDrive);
+  }, []);
 
   const say = useCallback((text: string, tone: 'ok' | 'bad' = 'ok') => {
     setToast({ text, tone });
@@ -106,6 +112,22 @@ export default function App() {
     } catch (e) {
       console.error(e);
       say(e instanceof Error && e.message ? e.message : 'Não foi possível gerar o arquivo. Tente de novo.', 'bad');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const send = async () => {
+    if (busy || !deck || drive?.kind !== 'on') return;
+    setBusy('send');
+    try {
+      const backup = { app: 'tca-da-pesquisa-a-intervencao', version: 1, state };
+      await sendToTeacher(drive.url, form, deck, backup);
+      set({ sentAt: new Date().toISOString() });
+      say('Trabalho enviado ao professor!');
+    } catch (e) {
+      console.error(e);
+      say(e instanceof Error && e.message && !/fetch/i.test(e.message) ? e.message : 'Não foi possível enviar. Confiram a internet e tentem de novo.', 'bad');
     } finally {
       setBusy(null);
     }
@@ -191,7 +213,7 @@ export default function App() {
               </div>
             </>
           )}
-          {screen === 'final' && deck && <FinalScreen deck={deck} form={form} busy={busy} onDownload={download} onEditResearch={() => goStep(6)} onEditSlides={() => { set({ screen: 'editor' }); scrollTop(); }} onGuide={() => { set({ screen: 'guide' }); scrollTop(); }} />}
+          {screen === 'final' && deck && <FinalScreen deck={deck} form={form} busy={busy} onDownload={download} onEditResearch={() => goStep(6)} onEditSlides={() => { set({ screen: 'editor' }); scrollTop(); }} onGuide={() => { set({ screen: 'guide' }); scrollTop(); }} drive={drive} sentAt={state.sentAt} onSend={send} />}
           {screen === 'editor' && deck && <SlideEditor deck={deck} form={form} onChange={(d) => set({ deck: d, deckEdited: true })} onBack={() => { set({ screen: 'final' }); scrollTop(); }} />}
           {screen === 'guide' && deck && <GuideView deck={deck} form={form} busy={busy === 'guide'} onDownload={() => download('guide')} onBack={() => { set({ screen: 'final' }); scrollTop(); }} />}
           {screen !== 'form' && !deck && (
@@ -228,7 +250,7 @@ export default function App() {
 
       <footer className="no-print gutter mx-auto mb-24 flex max-w-[1100px] items-start gap-2 text-[13px] text-muted">
         <ShieldCheck size={16} className="mt-0.5 shrink-0" aria-hidden />
-        <p>Sem cadastro, sem coleta de dados e sem envio para a internet: tudo fica guardado só neste navegador. Baixem seus arquivos antes de limpar os dados do navegador ou trocar de dispositivo.</p>
+        <p>Sem cadastro e sem coleta automática: o preenchimento fica guardado neste navegador. O trabalho só sai daqui quando o grupo toca em “Enviar ao professor”, e vai apenas para o Google Drive do professor. Baixem seus arquivos antes de limpar os dados do navegador ou trocar de dispositivo.</p>
       </footer>
 
       {toast && (

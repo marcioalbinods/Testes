@@ -27,9 +27,15 @@ e gerarem automaticamente a apresentação de slides para a pré-apresentação 
 
 ## Privacidade
 
-Sem cadastro, sem login, sem banco de dados, sem analytics. O preenchimento fica salvo só no navegador
-(`localStorage`). Fontes, ícones e bibliotecas vão embutidos no próprio arquivo: o site não faz nenhuma
-requisição à internet. Nenhuma inteligência artificial externa é usada; a síntese é feita por regras locais.
+Sem cadastro, sem login, sem banco de dados, sem analytics. O preenchimento fica salvo no navegador
+(`localStorage`). Fontes, ícones e bibliotecas vão embutidos no próprio arquivo. Nenhuma inteligência
+artificial externa é usada; a síntese é feita por regras locais.
+
+O trabalho só sai do aparelho quando o grupo marca a concordância e toca em **“Enviar ao professor”**.
+Aí as respostas e os arquivos vão para o **Google Drive do professor**, por um Google Apps Script que o próprio
+professor instala. Veja [`google-apps-script/LEIA-ME.md`](google-apps-script/LEIA-ME.md). O endereço do
+receptor fica em `tca/config.json` (o site só aceita endereços `script.google.com`). O envio funciona no
+GitHub Pages; na página do claude.ai ele fica desativado, porque lá conexões externas são bloqueadas.
 
 ## Desenvolvimento
 

@@ -59,3 +59,15 @@ Veja as instruções completas em [`3o ano/o-que-vem-primeiro/README.md`](3o%20a
 Depois de ativar o GitHub Pages, o jogo fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/3o%20ano/o-que-vem-primeiro/`
 (a página `https://<seu-usuario>.github.io/<nome-do-repositorio>/3o%20ano/` lista os jogos do 3º ano).
+
+---
+
+# 🎤 TCA — Da Pesquisa à Intervenção (pasta `tca-apresentacoes/`)
+
+Site para o 8º ano organizar a pesquisa do Trabalho Colaborativo de Autoria e gerar automaticamente
+a apresentação de slides (PowerPoint e PDF) e um guia de apresentação oral para o grupo estudar.
+Sem cadastro e sem envio de dados: tudo fica no navegador. Veja os detalhes em
+[`tca-apresentacoes/README.md`](tca-apresentacoes/README.md).
+
+Depois de ativar o GitHub Pages, o site fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/tca/`.

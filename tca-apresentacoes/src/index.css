@@ -1,0 +1,200 @@
+@import '@fontsource/atkinson-hyperlegible/latin-400.css';
+@import '@fontsource/atkinson-hyperlegible/latin-700.css';
+@import '@fontsource/bricolage-grotesque/latin-600.css';
+@import '@fontsource/bricolage-grotesque/latin-800.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layout: coluna central de leitura (até ~880px) com cards; trilha de etapas fixa no topo.
+   Paleta: azul TCA + roxo, com coral e menta de apoio. Valores em "R G B". */
+:root {
+  --bg: 244 246 253;
+  --surface: 255 255 255;
+  --sunk: 234 238 252;
+  --ink: 27 26 63;
+  --muted: 88 92 128;
+  --line: 214 219 240;
+  --brand: 54 81 212;
+  --brand-ink: 255 255 255;
+  --violet: 123 63 228;
+  --coral: 222 92 60;
+  --mint: 13 150 125;
+  --sun: 255 194 71;
+  --danger: 200 45 60;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: 16 18 43;
+    --surface: 26 29 62;
+    --sunk: 34 38 78;
+    --ink: 238 240 255;
+    --muted: 172 178 214;
+    --line: 52 58 104;
+    --brand: 120 145 255;
+    --brand-ink: 14 16 40;
+    --violet: 176 138 255;
+    --coral: 255 140 110;
+    --mint: 72 214 180;
+    --sun: 255 205 100;
+    --danger: 255 120 130;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: 16 18 43;
+  --surface: 26 29 62;
+  --sunk: 34 38 78;
+  --ink: 238 240 255;
+  --muted: 172 178 214;
+  --line: 52 58 104;
+  --brand: 120 145 255;
+  --brand-ink: 14 16 40;
+  --violet: 176 138 255;
+  --coral: 255 140 110;
+  --mint: 72 214 180;
+  --sun: 255 205 100;
+  --danger: 255 120 130;
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+  font-family: 'Atkinson Hyperlegible', Verdana, system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
+}
+h1, h2, h3 {
+  font-family: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+:focus-visible {
+  outline: 3px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@layer components {
+.field {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 2px solid rgb(var(--line));
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 17px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field::placeholder {
+  color: rgb(var(--muted) / 0.75);
+}
+.field:focus {
+  outline: none;
+  border-color: rgb(var(--brand));
+  box-shadow: 0 0 0 4px rgb(var(--brand) / 0.15);
+}
+.field[aria-invalid='true'] {
+  border-color: rgb(var(--danger));
+}
+textarea.field {
+  resize: vertical;
+  min-height: 120px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: rgb(var(--brand));
+  color: rgb(var(--brand-ink));
+  box-shadow: 0 6px 18px -8px rgb(var(--brand) / 0.7);
+}
+.btn-primary:hover:not(:disabled) {
+  background: rgb(var(--brand) / 0.9);
+}
+.btn-ghost {
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
+  border-color: rgb(var(--line));
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: rgb(var(--brand) / 0.6);
+}
+.btn-soft {
+  background: rgb(var(--brand) / 0.1);
+  color: rgb(var(--brand));
+}
+.btn-danger {
+  background: rgb(var(--danger) / 0.1);
+  color: rgb(var(--danger));
+}
+.card {
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--line));
+  border-radius: 22px;
+}
+.enter {
+  animation: enter 0.35s ease both;
+}
+@keyframes enter {
+  from {
+    opacity: 0.4;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .card {
+    border-color: #ccc;
+    break-inside: avoid;
+  }
+}

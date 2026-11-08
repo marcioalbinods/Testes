@@ -1,5 +1,5 @@
-import { Plus, ShieldCheck, Sun, Sunset, Trash2, UsersRound } from 'lucide-react';
-import { CLASS_OPTIONS, uid } from '../data/constants';
+import { Plus, School, ShieldCheck, Sun, Sunset, Trash2, UsersRound } from 'lucide-react';
+import { CLASS_OPTIONS, SCHOOL_NAME, uid } from '../data/constants';
 import { Field, Section, StepIntro, TextInput, Toggle } from '../components/ui';
 import type { StepProps } from './types';
 
@@ -24,22 +24,26 @@ export function Step1({ form, update, errors }: StepProps) {
       </div>
 
       <Section>
-        <Field id="school" number={1} label="Nome da escola" required error={errors.school}>
-          <TextInput id="school" value={form.school} onChange={(v) => update({ school: v })} placeholder="Ex.: E.E. Professora Maria da Silva" invalid={!!errors.school} />
-        </Field>
+        <div className="flex flex-col gap-1">
+          <p className="text-[17px] font-bold">
+            <span className="font-display text-brand">1.</span> Escola
+          </p>
+          <p className="flex min-h-[52px] items-center gap-2 rounded-[14px] bg-sunk px-4 text-[17px] font-bold" id="school">
+            <School size={20} className="text-brand" aria-hidden /> {SCHOOL_NAME}
+          </p>
+        </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <Field id="grade" number={2} label="Ano/série" required>
             <TextInput id="grade" value={form.grade} onChange={(v) => update({ grade: v })} />
           </Field>
-          <Field id="className" number={3} label="Turma" required error={errors.className} hint="Toque em uma opção ou escreva.">
-            <div className="flex flex-wrap gap-2">
+          <Field id="className" number={3} label="Turma" required error={errors.className} hint="Toque na turma do grupo.">
+            <div className="grid grid-cols-3 gap-2" id="className">
               {CLASS_OPTIONS.map((c) => (
-                <Toggle key={c} pressed={form.className === c} onClick={() => update({ className: c })} className="px-3">
+                <Toggle key={c} pressed={form.className === c} onClick={() => update({ className: c })} className="px-2 text-[18px]">
                   {c}
                 </Toggle>
               ))}
             </div>
-            <TextInput id="className" value={form.className} onChange={(v) => update({ className: v })} placeholder="Ou escreva: 8º G, 8º ano 2..." invalid={!!errors.className} />
           </Field>
         </div>
         <Field id="period" number={4} label="Período" required error={errors.period}>
@@ -51,12 +55,15 @@ export function Step1({ form, update, errors }: StepProps) {
             ))}
           </div>
         </Field>
-        <Field id="groupName" number={5} label="Nome do grupo" hint="Se o grupo tiver um nome criativo, ele aparece na capa.">
+        <Field id="advisor" number={5} label="Prof. Orientador" required error={errors.advisor} hint="Professor ou professora que orienta o grupo no TCA.">
+          <TextInput id="advisor" value={form.advisor} onChange={(v) => update({ advisor: v })} placeholder="Ex.: Prof.ª Ana Souza" invalid={!!errors.advisor} />
+        </Field>
+        <Field id="groupName" number={6} label="Nome do grupo" hint="Se o grupo tiver um nome criativo, ele aparece na capa.">
           <TextInput id="groupName" value={form.groupName} onChange={(v) => update({ groupName: v })} placeholder="Ex.: Os Investigadores" />
         </Field>
       </Section>
 
-      <Section title="6. Integrantes do grupo" icon={UsersRound}>
+      <Section title="7. Integrantes do grupo" icon={UsersRound}>
         <p className="-mt-3 text-[15px] text-muted">Escrevam o nome completo de cada integrante. Não há limite de pessoas.</p>
         <ol className="flex flex-col gap-3">
           {form.members.map((m, i) => (

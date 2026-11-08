@@ -28,7 +28,7 @@ export function Step6({ form, themeChoice, onTheme, onEdit, onGenerate, onSummar
   const refs = buildReferences(form.sources);
 
   const blocks: { step: number; items: [string, string | string[]][] }[] = [
-    { step: 1, items: [['Escola', form.school], ['Turma', [form.grade, form.className, form.period].filter(Boolean).join(' · ')], ['Grupo', form.groupName], ['Integrantes', members]] },
+    { step: 1, items: [['Escola', form.school], ['Prof. Orientador', form.advisor], ['Turma', [form.grade, form.className, form.period].filter(Boolean).join(' · ')], ['Grupo', form.groupName], ['Integrantes', members]] },
     { step: 2, items: [['Tema', form.theme], ['Título', form.workTitle], ['Problema', form.problem], ['Por que escolhemos', form.whyChosen], ['Importância', form.whyImportant], ['Quem é afetado', form.affected], ['Onde', [...form.whereScope, form.whereDetail].filter(Boolean).join(' · ')]] },
     { step: 3, items: [['Descobertas', form.discoveries.map((d) => d.text)], ['Causas', form.causes], ['Consequências', form.consequences], ['Dados', [form.dataText, ...form.dataPoints.map((d) => `${d.value}${d.unit === '%' ? '%' : ' ' + d.unit} — ${d.label}`)].filter((x) => x.trim())], ['Mais surpreendente', form.surprising], ['Aprendemos', form.learned], ['Conclusão', form.conclusion]] },
     { step: 4, items: [['Referências', refs.map((r) => r.text + (r.needsCheck.length ? `  (conferir: ${r.needsCheck.join(', ')})` : ''))]] },

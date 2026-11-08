@@ -1,4 +1,5 @@
 import type { ProjectForm } from '../types';
+import { CLASS_OPTIONS } from '../data/constants';
 
 export type Errors = Record<string, string>;
 
@@ -7,8 +8,8 @@ const empty = (s: string) => !s.trim();
 export function validateStep(step: number, f: ProjectForm): Errors {
   const e: Errors = {};
   if (step === 1) {
-    if (empty(f.school)) e.school = 'Escreva o nome da escola.';
-    if (empty(f.className)) e.className = 'Escolha ou escreva a turma.';
+    if (!CLASS_OPTIONS.includes(f.className)) e.className = 'Escolha a turma.';
+    if (empty(f.advisor)) e.advisor = 'Escreva o nome do professor orientador.';
     if (!f.period) e.period = 'Escolha o período.';
     if (!f.members.some((m) => m.name.trim())) e.members = 'Adicione pelo menos um integrante.';
   }

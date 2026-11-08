@@ -12,6 +12,7 @@ export interface ProjectState {
   deckEdited: boolean;
   isExample: boolean;
   themeChoice: string;
+  sentAt?: string;
   savedAt?: string;
 }
 

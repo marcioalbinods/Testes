@@ -51,6 +51,9 @@ essa troca.
   clique em **Cópia do trabalho → Abrir uma cópia** e escolha o arquivo.
 - **Mudei o código do script.** Depois de colar a versão nova, vá em **Implantar → Gerenciar implantações →
   editar (lápis) → Versão: Nova versão → Implantar**. O endereço continua o mesmo.
+- **Conta institucional (ex.: @edu.sme.prefeitura.sp.gov.br).** Na implantação, “Quem pode acessar” precisa
+  ser **Qualquer pessoa** (não “Qualquer pessoa da organização”), porque o site envia sem login. Se essa opção
+  não aparecer, a administração da conta bloqueou; nesse caso, instale o receptor numa conta Gmail pessoal.
 - **O envio não funciona na página do claude.ai.** Essa página bloqueia conexões com outros sites.
   Use o endereço do GitHub Pages.
 - **Privacidade.** Os dados incluem nomes de estudantes menores de idade. Mantenha a pasta sem

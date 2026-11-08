@@ -68,6 +68,7 @@ export function buildDeck(f: ProjectForm, themeId?: string): Deck {
       list('members', 'Integrantes', members, 'Adicionem os nomes dos integrantes.'),
       text('group', 'Nome do grupo', fixText(f.groupName).trim()),
       text('info', 'Escola, série e turma', info),
+      text('advisor', 'Prof. Orientador', fixText(f.advisor).trim()),
     ],
     notes: '',
   });

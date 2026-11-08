@@ -199,7 +199,7 @@ class Writer {
 }
 
 const groupLine = (f: ProjectForm) =>
-  [f.groupName.trim() && 'Grupo ' + f.groupName.trim().replace(/^grupo\s+/i, ''), [f.grade, f.className].filter(Boolean).join(' '), f.period, f.school].filter(Boolean).join(' | ');
+  [f.groupName.trim() && 'Grupo ' + f.groupName.trim().replace(/^grupo\s+/i, ''), [f.grade, f.className].filter(Boolean).join(' '), f.period, f.school, f.advisor.trim() && 'Prof. Orientador: ' + f.advisor.trim()].filter(Boolean).join(' | ');
 
 export function exportGuidePdf(guide: Guide, form: ProjectForm, title: string): Blob {
   const w = new Writer(`Guia de apresentação - ${title}`);
@@ -243,6 +243,7 @@ export function exportSummaryPdf(f: ProjectForm, title: string): Blob {
   };
   w.h2('Identificação do grupo', 'Etapa 1');
   qa('Escola', f.school);
+  qa('Prof. Orientador', f.advisor);
   qa('Ano e turma', [f.grade, f.className].filter(Boolean).join(' '));
   qa('Período', f.period);
   if (f.groupName.trim()) qa('Nome do grupo', f.groupName);

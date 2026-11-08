@@ -165,7 +165,7 @@ export default function App() {
 
           {screen === 'form' && (
             <>
-              {step === 1 && !form.school && !state.isExample && (
+              {step === 1 && !form.theme && !form.members.some((m) => m.name.trim()) && !state.isExample && (
                 <button type="button" className="no-print mb-5 inline-flex items-center gap-2 text-[15px] font-bold text-brand underline-offset-4 hover:underline" onClick={() => replace({ ...state, form: exampleForm(), isExample: true, deck: null, step: 1 })}>
                   <Sparkles size={18} aria-hidden /> Quer ver um exemplo preenchido antes de começar?
                 </button>

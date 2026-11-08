@@ -173,6 +173,7 @@ export function layoutSlide(s: SlideData, ctx: LayoutCtx): Prim[] {
       const members = fieldList(s, 'members');
       const group = fieldText(s, 'group');
       const info = fieldText(s, 'info');
+      const advisor = fieldText(s, 'advisor');
       const P: Prim[] = [{ t: 'rect', x: 0, y: 0, w: SW, h: SH, fill: th.bg }, ...motif(th, 'cover')];
       P.push({ t: 'rect', x: 0.75, y: 0.75, w: 4.7, h: 0.46, fill: th.accent, alpha: 0.14, r: 0.23 });
       P.push(u.text('Trabalho Colaborativo de Autoria'.toUpperCase(), { x: 0.75, y: 0.83, w: 4.7, h: 0.3, size: 11, bold: true, color: th.accent, align: 'center' }));
@@ -180,9 +181,10 @@ export function layoutSlide(s: SlideData, ctx: LayoutCtx): Prim[] {
       if (subtitle) P.push(u.text(subtitle, { x: 0.75, y: 4.15, w: 7.5, h: 0.9, size: 20, color: th.muted, min: 13 }));
       P.push({ t: 'rect', x: 0.75, y: 5.18, w: 1.1, h: 0.07, fill: th.accent3 });
       P.push(u.label(group ? `Grupo ${group.replace(/^grupo\s+/i, '')} · Integrantes` : 'Integrantes', 0.75, 5.4, 7.6, th.muted));
-      if (members.length) P.push(u.text(members.join('  ·  '), { x: 0.75, y: 5.72, w: 7.7, h: 0.8, size: 17, bold: true, min: 11 }));
-      else P.push(...u.missing('Adicionem os nomes dos integrantes.', 0.75, 5.72, 7.0, 0.7));
-      if (info) P.push(u.text(info, { x: 0.75, y: 6.62, w: 7.7, h: 0.4, size: 13, color: th.muted, min: 10 }));
+      if (members.length) P.push(u.text(members.join('  ·  '), { x: 0.75, y: 5.72, w: 7.7, h: 0.66, size: 17, bold: true, min: 11 }));
+      else P.push(...u.missing('Adicionem os nomes dos integrantes.', 0.75, 5.72, 7.0, 0.6));
+      if (advisor) P.push(u.text('Prof. Orientador: ' + advisor, { x: 0.75, y: 6.44, w: 7.7, h: 0.3, size: 13, color: th.ink, min: 10 }));
+      if (info) P.push(u.text(info, { x: 0.75, y: 6.78, w: 7.7, h: 0.3, size: 12, color: th.muted, min: 9 }));
       return P;
     }
 

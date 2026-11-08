@@ -18,7 +18,7 @@ const URL = 'file://' + path.resolve(process.argv[3]);
   await page.getByRole('button', { name: 'Avançar' }).click();
   const alerts = await page.locator('[role=alert]').count();
   console.log('alertas validação etapa1:', alerts);
-  await page.fill('#school', 'EMEF Vila Verde');
+  await page.fill('#advisor', 'Prof.ª Helena Duarte');
   await page.getByRole('button', { name: '8º C' }).click();
   await page.getByRole('button', { name: /Tarde/ }).click();
   await page.fill('#groupName', 'Guardiões do Rio');

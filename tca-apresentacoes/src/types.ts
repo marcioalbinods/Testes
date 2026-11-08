@@ -51,6 +51,7 @@ export interface ProjectForm {
   className: string;
   period: '' | 'Manhã' | 'Tarde';
   groupName: string;
+  advisor: string;
   members: Member[];
   // Etapa 2
   workTitle: string;

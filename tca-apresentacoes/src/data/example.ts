@@ -1,11 +1,12 @@
 import type { ProjectForm } from '../types';
-import { emptyForm, uid } from './constants';
+import { emptyForm, SCHOOL_NAME, uid } from './constants';
 
 /** Trabalho fictício, só para mostrar como o site funciona. */
 export function exampleForm(): ProjectForm {
   return {
     ...emptyForm(),
-    school: 'Escola Exemplo',
+    school: SCHOOL_NAME,
+    advisor: 'Prof.ª Exemplo',
     grade: '8º ano',
     className: '8º B',
     period: 'Manhã',

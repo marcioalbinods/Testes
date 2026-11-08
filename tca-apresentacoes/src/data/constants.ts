@@ -1,13 +1,16 @@
 import type { MediaId, ProjectForm } from '../types';
 
+export const SCHOOL_NAME = 'EMEF Oliveira Viana';
+
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 export const emptyForm = (): ProjectForm => ({
-  school: '',
+  school: SCHOOL_NAME,
   grade: '8º ano',
   className: '',
   period: '',
   groupName: '',
+  advisor: '',
   members: [{ id: uid(), name: '' }],
   workTitle: '',
   theme: '',
@@ -41,7 +44,7 @@ export const emptyForm = (): ProjectForm => ({
   mediaResult: '',
 });
 
-export const CLASS_OPTIONS = ['8º A', '8º B', '8º C', '8º D', '8º E', '8º F'];
+export const CLASS_OPTIONS = ['8º A', '8º B', '8º C'];
 export const SCOPE_OPTIONS = ['Na escola', 'No bairro', 'Na cidade', 'No estado', 'No Brasil', 'No mundo'];
 
 export interface MediaOption {

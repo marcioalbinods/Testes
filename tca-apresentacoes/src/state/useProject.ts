@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Deck, ProjectForm } from '../types';
-import { emptyForm } from '../data/constants';
+import { emptyForm, SCHOOL_NAME } from '../data/constants';
 
 export type Screen = 'form' | 'final' | 'editor' | 'guide';
 
@@ -24,7 +24,7 @@ function load(): ProjectState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return initial();
     const parsed = JSON.parse(raw) as Partial<ProjectState>;
-    return { ...initial(), ...parsed, form: { ...emptyForm(), ...(parsed.form ?? {}) } };
+    return { ...initial(), ...parsed, form: { ...emptyForm(), ...(parsed.form ?? {}), school: SCHOOL_NAME } };
   } catch {
     return initial();
   }
@@ -59,7 +59,7 @@ export function useProject() {
     }
     setState(initial());
   }, []);
-  const replace = useCallback((next: ProjectState) => setState({ ...initial(), ...next, form: { ...emptyForm(), ...next.form } }), []);
+  const replace = useCallback((next: ProjectState) => setState({ ...initial(), ...next, form: { ...emptyForm(), ...next.form, school: SCHOOL_NAME } }), []);
 
   return { state, update, set, reset, replace, storageOk };
 }

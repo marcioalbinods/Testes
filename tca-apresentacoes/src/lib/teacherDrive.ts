@@ -8,7 +8,8 @@ import { insideArtifact, slug } from './save';
 
 export type DriveStatus = { kind: 'off'; reason: 'artifact' | 'not-configured' } | { kind: 'on'; url: string };
 
-const VALID = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+// Aceita contas pessoais (/macros/s/…) e institucionais (/a/macros/dominio/s/…).
+const VALID = /^https:\/\/script\.google\.com\/(?:a\/macros\/[A-Za-z0-9.-]+|macros)\/s\/[A-Za-z0-9_-]+\/exec$/;
 
 /** Lê o config.json publicado junto com o site. */
 export async function loadDriveStatus(): Promise<DriveStatus> {

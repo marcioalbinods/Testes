@@ -7,7 +7,7 @@ const fs = require('fs');
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   let body = null;
-  await page.route('**/config.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ envioUrl: 'https://script.google.com/macros/s/AKfyTESTE123/exec' }) }));
+  await page.route('**/config.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ envioUrl: 'https://script.google.com/a/macros/edu.sme.prefeitura.sp.gov.br/s/AKfyTESTE123/exec' }) }));
   await page.route('https://script.google.com/**', async (r) => { body = JSON.parse(r.request().postData()); await r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify({ ok: true, pasta: 'https://drive.google.com/x' }) }); });
   await page.goto('http://127.0.0.1:8765/');
   await page.getByRole('button', { name: /Quer ver um exemplo/ }).click();

@@ -71,3 +71,16 @@ Sem cadastro e sem envio de dados: tudo fica no navegador. Veja os detalhes em
 
 Depois de ativar o GitHub Pages, o site fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/tca/`.
+
+---
+
+# 🤖 ACADEMIA DE ARDUINO — Academia do Arduino do Prof. Márcio (pasta `academia-arduino/`)
+
+Plataforma interativa de eletrônica, robótica e programação para estudantes de 9 a 13 anos: 20 missões em 4 níveis,
+Arduino interativo, laboratório da protoboard (ver por dentro), bancada virtual com verificação da montagem e
+animação da corrente, simulador que roda o código Arduino, programação por blocos, editor de código, enciclopédia,
+calculadora de resistores, glossário, 6 jogos e espaço do professor com modo de apresentação. Sem cadastro e offline.
+Veja [`academia-arduino/README.md`](academia-arduino/README.md).
+
+Depois de ativar o GitHub Pages, o site fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/arduino/`.

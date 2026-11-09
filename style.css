@@ -208,3 +208,35 @@ button.primary:hover { filter: brightness(1.08); }
 .passos { margin: 0; padding-left: 1.4rem; }
 .passos li { margin-bottom: 0.3rem; }
 .passos code { font-family: "Roboto Mono", monospace; font-weight: 700; }
+
+/* Link para a Academia de Arduino */
+.academia-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  background: linear-gradient(130deg, #1a2a78, #3a2ab0 55%, #6a35f0);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(58, 42, 176, 0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.academia-link:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(58, 42, 176, 0.35); }
+.academia-link:focus-visible { outline: 3px solid #ffd43b; outline-offset: 3px; }
+.academia-icon { font-size: 2.2rem; line-height: 1; }
+.academia-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.academia-text strong { font-size: 1.15rem; letter-spacing: 0.02em; }
+.academia-text span { color: #dfe4ff; font-size: 0.95rem; }
+.academia-go {
+  background: #ffd43b;
+  color: #2a2160;
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .academia-link { flex-wrap: wrap; }
+  .academia-go { width: 100%; text-align: center; }
+}

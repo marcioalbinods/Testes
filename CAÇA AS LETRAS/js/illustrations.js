@@ -1,5 +1,5 @@
 /* =========================================================
-   CAÇADORES DE LETRAS — Ilustrações das palavras (SVG 300x300)
+   CAÇADORES DE LETRAS — Ilustrações das palavras 1 a 30 (SVG 300x300)
    Exibidas na tela de conclusão para associar escrita e imagem.
    ========================================================= */
 (function () {
@@ -45,6 +45,8 @@
     PASSARINHO: () => `<path d="M20 250 Q150 230 290 250" stroke="#8B5A2B" stroke-width="14" fill="none"/><ellipse cx="240" cy="236" rx="24" ry="10" fill="#4CAF50" transform="rotate(-20 240 236)"/>` + p('bird', 150, 170, 4, { color: '#FFB400' }),
     BIBLIOTECA: () => p('bookshelf', 150, 290, 1, { w: 240, h: 270, seed: 7 })
   };
+
+  CDL.ILLUSTRATIONS = I; // outros arquivos podem acrescentar desenhos (ex.: illustrations-mundos.js)
 
   CDL.illustration = function (word) {
     const f = I[word];

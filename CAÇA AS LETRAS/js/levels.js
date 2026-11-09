@@ -21,6 +21,24 @@
       id: 3, name: 'CASTELO DOS DESAFIOS', short: 'Castelo', level: 'Difícil',
       first: 21, last: 30, color: '#8A5CF6', dark: '#4B2A99', bg: 'linear-gradient(160deg,#C9B3FF,#7B4FE0)',
       medal: 'COROA DO CASTELO', reward: 'Você venceu todos os desafios do Castelo!'
+    },
+    {
+      id: 4, name: 'FAZENDA ENCANTADA', short: 'Fazenda', level: 'Difícil',
+      first: 31, last: 40, color: '#E08A1E', dark: '#8A4F06', bg: 'linear-gradient(160deg,#FFD98A,#E08A1E)',
+      medal: 'MEDALHA DA FAZENDA', reward: 'Você encontrou todas as letras da Fazenda Encantada!',
+      intro: 'escondidas entre bichos, palha e plantações. Procure com calma!'
+    },
+    {
+      id: 5, name: 'ESPAÇO SIDERAL', short: 'Espaço', level: 'Muito difícil',
+      first: 41, last: 50, color: '#3949AB', dark: '#1A237E', bg: 'linear-gradient(160deg,#9FA8DA,#283593)',
+      medal: 'MEDALHA DAS ESTRELAS', reward: 'Você viajou por todo o Espaço Sideral!',
+      intro: 'flutuando entre estrelas, planetas e foguetes!'
+    },
+    {
+      id: 6, name: 'POLO GELADO', short: 'Polo', level: 'Desafio máximo',
+      first: 51, last: 60, color: '#0097A7', dark: '#005F6B', bg: 'linear-gradient(160deg,#B2EBF2,#0097A7)',
+      medal: 'MEDALHA DO POLO', reward: 'Você enfrentou o frio e venceu o Polo Gelado!',
+      intro: 'camufladas na neve, entre pinguins e flocos. É o desafio máximo!'
     }
   ];
 
@@ -35,12 +53,21 @@
     ['CAMISA', 13], ['BONECA', 14], ['PIPOCA', 14], ['GIRASSOL', 15], ['FLORESTA', 15],
     // MUNDO 3 — CASTELO DOS DESAFIOS (difícil)
     ['ELEFANTE', 15], ['BORBOLETA', 16], ['DINOSSAURO', 16], ['CHOCOLATE', 17], ['BICICLETA', 17],
-    ['ABACAXI', 18], ['TELEFONE', 18], ['GELADEIRA', 18], ['PASSARINHO', 19], ['BIBLIOTECA', 19]
+    ['ABACAXI', 18], ['TELEFONE', 18], ['GELADEIRA', 18], ['PASSARINHO', 19], ['BIBLIOTECA', 19],
+    // MUNDO 4 — FAZENDA ENCANTADA
+    ['VACA', 15], ['MILHO', 15], ['PORCO', 16], ['CAVALO', 16], ['OVELHA', 16],
+    ['TRATOR', 17], ['GALINHA', 17], ['CENOURA', 17], ['PINTINHO', 18], ['ESPANTALHO', 18],
+    // MUNDO 5 — ESPAÇO SIDERAL
+    ['NAVE', 16], ['TERRA', 16], ['COMETA', 17], ['ESTRELA', 17], ['PLANETA', 17],
+    ['FOGUETE', 18], ['METEORO', 18], ['MARCIANO', 18], ['UNIVERSO', 19], ['ASTRONAUTA', 19],
+    // MUNDO 6 — POLO GELADO
+    ['NEVE', 17], ['FOCA', 17], ['IGLU', 18], ['LUVA', 18], ['GORRO', 18],
+    ['BALEIA', 19], ['PINGUIM', 19], ['SORVETE', 19], ['MONTANHA', 20], ['CACHECOL', 20]
   ];
 
   CDL.LEVELS = RAW.map(([word, distractors], i) => {
     const n = i + 1;
-    const world = n <= 10 ? 1 : n <= 20 ? 2 : 3;
+    const world = Math.ceil(n / 10);
     return { n, word, distractors, world };
   });
 
@@ -50,7 +77,10 @@
   CDL.LETTER_STYLE = {
     1: { size: 74, rot: 22, minDist: 125, cover: 0.35, outline: 5, deco: 0 },
     2: { size: 66, rot: 32, minDist: 112, cover: 0.5, outline: 4, deco: 0 },
-    3: { size: 60, rot: 40, minDist: 100, cover: 0.6, outline: 3, deco: 0.3 }
+    3: { size: 60, rot: 40, minDist: 100, cover: 0.6, outline: 3, deco: 0.3 },
+    4: { size: 60, rot: 40, minDist: 100, cover: 0.6, outline: 3, deco: 0.3 },
+    5: { size: 60, rot: 42, minDist: 100, cover: 0.6, outline: 3, deco: 0.3 },
+    6: { size: 58, rot: 45, minDist: 100, cover: 0.65, outline: 3, deco: 0.35 }
   };
 
   // Cores usadas nas telas de missão (peças da palavra)
@@ -59,9 +89,12 @@
   CDL.CAMO_COLORS = {
     1: ['#4CAF50', '#66BB6A', '#8BC34A', '#FF6FA5', '#FFD23F', '#E84A5F', '#8D5524', '#7B61FF', '#FF8C42', '#4FC3F7'],
     2: ['#FF6F91', '#B388FF', '#FFB74D', '#4DD0E1', '#FFD23F', '#FF8A65', '#3FBF7F', '#2E9E6A', '#7B61FF', '#FF5A5F'],
-    3: ['#E84A5F', '#FFD23F', '#FFB400', '#7B61FF', '#3B82F6', '#A1683A', '#C98B4F', '#B388FF', '#3DDC84', '#FF6FA5']
+    3: ['#E84A5F', '#FFD23F', '#FFB400', '#7B61FF', '#3B82F6', '#A1683A', '#C98B4F', '#B388FF', '#3DDC84', '#FF6FA5'],
+    4: ['#D84343', '#FFB300', '#8BC34A', '#A1683A', '#F48FB1', '#FB8C00', '#43A047', '#C8834E', '#7B61FF', '#4FC3F7'],
+    5: ['#FFD54F', '#FF8A65', '#4DB6AC', '#F06292', '#9575CD', '#4FC3F7', '#AED581', '#B0BEC5', '#EA80FC', '#FFFFFF'],
+    6: ['#4FC3F7', '#29B6F6', '#7986CB', '#E57373', '#FFB74D', '#9575CD', '#4DB6AC', '#F06292', '#64B5F6', '#90A4AE']
   };
-  CDL.COVERS = { 1: ['leafCluster', 'leafCluster', 'grass'], 2: ['bubbleCluster', 'weed', 'bubbleCluster'], 3: ['web', 'leafCluster', 'bubbleCluster'] };
+  CDL.COVERS = { 1: ['leafCluster', 'leafCluster', 'grass'], 2: ['bubbleCluster', 'weed', 'bubbleCluster'], 3: ['web', 'leafCluster', 'bubbleCluster'], 4: ['leafCluster', 'grass', 'leafCluster'], 5: ['snowflake', 'bubbleCluster'], 6: ['snowflake', 'bubbleCluster', 'snowflake'] };
 
   // Gerador pseudoaleatório com semente (resultado reproduzível)
   function rng(seed) {

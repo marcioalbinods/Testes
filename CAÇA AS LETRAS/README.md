@@ -5,8 +5,8 @@
 Jogo educativo de alfabetização em formato *Escape Room* para estudantes do 1º e 2º ano do Ensino Fundamental (6 e 7 anos).
 A criança recebe uma missão, explora um cenário ilustrado, encontra as letras escondidas e forma a palavra pedida — acompanhada pela **LUPA**, uma raposa exploradora.
 
-- 30 fases jogáveis em 3 mundos (Floresta das Letras, Oceano Misterioso e Castelo dos Desafios)
-- 30 cenários ilustrados em SVG, cada um com composição própria
+- 60 fases jogáveis em 6 mundos: Floresta das Letras, Oceano Misterioso, Castelo dos Desafios, Fazenda Encantada, Espaço Sideral e Polo Gelado
+- 60 cenários ilustrados em SVG, cada um com composição própria
 - Letras repetidas contadas corretamente (ex.: CASA tem dois **A** no cenário)
 - Cenários lotados de objetos, no estilo “Onde está?”: de 60 a 125 itens extras por fase, espalhados de um jeito diferente a cada partida
 - Letras camufladas: cores parecidas com o cenário, inclinadas e às vezes parcialmente cobertas por folhas, bolhas ou teias
@@ -67,7 +67,7 @@ const RAW = [
 Cada item é `['PALAVRA', quantidadeDeLetrasDistratoras]`.
 
 - Use apenas letras maiúsculas, sem acento (A–Z).
-- Fases 1–10 pertencem ao Mundo 1, 11–20 ao Mundo 2 e 21–30 ao Mundo 3.
+- Cada mundo tem 10 fases: 1–10 Floresta, 11–20 Oceano, 21–30 Castelo, 31–40 Fazenda, 41–50 Espaço e 51–60 Polo Gelado.
 - Para a palavra nova ter uma ilustração na tela de conclusão, adicione um desenho com o mesmo nome em **`js/illustrations.js`** (objeto `I`). Se não houver desenho, a palavra aparece escrita no lugar da imagem.
 - Verifique se o cenário tem esconderijos suficientes (letras da palavra + distratoras). Se faltar, o jogo completa automaticamente com posições livres, mas o ideal é acrescentar esconderijos (veja abaixo).
 
@@ -75,7 +75,7 @@ Cada item é `['PALAVRA', quantidadeDeLetrasDistratoras]`.
 
 ## 🎚️ Como deixar o jogo mais fácil ou mais difícil
 
-- **Quantidade de objetos espalhados:** em `js/scenes.js`, procure `const count = [0, 62, 70, 88][world] + i * 4;`. Os números 62, 70 e 88 são a base de cada mundo (Floresta, Oceano, Castelo). Diminua para deixar o cenário mais limpo.
+- **Quantidade de objetos espalhados:** em `js/scenes.js`, procure `CLUTTER_COUNT` (mundos 1 a 3) e, em `js/scenes-mundos.js`, `CDL.CLUTTER_COUNT` (mundos 4 a 6). Cada número é a base de objetos do mundo; cada fase do mundo acrescenta mais 4. Diminua para deixar o cenário mais limpo.
 - **Letras distratoras:** em `js/levels.js`, o segundo número de cada palavra na lista `RAW`.
 - **Tamanho, inclinação e camuflagem das letras:** em `js/levels.js`, `CDL.LETTER_STYLE`:
   - `size`: tamanho da letra;
@@ -87,10 +87,10 @@ Cada item é `['PALAVRA', quantidadeDeLetrasDistratoras]`.
 ## ➕ Como adicionar novas fases
 
 1. Em `js/levels.js`, acrescente a palavra na lista `RAW`.
-2. Em `js/scenes.js`, crie o cenário com o número da nova fase:
+2. Em `js/scenes-mundos.js` (ou `js/scenes.js`), crie o cenário com o número da nova fase:
 
    ```js
-   S[31] = { name: 'Nome do Cenário', build(b) {
+   S[61] = { name: 'Nome do Cenário', build(b) {
      sky(b, '#7FD3FF', '#E3F7FF');          // céu em degradê
      ground(b, 700, '#6CC160', '#4FA548');  // chão
      b.add('tree', 200, 700, 1.2);          // objeto (nome, x, y, escala, opções)
@@ -144,7 +144,7 @@ Use de 4 a 6 números. O PIN atual é **0694**.
 Na tela inicial, toque em **🔒 PAINEL DO PROFESSOR** (canto inferior direito) e digite o PIN. O painel permite:
 
 - ver todos os perfis com fases concluídas, estrelas, tempo total, dicas e erros;
-- abrir o detalhe de cada perfil: situação das 30 fases, melhor e último tempo, tempo total por fase, tentativas, dicas, tentativas incorretas e histórico de partidas;
+- abrir o detalhe de cada perfil: situação das 60 fases, melhor e último tempo, tempo total por fase, tentativas, dicas, tentativas incorretas e histórico de partidas;
 - **criar perfil**, **selecionar perfil** para jogar, **renomear**, **liberar todas as fases**, **reiniciar o progresso** e **excluir perfil**;
 - **exportar resultados em CSV** (todos os perfis ou um só) e exportar o histórico completo. O CSV usa `;` como separador e abre direto no Excel/LibreOffice/Google Planilhas.
 
@@ -184,9 +184,12 @@ CAÇA AS LETRAS/
 ├── js/
 │   ├── config.js           PIN do professor e opções
 │   ├── art.js              biblioteca de ilustrações SVG
-│   ├── scenes.js           os 30 cenários
+│   ├── art-mundos.js       ilustrações da fazenda, do espaço e do polo
+│   ├── scenes.js           cenários das fases 1 a 30
+│   ├── scenes-mundos.js    cenários das fases 31 a 60
 │   ├── levels.js           mundos, palavras e distribuição das letras
-│   ├── illustrations.js    desenhos das 30 palavras
+│   ├── illustrations.js    desenhos das palavras 1 a 30
+│   ├── illustrations-mundos.js  desenhos das palavras 31 a 60
 │   ├── character.js        a LUPA
 │   ├── audio.js            efeitos sonoros e narração
 │   ├── timer.js            cronômetro
@@ -200,7 +203,7 @@ CAÇA AS LETRAS/
 │   ├── icons/              ícones do aplicativo
 │   └── scenarios/          (opcional) imagens de cenários próprios
 └── tests/
-    └── teste-completo.js   teste automatizado das 30 fases
+    └── teste-completo.js   teste automatizado das 60 fases
 ```
 
 Os sons são gerados pelo próprio navegador (Web Audio), por isso não há arquivos de áudio. A narração usa a voz em português do aparelho, quando disponível, e pode ser desligada em **CONFIGURAÇÕES**.
@@ -209,7 +212,7 @@ Os sons são gerados pelo próprio navegador (Web Audio), por isso não há arqu
 
 ## ✅ Teste automatizado
 
-O arquivo `tests/teste-completo.js` joga as 30 fases e verifica: letras de cada palavra (inclusive repetidas), distratoras, letras dentro do cenário e sem sobreposição, área de toque, mensagens de erro, impossibilidade de coletar a mesma letra duas vezes, dicas 1-2-3, cronômetro (inclusive com troca de aba simulada e pausa), salvamento após recarregar, recompensas de mundo, tela final, troca de perfis, painel do professor (PIN, CSV, liberar fases, reiniciar), configurações, responsividade (iPad, tablet Android, notebook, desktop) e erros no console.
+O arquivo `tests/teste-completo.js` joga as 60 fases e verifica: letras de cada palavra (inclusive repetidas), distratoras, letras dentro do cenário e sem sobreposição, área de toque, mensagens de erro, impossibilidade de coletar a mesma letra duas vezes, dicas 1-2-3, cronômetro (inclusive com troca de aba simulada e pausa), salvamento após recarregar, recompensas de mundo, tela final, troca de perfis, painel do professor (PIN, CSV, liberar fases, reiniciar), configurações, responsividade (iPad, tablet Android, notebook, desktop) e erros no console.
 
 ```bash
 cd "CAÇA AS LETRAS"

@@ -1,6 +1,6 @@
 /* =========================================================
    CAÇADORES DE LETRAS — Teste automatizado completo
-   Joga as 30 fases, testa letras repetidas, distratoras,
+   Joga as 60 fases, testa letras repetidas, distratoras,
    dicas, cronômetro, salvamento, perfis, painel do professor
    e responsividade.
 
@@ -148,17 +148,20 @@ async function playCurrentLevel(page, opts = {}) {
   ok(tp === (await page.textContent('#timer-level')), 'cronômetro para durante a pausa');
   await page.click('[data-action="restart"]');
 
-  console.log('\n== Jogando as 30 fases ==');
+  console.log('\n== Jogando as 60 fases ==');
   const results = [];
-  for (let n = 1; n <= 30; n++) {
+  for (let n = 1; n <= 60; n++) {
     console.log(`\n-- Fase ${n} --`);
     if (n === 4) await page.setViewportSize({ width: 1024, height: 768 }); // iPad
     if (n === 12) await page.setViewportSize({ width: 1280, height: 800 }); // tablet Android
     if (n === 22) await page.setViewportSize({ width: 1920, height: 1080 }); // desktop
     if (n === 27) await page.setViewportSize({ width: 1366, height: 768 }); // notebook
-    const r = await playCurrentLevel(page, { wrong: n % 3 === 1, hints: n === 1 || n === 15 || n === 25, duplicateCheck: n === 5 });
+    if (n === 35) await page.setViewportSize({ width: 1024, height: 768 }); // iPad
+    if (n === 45) await page.setViewportSize({ width: 1280, height: 800 }); // tablet Android
+    if (n === 55) await page.setViewportSize({ width: 1366, height: 768 }); // notebook
+    const r = await playCurrentLevel(page, { wrong: n % 3 === 1, hints: [1, 15, 25, 35, 45, 55].includes(n), duplicateCheck: n === 5 || n === 51 });
     results.push(r);
-    if (n === 1 || n === 11 || n === 21 || n === 30) await page.screenshot({ path: path.join(OUT, `fase-${String(n).padStart(2, '0')}-concluida.png`) });
+    if (n % 10 === 1 || n === 60) await page.screenshot({ path: path.join(OUT, `fase-${String(n).padStart(2, '0')}-concluida.png`) });
     if (n === 3) {
       console.log('\n== Salvamento do progresso (recarregar página) ==');
       await page.reload();
@@ -171,12 +174,12 @@ async function playCurrentLevel(page, opts = {}) {
       continue;
     }
     await page.click('#btn-next');
-    if (n === 10 || n === 20 || n === 30) {
+    if (n % 10 === 0) {
       await waitOverlay(page, 'ov-world');
       ok(true, 'recompensa especial do mundo ' + (n / 10) + ' exibida');
       await page.screenshot({ path: path.join(OUT, `mundo-${n / 10}-recompensa.png`) });
       await page.click('#btn-world-continue');
-      if (n < 30) {
+      if (n < 60) {
         await page.waitForSelector('#screen-map.active');
         ok(true, 'mapa do próximo mundo aberto');
         await page.screenshot({ path: path.join(OUT, `mapa-mundo-${n / 10 + 1}.png`) });
@@ -231,15 +234,15 @@ async function playCurrentLevel(page, opts = {}) {
   const csvPath = path.join(OUT, 'resultados.csv');
   await dl.saveAs(csvPath);
   const csv = fs.readFileSync(csvPath, 'utf8');
-  ok(csv.includes('BIBLIOTECA') && csv.split('\n').length >= 62, 'CSV exportado com as 30 fases de cada perfil');
+  ok(csv.includes('CACHECOL') && csv.split('\n').length >= 122, 'CSV exportado com as 60 fases de cada perfil');
   const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('[data-t="csv-history"]')]);
   await dl2.saveAs(path.join(OUT, 'historico.csv'));
   ok(fs.readFileSync(path.join(OUT, 'historico.csv'), 'utf8').includes('Concluída'), 'CSV de histórico exportado');
   await page.click('.t-card:first-child [data-t="detail"]');
   await page.waitForSelector('.t-table');
   const rows = await page.$$eval('.t-detail .t-table', (t) => t[0].tBodies[0].rows.length);
-  ok(rows === 30, 'detalhe mostra as 30 fases');
-  ok(/30<\/b>fases concluídas/.test(await page.innerHTML('.t-grid.wide')), 'detalhe mostra 30 fases concluídas');
+  ok(rows === 60, 'detalhe mostra as 60 fases');
+  ok(/60<\/b>fases concluídas/.test(await page.innerHTML('.t-grid.wide')), 'detalhe mostra 60 fases concluídas');
   await page.screenshot({ path: path.join(OUT, 'professor-detalhe.png'), fullPage: false });
   // novo perfil pelo painel
   await page.click('[data-t="list"]');

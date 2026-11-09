@@ -9,6 +9,7 @@ import { ICONS, Modal, PageHead, ProgressBar } from '../components/ui';
 import { MissionMap } from '../components/MissionMap';
 import { MascotSays } from '../svg/Mascot';
 import { Link } from '../lib/router';
+import { currentSession } from '../lib/cloud';
 import { MODULES } from './Home';
 
 export const GOLDEN_RULES = [
@@ -120,7 +121,11 @@ export function CentralPage() {
       <section className="card tinted">
         <div className="row between">
           <MascotSays mood="think" size={64}>
-            Seu progresso fica guardado somente <strong>neste navegador</strong>. Ninguém recebe seus dados. Se outra pessoa for usar este computador, ela pode reiniciar o progresso.
+            {currentSession() ? (
+              <>Você está na conta <strong>nº {currentSession()!.numero}</strong> da turma {currentSession()!.turma}. Seu progresso é salvo na planilha do professor. Reiniciar apaga o progresso da sua conta (o professor vai ver tudo zerado).</>
+            ) : (
+              <>Sem conta, seu progresso fica guardado somente <strong>neste navegador</strong>. Se outra pessoa for usar este computador, ela pode reiniciar o progresso.</>
+            )}
           </MascotSays>
           <button className="btn danger" onClick={() => setConfirm(true)}><RotateCcw size={18} /> Reiniciar progresso</button>
         </div>
@@ -128,7 +133,7 @@ export function CentralPage() {
 
       {confirm && (
         <Modal title="Reiniciar o progresso?" onClose={() => setConfirm(false)}>
-          <p>Isso apaga, <strong>somente neste navegador</strong>, as missões concluídas, o XP, as conquistas, os recordes dos jogos e os programas salvos. Não dá para desfazer.</p>
+          <p>{currentSession() ? <>Isso apaga, <strong>da sua conta nº {currentSession()!.numero}</strong>,</> : <>Isso apaga, <strong>somente neste navegador</strong>,</>} as missões concluídas, o XP, as conquistas, os recordes dos jogos e os programas salvos. Não dá para desfazer.</p>
           <div className="row">
             <button className="btn danger" onClick={() => { reset(); setConfirm(false); }}>Sim, apagar e começar de novo</button>
             <button className="btn ghost" onClick={() => setConfirm(false)}>Cancelar</button>

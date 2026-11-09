@@ -1,6 +1,7 @@
 /** Página inicial: apresentação, mapa de aprendizagem, módulos, progresso, laboratórios, desafios e conquistas. */
 import { ArrowRight, BookOpen, Calculator, CircuitBoard, Code2, Cpu, Gamepad2, GraduationCap, Grid3x3, Library, Map as MapIcon, Presentation, Rocket, Trophy } from 'lucide-react';
 import { Link, navigate } from '../lib/router';
+import { currentSession } from '../lib/cloud';
 import { useProgress } from '../lib/progress';
 import { MISSIONS } from '../data/missions';
 import { ACHIEVEMENTS, levelFor } from '../data/achievements';
@@ -8,6 +9,7 @@ import { Mascot } from '../svg/Mascot';
 import { ProgressBar, ICONS } from '../components/ui';
 import { MissionMap } from '../components/MissionMap';
 import { GAMES } from '../data/games';
+import { LoginInvite } from '../components/Account';
 
 export function nextMission(done: (id: string) => boolean) {
   return MISSIONS.find((m) => !done(m.id)) ?? null;
@@ -53,6 +55,8 @@ export function HomePage() {
         </div>
       </section>
 
+      <LoginInvite />
+
       <section className="grid cols-2">
         <div className="card">
           <div className="card-title"><Trophy size={22} color="var(--yellow-500)" /><h2>Meu progresso</h2></div>
@@ -63,7 +67,7 @@ export function HomePage() {
           </div>
           <div className="small muted" style={{ marginBottom: 4 }}>Nível: <strong style={{ color: 'var(--purple-700)' }}>{lvl.name}</strong></div>
           <ProgressBar value={state.xp - lvl.min} max={(lvl.next ?? state.xp + 1) - lvl.min} label="Progresso do nível" />
-          <p className="small muted mt">Tudo fica salvo só neste navegador. Não precisa de cadastro.</p>
+          <p className="small muted mt">{currentSession() ? `Salvo na conta nº ${currentSession()!.numero} da turma ${currentSession()!.turma}.` : 'Sem conta, tudo fica salvo só neste navegador.'}</p>
         </div>
         <div className="card">
           <div className="card-title"><BookOpen size={22} color="var(--blue-600)" /><h2>Como funciona</h2></div>

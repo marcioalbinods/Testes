@@ -1,11 +1,14 @@
 /**
- * Progresso do estudante — salvo SOMENTE no navegador (localStorage).
+ * Progresso do estudante — salvo no navegador (localStorage).
+ * Se o estudante entrou com número e senha da turma, o progresso também é enviado para a
+ * planilha do professor (ver cloud.ts). Sem conta, fica só neste navegador.
  * Nenhum dado é enviado para servidores. Não há nomes, e-mails ou identificação.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ACHIEVEMENTS, levelFor, type AchievementCtx } from '../data/achievements';
+import { currentSession, PREFIX, PROGRESS_SUFFIX, refreshFromServer, scheduleSync, storageKey } from './cloud';
 
-const KEY = 'academia-arduino:progresso:v1';
+const KEY = storageKey(PROGRESS_SUFFIX);
 
 export interface MissionProgress {
   quiz?: boolean;
@@ -27,6 +30,8 @@ export interface ProgressState {
   games: Record<string, { best: number; plays: number }>;
   /** marcas de "já ganhou XP por isso" */
   rewarded: string[];
+  /** quando foi alterado pela última vez (ms) — usado para sincronizar com a turma */
+  updatedAt?: number;
 }
 
 const fresh = (): ProgressState => ({ version: 1, xp: 0, missions: {}, badges: [], counters: {}, seen: {}, games: {}, rewarded: [] });
@@ -46,6 +51,7 @@ function load(): ProgressState {
 function save(s: ProgressState) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(s));
+    scheduleSync();
   } catch {
     // Armazenamento indisponível (modo anônimo ou bloqueado): o progresso vale só nesta visita.
   }
@@ -121,6 +127,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
             if (after.index > before.index) notify({ kind: 'badge', title: `Novo nível: ${after.name}!`, text: 'Continue assim, inventor!' });
           }, 0);
         }
+        next = { ...next, updatedAt: Date.now() };
         save(next);
         return next;
       });
@@ -162,19 +169,26 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     [apply],
   );
   const reset = useCallback(() => {
-    const f = fresh();
+    const f = { ...fresh(), updatedAt: Date.now() };
     try {
-      // apaga também os programas salvos pelo estudante
-      Object.keys(window.localStorage)
-        .filter((k) => k.startsWith('academia-arduino:'))
-        .forEach((k) => window.localStorage.removeItem(k));
+      // apaga só os dados do perfil atual (programas e montagens salvos), nunca os de outros estudantes
+      const own = (k: string) => (currentSession() ? k.startsWith(storageKey('')) : k.startsWith(PREFIX) && !/^academia-arduino:(u\d+:|sessao$)/.test(k));
+      Object.keys(window.localStorage).filter(own).forEach((k) => window.localStorage.removeItem(k));
     } catch {
       /* sem armazenamento */
     }
     save(f);
     setState(f);
-    notify({ kind: 'info', title: 'Progresso reiniciado', text: 'Tudo começou de novo neste navegador.' });
+    notify({ kind: 'info', title: 'Progresso reiniciado', text: currentSession() ? 'Sua conta começou de novo.' : 'Tudo começou de novo neste navegador.' });
   }, [notify]);
+
+  // ao abrir com uma conta: busca a versão mais nova (pode ter vindo de outro aparelho)
+  useEffect(() => {
+    if (!currentSession()) return;
+    refreshFromServer().then((r) => {
+      if (r === 'remote') window.location.reload();
+    });
+  }, []);
 
   useEffect(() => {
     const on = (e: StorageEvent) => {
@@ -199,7 +213,7 @@ export function useProgress() {
 
 /** Guarda um valor no navegador (programas do editor, blocos...). */
 export function useLocalState<T>(key: string, initial: T): [T, (v: T | ((p: T) => T)) => void] {
-  const full = `academia-arduino:${key}`;
+  const full = storageKey(key);
   const [v, setV] = useState<T>(() => {
     try {
       const raw = window.localStorage.getItem(full);
@@ -214,6 +228,7 @@ export function useLocalState<T>(key: string, initial: T): [T, (v: T | ((p: T) =
         const val = typeof nv === 'function' ? (nv as (p: T) => T)(prev) : nv;
         try {
           window.localStorage.setItem(full, JSON.stringify(val));
+          scheduleSync();
         } catch {
           /* sem armazenamento */
         }

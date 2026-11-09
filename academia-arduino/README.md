@@ -3,8 +3,14 @@
 **Aprenda, conecte, programe e invente!**
 
 Plataforma educacional interativa de eletrônica, robótica e programação com Arduino, para estudantes de **9 a 13 anos**.
-Sem cadastro, sem login, sem banco de dados e sem serviços externos: o progresso fica salvo **somente no navegador**
-(`localStorage`). O site é um único arquivo HTML que funciona no GitHub Pages e até offline.
+O site é um único arquivo HTML que funciona no GitHub Pages e até offline. Sem configuração nenhuma, o progresso fica
+salvo **somente no navegador** (`localStorage`).
+
+**Turma Robótica (opcional):** com o servidor da turma instalado no Google Drive do professor
+([`google-apps-script/LEIA-ME.md`](google-apps-script/LEIA-ME.md)), o professor cadastra os estudantes, cada um recebe
+**número de acesso e senha**, o progresso é salvo numa planilha do professor (continua em qualquer computador) e o
+**Espaço do professor → Turma Robótica** mostra o desenvolvimento de cada estudante. O endereço do servidor fica em
+`arduino/config.json`.
 
 ## O que tem na plataforma
 
@@ -82,7 +88,9 @@ os testes conferem automaticamente se o circuito passa nas regras e se o código
 
 ## Privacidade e segurança
 
-Nenhum dado pessoal é coletado. Não há nomes, e-mails, rankings públicos nem comparação entre estudantes. Todas as
+Sem a turma ligada, nenhum dado sai do navegador. Com a turma ligada, só o primeiro nome, o número de acesso e o
+progresso vão para a planilha **do professor** (senhas guardadas apenas como hash; bloqueio após 8 tentativas erradas).
+Não há e-mails, rankings públicos nem comparação entre estudantes. Todas as
 atividades práticas trazem orientações de segurança (desligar o USB antes de alterar conexões, nunca ligar 5V no GND,
 resistor nos LEDs, limites de corrente dos pinos, motores nunca nos pinos digitais, GND comum com fonte externa, nada de
 rede elétrica da tomada).

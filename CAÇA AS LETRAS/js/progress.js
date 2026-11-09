@@ -6,7 +6,7 @@
   const CDL = (window.CDL = window.CDL || {});
   const CFG = window.CDL_CONFIG || {};
   const KEY = CFG.storageKey || 'cacadores-de-letras:v1';
-  const TOTAL = 30;
+  const TOTAL = () => CDL.LEVELS.length; // total de fases (60)
 
   CDL.AVATARS = [
     { id: 'raposa', label: 'Raposa', emoji: '🦊' }, { id: 'coruja', label: 'Coruja', emoji: '🦉' },
@@ -106,7 +106,7 @@
     completedCount(p) { return p ? Object.values(p.levels).filter((l) => l.completed).length : 0; },
     starsTotal(p) { return p ? Object.values(p.levels).reduce((a, l) => a + (l.bestStars || 0), 0) : 0; },
     nextLevel(p) {
-      for (let n = 1; n <= TOTAL; n++) if (!this.isCompleted(p, n)) return n;
+      for (let n = 1; n <= TOTAL(); n++) if (!this.isCompleted(p, n)) return n;
       return null;
     },
     worldComplete(p, w) {
@@ -114,7 +114,8 @@
       for (let n = W.first; n <= W.last; n++) if (!this.isCompleted(p, n)) return false;
       return true;
     },
-    allComplete(p) { return this.completedCount(p) === TOTAL; },
+    allComplete(p) { return this.completedCount(p) === TOTAL(); },
+    finalPending(p) { return this.allComplete(p) && p.finalCelebrated !== TOTAL(); },
 
     /** Registra uma tentativa (concluída ou abandonada). */
     recordAttempt(p, n, att) {
@@ -174,7 +175,7 @@
             l && l.firstDate ? new Date(l.firstDate).toLocaleString('pt-BR') : ''
           ]);
         });
-        rows.push([p.name, 'TOTAL', '', '', this.completedCount(p) + '/30', this.starsTotal(p) + '/90', '', '', CDL.formatTime(p.totalTimeMs), '', '', '', '']);
+        rows.push([p.name, 'TOTAL', '', '', this.completedCount(p) + '/' + TOTAL(), this.starsTotal(p) + '/' + TOTAL() * 3, '', '', CDL.formatTime(p.totalTimeMs), '', '', '', '']);
       });
       return '﻿' + rows.map((r) => r.map(esc).join(';')).join('\r\n');
     },

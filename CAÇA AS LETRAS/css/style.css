@@ -317,3 +317,10 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
 .t-table .st { color: #E0A100; letter-spacing: 1px; }
 .t-empty-in { padding: 16px; margin: 0; }
 @media (max-width: 900px) { .t-grid.wide { grid-template-columns: repeat(3, 1fr); } }
+
+/* 6 mundos: cartões um pouco mais baixos para caber 2 linhas */
+.worlds-grid { align-content: start; padding-top: 4px; }
+.world-card .wprev { aspect-ratio: 16 / 7; }
+.world-card .winfo { padding: 10px 16px 14px; }
+@media (max-width: 900px) { .worlds-grid { grid-template-columns: repeat(2, 1fr) !important; max-width: none !important; } }
+@media (max-width: 600px) { .worlds-grid { grid-template-columns: 1fr !important; } }

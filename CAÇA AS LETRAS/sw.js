@@ -1,9 +1,10 @@
 /* CAÇADORES DE LETRAS — Service worker: guarda os arquivos para jogar sem internet. */
-const CACHE = 'cacadores-de-letras-v2';
+const CACHE = 'cacadores-de-letras-v3';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './css/style.css', './css/game.css', './css/responsive.css',
-  './js/config.js', './js/art.js', './js/scenes.js', './js/levels.js', './js/illustrations.js', './js/character.js',
+  './js/config.js', './js/art.js', './js/art-mundos.js', './js/scenes.js', './js/scenes-mundos.js', './js/levels.js',
+  './js/illustrations.js', './js/illustrations-mundos.js', './js/character.js',
   './js/audio.js', './js/timer.js', './js/progress.js', './js/effects.js', './js/game.js', './js/teacher-panel.js', './js/app.js',
   './assets/fonts/fredoka.woff2', './assets/icons/icon.svg', './assets/icons/icon-192.png', './assets/icons/icon-512.png'
 ];

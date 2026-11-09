@@ -35,7 +35,7 @@
       });
       $('profile-form').addEventListener('submit', (ev) => { ev.preventDefault(); this.saveNewProfile(); });
       $('map-prev').addEventListener('click', () => this.showMap(Math.max(1, this.mapWorld - 1)));
-      $('map-next').addEventListener('click', () => this.showMap(Math.min(3, this.mapWorld + 1)));
+      $('map-next').addEventListener('click', () => this.showMap(Math.min(CDL.WORLDS.length, this.mapWorld + 1)));
 
       window.addEventListener('pagehide', () => { if (Game.isActive()) Game.abandon(); });
       window.addEventListener('resize', () => { if (this.screen === 'game' && Game.state) Game.renderSlotsKeep && Game.renderSlotsKeep(); });
@@ -168,7 +168,7 @@
       $('profile-form').classList.add('hidden');
       $('profiles-grid').classList.remove('hidden');
       $('profiles-grid').innerHTML = list.map((p) => `<button class="profile-card ${cur && cur.id === p.id ? 'current' : ''}" data-pid="${p.id}">
-          <span class="avatar">${avatarEmoji(p.avatar)}</span><span class="pname">${esc(p.name)}</span><span class="pstats">★ ${Progress.starsTotal(p)} · ${Progress.completedCount(p)}/30 fases</span></button>`).join('') +
+          <span class="avatar">${avatarEmoji(p.avatar)}</span><span class="pname">${esc(p.name)}</span><span class="pstats">★ ${Progress.starsTotal(p)} · ${Progress.completedCount(p)}/${CDL.LEVELS.length} fases</span></button>`).join('') +
         `<button class="profile-card new" data-pid="new"><span class="avatar">+</span><span class="pname">NOVO EXPLORADOR</span></button>`;
       $('profiles-grid').querySelectorAll('.profile-card').forEach((b) => b.addEventListener('click', () => {
         CDL.audio.play('select');
@@ -207,7 +207,7 @@
     /* ---------- mundos ---------- */
     renderWorlds() {
       const p = Progress.current();
-      $('worlds-stars').textContent = p ? '★ ' + Progress.starsTotal(p) + '/90' : '';
+      $('worlds-stars').textContent = p ? '★ ' + Progress.starsTotal(p) + '/' + CDL.LEVELS.length * 3 : '';
       $('worlds-grid').innerHTML = CDL.WORLDS.map((W) => {
         const unlocked = Progress.isUnlocked(p, W.first);
         let done = 0, stars = 0;
@@ -263,7 +263,7 @@
         <svg class="map-path" viewBox="0 0 1000 600" preserveAspectRatio="none"><path d="${path}" stroke="#fff" stroke-width="10" stroke-dasharray="4 22" stroke-linecap="round" fill="none" opacity=".9" vector-effect="non-scaling-stroke"/></svg>${nodes.join('')}`;
       $('map-stars').textContent = '★ ' + stars + '/30';
       $('map-prev').style.visibility = w > 1 ? 'visible' : 'hidden';
-      $('map-next').style.visibility = w < 3 ? 'visible' : 'hidden';
+      $('map-next').style.visibility = w < CDL.WORLDS.length ? 'visible' : 'hidden';
       $('map-board').querySelectorAll('.level-node').forEach((b) => b.addEventListener('click', () => {
         if (b.classList.contains('locked')) { CDL.audio.play('wrong'); CDL.fx.toast('Complete a missão anterior para abrir esta!'); return; }
         CDL.audio.play('select');
@@ -300,7 +300,7 @@
       $('intro-word').innerHTML = lvl.word.split('').map((c, i) => `<span class="tile" style="background:${colors[i % colors.length]};animation-delay:${i * 0.08}s">${c}</span>`).join('');
       let msg;
       if (n === 1 && Progress.completedCount(p) === 0) msg = 'Olá! Eu sou a LUPA, uma raposa exploradora! As letras se perderam pelos cenários. Encontre as letras da palavra e toque nelas para coletar!';
-      else if (n === W.first) msg = 'Bem-vindo ao ' + W.name + '! Aqui as letras estão ' + (W.id === 2 ? 'mais escondidas entre os objetos do mar.' : 'muito bem disfarçadas. Observe com atenção!');
+      else if (n === W.first) msg = 'Bem-vindo ao mundo ' + W.name + '! Aqui as letras estão ' + (W.intro || (W.id === 2 ? 'mais escondidas entre os objetos do mar.' : 'muito bem disfarçadas. Observe com atenção!'));
       else msg = 'Procure as letras ' + lvl.word.split('').join(' - ') + ' no cenário. Se precisar, peça uma dica!';
       $('intro-bubble').textContent = msg;
       $('btn-speak').style.display = CDL.audio.voiceAvailable && Progress.settings.voice ? '' : 'none';
@@ -342,11 +342,11 @@
       const W = CDL.WORLDS[lvl.world - 1];
       const worldDone = r.n === W.last ? Progress.worldComplete(p, W.id) : false;
       const pendingReward = worldDone && !p.worldsCelebrated.includes(W.id);
-      const pendingFinal = Progress.allComplete(p) && !p.finalCelebrated;
+      const pendingFinal = Progress.finalPending(p);
       const btn = $('btn-next');
       if (pendingReward) btn.innerHTML = '🏅 VER RECOMPENSA!';
       else if (pendingFinal) btn.innerHTML = '🏆 GRANDE FINAL!';
-      else if (r.n < 30) btn.innerHTML = 'PRÓXIMA MISSÃO ▶';
+      else if (r.n < CDL.LEVELS.length) btn.innerHTML = 'PRÓXIMA MISSÃO ▶';
       else btn.innerHTML = '🗺️ VER MUNDOS';
       this.openOverlay('ov-complete');
       setTimeout(() => CDL.audio.speak('Você encontrou a palavra ' + r.word.toLowerCase() + '!', { interrupt: false }), 900);
@@ -358,8 +358,8 @@
       const W = CDL.WORLDS[CDL.LEVELS[n - 1].world - 1];
       this.closeOverlay('ov-complete');
       if (n === W.last && Progress.worldComplete(p, W.id) && !p.worldsCelebrated.includes(W.id)) return this.showWorldReward(W.id);
-      if (Progress.allComplete(p) && !p.finalCelebrated) return this.showFinal();
-      if (n < 30) return this.openLevel(n + 1);
+      if (Progress.finalPending(p)) return this.showFinal();
+      if (n < CDL.LEVELS.length) return this.openLevel(n + 1);
       this.go('worlds');
     },
 
@@ -384,21 +384,21 @@
       this.closeOverlay('ov-world');
       const p = Progress.current();
       const w = this._rewardWorld;
-      if (w === 3 || (Progress.allComplete(p) && !p.finalCelebrated)) return this.showFinal();
+      if (w === CDL.WORLDS.length || Progress.finalPending(p)) return this.showFinal();
       const nextW = CDL.WORLDS[w];
       this.showMap(nextW.id);
     },
 
     showFinal() {
       const p = Progress.current();
-      p.finalCelebrated = true;
+      p.finalCelebrated = CDL.LEVELS.length;
       Progress.save();
       Game.cleanup();
       this.go('worlds');
       $('final-trophy').innerHTML = CDL.trophySVG();
       $('final-name').textContent = p.name;
       const hints = Object.values(p.levels).reduce((a, l) => a + (l.hints || 0), 0);
-      $('final-stats').innerHTML = `<div><b>30/30</b>missões</div><div><b>★ ${Progress.starsTotal(p)}</b>estrelas</div><div><b>${CDL.formatTime(p.totalTimeMs)}</b>tempo de aventura</div><div><b>${hints}</b>dicas</div>`;
+      $('final-stats').innerHTML = `<div><b>${CDL.LEVELS.length}/${CDL.LEVELS.length}</b>missões</div><div><b>★ ${Progress.starsTotal(p)}</b>estrelas</div><div><b>${CDL.formatTime(p.totalTimeMs)}</b>tempo de aventura</div><div><b>${hints}</b>dicas</div>`;
       $('final-words').innerHTML = CDL.LEVELS.map((l) => `<span>${l.word}</span>`).join('');
       this.openOverlay('ov-final');
       CDL.audio.play('unlock');

@@ -105,9 +105,9 @@
         const s = summary(p);
         return `<div class="t-card">
           <div class="t-card-head"><span class="t-av">${avatarEmoji(p.avatar)}</span><div><div class="t-name">${esc(p.name)}${cur && cur.id === p.id ? ' <span class="badge">jogando agora</span>' : ''}</div><div class="t-sub">Criado em ${new Date(p.createdAt).toLocaleDateString('pt-BR')}</div></div></div>
-          <div class="t-bar"><i style="width:${(s.done / 30) * 100}%"></i></div>
+          <div class="t-bar"><i style="width:${(s.done / CDL.LEVELS.length) * 100}%"></i></div>
           <div class="t-grid">
-            <div><b>${s.done}/30</b>fases</div><div><b>${s.stars}</b>estrelas</div><div><b>${fmt(s.time)}</b>tempo</div>
+            <div><b>${s.done}/${CDL.LEVELS.length}</b>fases</div><div><b>${s.stars}</b>estrelas</div><div><b>${fmt(s.time)}</b>tempo</div>
             <div><b>${s.hints}</b>dicas</div><div><b>${s.errors}</b>erros</div><div><b>${s.plays}</b>tentativas</div>
           </div>
           <button class="btn btn-blue t-open" data-t="detail" data-id="${p.id}">VER DETALHES</button>
@@ -155,7 +155,7 @@
         <div class="card t-profile">
           <div class="t-card-head big"><span class="t-av">${avatarEmoji(p.avatar)}</span><div><div class="t-name">${esc(p.name)}${cur && cur.id === p.id ? ' <span class="badge">jogando agora</span>' : ''}</div><div class="t-sub">Criado em ${new Date(p.createdAt).toLocaleDateString('pt-BR')}</div></div></div>
           <div class="t-grid wide">
-            <div><b>${s.done}</b>fases concluídas</div><div><b>${30 - s.done}</b>não concluídas</div><div><b>${s.stars}/90</b>estrelas</div>
+            <div><b>${s.done}</b>fases concluídas</div><div><b>${CDL.LEVELS.length - s.done}</b>não concluídas</div><div><b>${s.stars}/${CDL.LEVELS.length * 3}</b>estrelas</div>
             <div><b>${fmt(s.time)}</b>tempo total</div><div><b>${s.hints}</b>dicas usadas</div><div><b>${s.errors}</b>tentativas incorretas</div>
           </div>
           <p class="t-pending">${pending.length ? 'Fases ainda não concluídas: ' + pending.join(', ') : '🏆 Todas as fases foram concluídas!'}</p>

@@ -68,11 +68,15 @@
 
   CDL.medalSVG = function (world) {
     const W = CDL.WORLDS[world - 1];
-    const icon = world === 1
-      ? CDL.place('tree', 100, 148, 0.42, { noSpot: true })
-      : world === 2
-        ? CDL.place('fish', 100, 118, 0.85, { color: '#FF8C42', noSpot: true })
-        : CDL.place('crown', 100, 136, 1.15, { noSpot: true });
+    const icons = {
+      1: () => CDL.place('tree', 100, 148, 0.42, { noSpot: true }),
+      2: () => CDL.place('fish', 100, 118, 0.85, { color: '#FF8C42', noSpot: true }),
+      3: () => CDL.place('crown', 100, 136, 1.15, { noSpot: true }),
+      4: () => CDL.place('chicken', 96, 176, 1.15),
+      5: () => CDL.place('rocket', 100, 186, 0.42),
+      6: () => CDL.place('penguin', 100, 182, 1.05)
+    };
+    const icon = (icons[world] || icons[1])();
     return `<svg viewBox="0 0 200 240"><path d="M60 0 L100 70 L140 0 L170 0 L120 90 L80 90 L30 0Z" fill="${W.color}"/><path d="M60 0 L100 70 L80 90 L30 0Z" fill="#000" opacity=".15"/>
       <circle cx="100" cy="140" r="86" fill="#FFB400"/><circle cx="100" cy="140" r="72" fill="#FFD23F"/><circle cx="100" cy="140" r="62" fill="${W.color}"/>
       ${icon}<path d="M44 110 Q60 80 92 76" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" opacity=".5"/></svg>`;

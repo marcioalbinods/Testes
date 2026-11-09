@@ -1,5 +1,6 @@
 /* =========================================================
-   CAÇADORES DE LETRAS — Cenários das 30 fases
+   CAÇADORES DE LETRAS — Cenários das fases 1 a 30 (mundos 1 a 3)
+   As fases 31 a 60 estão em scenes-mundos.js
    Cada cenário é uma composição única em SVG (viewBox 1600x900).
    Os objetos registram esconderijos (spots) onde as letras
    podem aparecer, integradas à paisagem.
@@ -86,6 +87,9 @@
     b.def(`<radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="${color}" stop-opacity="0"/><stop offset="1" stop-color="${color}" stop-opacity="${op}"/></radialGradient>`);
     b.raw(`<rect width="${W}" height="${H}" fill="url(#vig)" pointer-events="none"/>`);
   }
+
+  // ferramentas de cenário disponíveis para outros arquivos (ex.: scenes-mundos.js)
+  CDL.sceneKit = { grad, radial, sky, hill, ground, stars, water, rays, seabed, farReef, bubblesField, wall, floor, vignette, W, H };
 
   /* =================== MUNDO 1 — FLORESTA DAS LETRAS =================== */
   const S = {};
@@ -661,10 +665,14 @@
   };
   const GROUND_Y = { 1: 540, 2: 760, 3: 730, 8: 600, 13: 640, 14: 600, 21: 780, 22: 640, 29: 790 };
 
+  // quantidade base de objetos espalhados em cada mundo (+4 a cada fase do mundo)
+  const CLUTTER_COUNT = { 1: 62, 2: 70, 3: 88 };
+  CDL.CLUTTER = CLUTTER; CDL.GROUND_Y = GROUND_Y; CDL.CLUTTER_COUNT = CLUTTER_COUNT;
+
   function addClutter(b, n, seed) {
-    const world = n <= 10 ? 1 : n <= 20 ? 2 : 3;
+    const world = Math.ceil(n / 10);
     const i = (n - 1) % 10;
-    const count = [0, 62, 70, 88][world] + i * 4;
+    const count = CLUTTER_COUNT[world] + i * 4;
     const r = CDL.rng(n * 3571 + (seed || 0) * 7919 + 99);
     const list = CLUTTER[world];
     const gy = GROUND_Y[n] || GROUND_Y[world];

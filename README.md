@@ -37,6 +37,18 @@ Depois de ativar o GitHub Pages (instruções acima), o jogo fica em
 
 ---
 
+# 🎨 Mosaico Secreto — O Desafio das Letras e Cores (pasta `mosaico-secreto/`)
+
+Jogo de pintura por associação de letras e cores para o 1º ano (Educação Digital): a criança toca nos
+quadradinhos, cada letra vira a sua cor e aparece um desenho secreto. 50 missões em 5 mundos (grades de
+10×10 a 18×18), galeria de descobertas, Menu do Professor com atividades para imprimir. Sem cadastro e offline.
+Veja [`mosaico-secreto/README.md`](mosaico-secreto/README.md).
+
+Depois de ativar o GitHub Pages, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/mosaico-secreto/`.
+
+---
+
 # 🤖 Labirinto dos Algoritmos (pasta `labirinto-dos-algoritmos/`)
 
 Jogo educativo de programação em blocos para o 5º ano (Educação Digital): o robô Byte precisa escapar

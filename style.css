@@ -240,3 +240,24 @@ button.primary:hover { filter: brightness(1.08); }
   .academia-link { flex-wrap: wrap; }
   .academia-go { width: 100%; text-align: center; }
 }
+
+/* Links para os outros jogos e sites */
+.jogos h2 { margin: 0.25rem 0 0.6rem; font-size: 1.15rem; }
+.jogos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.75rem; }
+.jogo-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.85rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.jogo-link:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 6px 16px rgba(47, 111, 219, 0.15); }
+.jogo-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.jogo-icon { font-size: 1.8rem; line-height: 1; }
+.jogo-link strong { display: block; }
+.jogo-link small { display: block; color: var(--muted); font-size: 0.88rem; line-height: 1.35; }

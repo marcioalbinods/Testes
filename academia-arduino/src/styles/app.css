@@ -237,3 +237,11 @@
 .split.side-left { grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); }
 .split.editor-split { grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); }
 @media (max-width: 900px) { .split, .split.wide-left, .split.side-left, .split.editor-split { grid-template-columns: 1fr; } }
+
+/* ---------- Conta ---------- */
+.acc-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 280px; z-index: 40; display: flex; flex-direction: column; gap: 8px; padding: 14px; }
+.acc-menu .small svg { vertical-align: -3px; }
+@media (max-width: 600px) { .acc-name { display: none; } }
+.print-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.access-card { border: 2px dashed var(--purple-300); border-radius: 14px; padding: 12px 14px; background: #fff; }
+.access-card .big { font-family: var(--font-code); font-size: 1.3rem; font-weight: 700; color: var(--purple-700); }

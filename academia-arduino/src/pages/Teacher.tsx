@@ -8,6 +8,7 @@ import { Callout, CodeBlock, PageHead, Tabs } from '../components/ui';
 import { Presentation } from '../components/Presentation';
 import { GOLDEN_RULES } from './Central';
 import { CHALLENGES } from './ProtoLab';
+import { ClassPanel } from '../components/ClassPanel';
 
 export function TeacherPage({ sub, id }: { sub?: string; id?: string }) {
   if (sub === 'missao' && id) {
@@ -34,14 +35,16 @@ const KIT = [
 ];
 
 function TeacherHome() {
-  const [tab, setTab] = useState<'guia' | 'missoes' | 'respostas' | 'dicas'>('guia');
+  const [tab, setTab] = useState<'turma' | 'guia' | 'missoes' | 'respostas' | 'dicas'>('turma');
   const totalMin = MISSIONS.reduce((s, m) => s + m.teacher.minutes, 0);
   return (
     <div className="stack">
-      <PageHead icon={<PresIcon size={30} />} color="#5524c9" title="Espaço do professor" subtitle="Tudo para planejar e conduzir as aulas: guia, objetivos, materiais, códigos, respostas, dificuldades comuns e modo de apresentação. Sem login.">
+      <PageHead icon={<PresIcon size={30} />} color="#5524c9" title="Espaço do professor" subtitle="Cadastre a turma Robótica, acompanhe o progresso de cada estudante e encontre guia, objetivos, materiais, códigos, respostas e modo de apresentação.">
         <button className="btn ghost no-print" onClick={() => window.print()}><Printer size={16} /> Imprimir esta página</button>
       </PageHead>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'guia', label: 'Guia do professor' }, { id: 'missoes', label: 'As 20 missões' }, { id: 'respostas', label: 'Respostas dos desafios' }, { id: 'dicas', label: 'Dificuldades e dicas' }]} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'turma', label: 'Turma Robótica' }, { id: 'guia', label: 'Guia do professor' }, { id: 'missoes', label: 'As 20 missões' }, { id: 'respostas', label: 'Respostas dos desafios' }, { id: 'dicas', label: 'Dificuldades e dicas' }]} />
+
+      {tab === 'turma' && <ClassPanel />}
 
       {tab === 'guia' && (
         <div className="stack">

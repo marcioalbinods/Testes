@@ -8,6 +8,8 @@ import { useProgress } from './lib/progress';
 import { levelFor } from './data/achievements';
 import { Mascot } from './svg/Mascot';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AccountButton } from './components/Account';
+import { currentSession } from './lib/cloud';
 import { HomePage } from './pages/Home';
 import { CentralPage } from './pages/Central';
 import { CoursePage } from './pages/Course';
@@ -128,6 +130,7 @@ export default function App() {
             <Menu size={20} />
           </button>
           <div className="crumbs">{section ? TITLES[section] ?? 'Academia de Arduino' : 'Academia de Arduino'}</div>
+          <AccountButton />
           <Link to="/central" className="chip yellow" style={{ textDecoration: 'none' }} aria-label={`Nível ${lvl.name}, ${state.xp} pontos de experiência`}>
             <Zap size={14} /> {state.xp} XP
           </Link>
@@ -143,7 +146,8 @@ export default function App() {
           </ErrorBoundary>
         </main>
         <footer className="footer">
-          Academia de Arduino · Academia do Arduino do Prof. Márcio · Sem cadastro: o progresso fica salvo somente neste navegador.
+          Academia de Arduino · Academia do Arduino do Prof. Márcio ·{' '}
+          {currentSession() ? `Conectado como ${currentSession()!.nome} (nº ${currentSession()!.numero}): o progresso é salvo na turma.` : 'Sem conta: o progresso fica salvo somente neste navegador.'}
         </footer>
       </div>
       <div className="toasts" aria-live="polite">

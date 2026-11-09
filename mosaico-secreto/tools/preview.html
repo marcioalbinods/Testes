@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>Prévia dos 50 desenhos</title>
+<style>body{font-family:sans-serif;background:#fff;margin:8px}#g{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
+figure{margin:0;text-align:center;font-size:11px}canvas{width:100%;image-rendering:pixelated;border:1px solid #ccc}</style>
+<div id="g"></div>
+<script src="../js/data.js"></script><script src="../js/engine.js"></script>
+<script>
+const g=document.getElementById('g');
+for(let i=1;i<=50;i++){const f=document.createElement('figure');const c=document.createElement('canvas');
+MOSAICO.drawThumb(c,i,{px:12,gridLines:true});const m=MOSAICO.build(i);
+f.append(c);f.insertAdjacentHTML('beforeend',`<figcaption>${i}. ${m.name} (${m.size}², ${m.legend.length} cores: ${m.legend.map(l=>l.letter).join('')})</figcaption>`);g.append(f);}
+</script>

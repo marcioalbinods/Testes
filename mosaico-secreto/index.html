@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mosaico Secreto — O Desafio das Letras e Cores</title>
+  <meta name="description" content="Jogo educativo para o 1º ano: toque nos quadradinhos, pinte cada letra com a sua cor e descubra 50 desenhos secretos.">
+  <meta name="theme-color" content="#FF8A1A">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="preload" href="assets/fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="deco" aria-hidden="true"></div>
+  <main id="app" aria-live="polite"></main>
+  <div id="modal-root"></div>
+  <div id="toast-root" aria-live="assertive"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <div id="print-area" aria-hidden="true"></div>
+
+  <noscript>
+    <p style="padding:2rem;font-size:1.4rem;text-align:center">Para jogar o MOSAICO SECRETO, ative o JavaScript do navegador.</p>
+  </noscript>
+
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

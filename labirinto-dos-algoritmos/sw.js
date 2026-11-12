@@ -1,16 +1,16 @@
 /* LABIRINTO DOS ALGORITMOS — Service worker: guarda os arquivos para jogar sem internet. */
-const CACHE = 'labirinto-algoritmos-v2';
+const CACHE = 'labirinto-algoritmos-v3';
 const FILES = [
-  './', './index.html', './manifest.webmanifest',
+  './', './index.html', './manifest.webmanifest', './config.json',
   './css/base.css', './css/screens.css', './css/game.css', './css/responsive.css',
   './vendor/three.min.js', './vendor/blockly/blockly_compressed.js', './vendor/blockly/msg/pt-br.js',
   './vendor/blockly/media/sprites.png', './vendor/blockly/media/sprites.svg', './vendor/blockly/media/1x1.gif',
   './vendor/blockly/media/delete-icon.svg', './vendor/blockly/media/dropdown-arrow.svg', './vendor/blockly/media/foldout-icon.svg',
   './vendor/blockly/media/handclosed.cur', './vendor/blockly/media/handdelete.cur', './vendor/blockly/media/handopen.cur',
   './vendor/blockly/media/resize-handle.svg', './vendor/blockly/media/click.mp3', './vendor/blockly/media/delete.mp3', './vendor/blockly/media/disconnect.mp3',
-  './js/levels.js', './js/engine.js', './js/interpreter.js', './js/scoring.js', './js/achievements.js', './js/storage.js',
+  './js/levels.js', './js/engine.js', './js/interpreter.js', './js/scoring.js', './js/achievements.js', './js/avatars.js', './js/storage.js', './js/cloud.js',
   './js/audio.js', './js/byte3d.js', './js/scene3d.js', './js/blocks.js', './js/ui.js', './js/illustrations.js',
-  './js/game.js', './js/ranking.js', './js/lab.js', './js/screens.js', './js/app.js',
+  './js/game.js', './js/ranking.js', './js/lab.js', './js/screens.js', './js/groups.js', './js/shop.js', './js/app.js',
   './assets/fonts/fredoka.woff2', './assets/icons/icon.svg', './assets/icons/icon-192.png', './assets/icons/icon-512.png'
 ];
 

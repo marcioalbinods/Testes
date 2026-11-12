@@ -53,7 +53,8 @@ Depois de ativar o GitHub Pages, o jogo fica em
 
 Jogo educativo de programação em blocos para o 5º ano (Educação Digital): o robô Byte precisa escapar
 de 25 labirintos 3D em 5 mundos, e os estudantes montam algoritmos com blocos (sequência, repetição,
-condições, sensores e variáveis). Sem cadastro, sem banco de dados e funciona offline.
+condições, sensores e variáveis). Grupos por turma (5º A, 5º B, 5º C) com senha de figuras, progresso
+salvo online numa planilha do professor (opcional), avatares de corpo inteiro e loja com moedas. Funciona offline.
 Veja as instruções completas em [`labirinto-dos-algoritmos/README.md`](labirinto-dos-algoritmos/README.md).
 
 Depois de ativar o GitHub Pages (instruções acima), o jogo fica em

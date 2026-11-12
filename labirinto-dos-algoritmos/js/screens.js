@@ -7,92 +7,7 @@
   var UI = LA.UI, $ = UI.$, esc = UI.esc, Store = LA.Store;
   var S = LA.Screens = {};
 
-  /* ---------- Início ---------- */
-  S.home = function () {
-    var p = Store.player();
-    var chip = $('#home-player');
-    chip.innerHTML = p ? LA.ART.avatar(p, 38) + '<span>' + esc(Store.label(p)) + ' ▾</span>' : '🤖 <span>Escolher jogador ▾</span>';
-    var next = p && Store.nextLevel(p);
-    var cont = $('#btn-continue');
-    cont.disabled = !p || !p.last && !(p && Object.keys(p.levels).length);
-    cont.innerHTML = '⏩ CONTINUAR' + (p && next ? ' <small style="font-size:16px">(fase ' + next.id + ')</small>' : '');
-    $('#btn-lab').classList.toggle('locked', !Store.labUnlocked());
-    $('#btn-lab').innerHTML = '<span>' + (Store.labUnlocked() ? '🧩' : '🔒') + '</span>Laboratório';
-    var sc = LA.app.scene;
-    if (sc && sc.ok) { sc.attach($('#home-3d')); sc.buildHome(); }
-  };
-
-  /* ---------- Jogadores (sem cadastro) ---------- */
-  S.players = function (afterPick) {
-    S._afterPick = afterPick || S._afterPick || 'map';
-    var grid = $('#players-grid');
-    var cur = Store.player();
-    grid.innerHTML = '';
-    Store.localPlayers().forEach(function (p) {
-      var t = Store.totals(p);
-      var card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'player-card' + (cur && cur.id === p.id ? ' current' : '');
-      card.innerHTML = LA.ART.avatar(p, 84) + '<span class="pname">' + esc(Store.name(p)) + '</span><span class="pstats">⭐ ' + t.stars + ' · ' + t.done + ' de 25 fases</span>';
-      card.onclick = function () { LA.sfx('click'); Store.setPlayer(p.id); S.afterPick(); };
-      var del = document.createElement('span');
-      del.className = 'del'; del.setAttribute('role', 'button'); del.setAttribute('aria-label', 'Remover ' + Store.name(p)); del.textContent = '🗑';
-      del.style.display = 'flex'; del.style.alignItems = 'center'; del.style.justifyContent = 'center';
-      del.onclick = function (e) {
-        e.stopPropagation();
-        UI.confirm('Remover ' + esc(Store.name(p)) + '?', 'Todo o progresso desse jogador neste aparelho será apagado.', 'Remover', 'Cancelar', true).then(function (ok) {
-          if (ok) { Store.removePlayer(p.id); S.players(); }
-        });
-      };
-      card.appendChild(del);
-      var ren = document.createElement('span');
-      ren.className = 'del ren'; ren.setAttribute('role', 'button'); ren.setAttribute('aria-label', 'Mudar o nome de ' + Store.name(p)); ren.textContent = '✏️';
-      ren.style.display = 'flex'; ren.style.alignItems = 'center'; ren.style.justifyContent = 'center';
-      ren.onclick = function (e) {
-        e.stopPropagation(); LA.sfx('click');
-        S.askName(p, false).then(function () { S.players(); });
-      };
-      card.appendChild(ren);
-      grid.appendChild(card);
-    });
-    var nw = document.createElement('button');
-    nw.type = 'button'; nw.className = 'player-card new';
-    nw.innerHTML = '<span style="font-size:48px">➕</span>Novo jogador';
-    nw.onclick = function () {
-      LA.sfx('unlock');
-      var p = Store.newPlayer();
-      S.askName(p, true).then(function () {
-        UI.toast('🤖', 'Olá, ' + esc(Store.name(p)) + '!', 'Seu progresso será salvo neste aparelho.');
-        S.afterPick();
-      });
-    };
-    grid.appendChild(nw);
-  };
-
-  /* Janela para digitar o nome do jogador (opcional). */
-  S.askName = function (p, isNew) {
-    var input = null;
-    return UI.modal({
-      title: isNew ? '🤖 Qual é o seu nome?' : '✏️ Mudar o nome',
-      html: '<p>Digite seu nome ou apelido. Ele aparece no mapa e no ranking <b>deste aparelho</b>.</p>' +
-        '<input id="player-name" class="name-input" type="text" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Jogador ' + p.num + '" aria-label="Nome do jogador">' +
-        (isNew ? '<p style="font-size:15px">Se preferir, toque em “Pular” e você será o <b>Jogador ' + p.num + '</b>.</p>' : '<p style="font-size:15px">Deixe vazio para voltar a ser o <b>Jogador ' + p.num + '</b>.</p>'),
-      closable: !isNew,
-      buttons: [
-        { label: isNew ? 'Pular' : 'Cancelar', value: 'skip', id: 'btn-name-skip' },
-        { label: '✅ Salvar', value: 'save', cls: 'btn-green', id: 'btn-name-save' }
-      ],
-      onOpen: function (box, close) {
-        input = box.querySelector('#player-name');
-        input.value = p.name || '';
-        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); close('save'); } });
-        setTimeout(function () { try { input.focus(); } catch (e) { /* ok */ } }, 80);
-      }
-    }).then(function (v) {
-      if (v === 'save' && input) Store.setName(p.id, input.value);
-      return p;
-    });
-  };
+  /* Início, grupos e senha de figuras: veja groups.js. Avatar e loja: shop.js. */
   S.afterPick = function () {
     var dest = S._afterPick;
     if (dest === 'continue') return S.continueGame();
@@ -199,7 +114,8 @@
       '<h2 class="section">📱 Dicas para tablet</h2><div class="howto-grid">' +
       card('👆', 'Toque e arraste', '<p>Toque em uma categoria, segure um bloco e arraste. Use os botões ➕ ➖ do editor para aumentar os blocos.</p><p>Em celulares em pé, use as abas <b>🧭 Labirinto</b> e <b>🧩 Blocos</b>.</p>') +
       card('🔄', 'Câmera', '<p>Use 🔄 para girar o labirinto e ➕ ➖ para aproximar. O botão ⛶ deixa o labirinto maior.</p>') +
-      card('🔒', 'Privacidade', '<p>Não há cadastro, nome nem senha. Tudo fica salvo <b>só neste aparelho</b>. O ranking também é local: cada tablet tem o seu.</p>') +
+      card('👥', 'Grupos e turmas', '<p>Escolham a <b>turma</b>, criem o grupo com o primeiro nome de cada integrante e uma <b>senha de 3 figuras</b>. ' + (LA.Cloud.enabled() ? 'O progresso fica salvo <b>online</b>: em outra aula, em qualquer aparelho, toquem no grupo e usem a senha.' : 'O progresso fica salvo neste aparelho.') + '</p>') +
+      card('🪙', 'Moedas e avatar', '<p>Cada fase concluída dá <b>10 moedas</b>, mais <b>5 por estrela</b>. Conquistas também dão moedas. Usem as moedas em <b>👕 Avatar e Loja</b> para comprar roupas, chapéus, bichinhos e fundos.</p>') +
       '</div>';
     function card(n, title, html) {
       return '<div class="howto-card"><h3><span class="num">' + n + '</span>' + title + '</h3>' + html + '</div>';
@@ -220,18 +136,17 @@
       row('Qualidade gráfica', seg('quality', [['auto', 'Automática'], ['alta', 'Alta'], ['leve', 'Leve']], st.quality)) +
       '<p>Use “Leve” em tablets mais simples se o jogo ficar lento.</p>' +
       row('Tamanho dos blocos', seg('editorScale', [[0.8, 'P'], [1, 'M'], [1.25, 'G']], st.editorScale)) + '</div>' +
-      '<div class="set-card"><h3>🤖 Jogador</h3><p>Jogador atual: <b>' + (p ? esc(Store.name(p)) : 'nenhum') + '</b></p>' +
-      (p ? '<button class="btn" type="button" id="set-rename">✏️ Mudar o nome</button>' : '') +
-      '<button class="btn btn-blue" type="button" id="set-switch">🔁 Trocar de jogador</button>' +
-      (p ? '<button class="btn btn-danger-soft" type="button" id="set-reset-me">↺ Reiniciar progresso de ' + esc(Store.name(p)) + '</button>' : '') + '</div>' +
-      '<div class="set-card"><h3>💾 Resultados</h3><p>Exporte para guardar ou juntar resultados de vários aparelhos. Nada é enviado pela internet.</p>' +
+      groupCard(p) +
+      '<div class="set-card"><h3>💾 Resultados</h3><p>Exporte para guardar ou juntar resultados de vários aparelhos (arquivo JSON ou planilha CSV).</p>' +
       '<button class="btn btn-teal" type="button" data-action="export">📤 Exportar resultados</button>' +
       '<button class="btn" type="button" data-action="import">📥 Importar resultados</button>' +
       '<button class="btn btn-danger-soft" type="button" id="set-reset-all">🧨 Apagar TODOS os dados deste aparelho</button></div>' +
       '<div class="set-card"><h3>👩‍🏫 Professor</h3><p>O <b>modo demonstração</b> libera todas as fases e o Laboratório, e mostra o botão “Ver solução” nas dicas. Para ativar ou desativar, <b>segure o botão por 3 segundos</b>.</p>' +
       '<button class="btn ' + (st.demo ? 'btn-purple' : '') + '" type="button" id="set-demo">' + (st.demo ? '✅ Modo demonstração LIGADO' : '🎓 Modo demonstração desligado') + '</button>' +
       '<p style="font-size:14px">Código deste aparelho: <b>' + esc(Store.device) + '</b> (aparece nos arquivos exportados).</p></div>' +
-      '<div class="set-card"><h3>🔒 Privacidade</h3><p>Este jogo não pede e-mail, turma ou senha. O nome do jogador é opcional e fica só neste aparelho. O jogo não usa banco de dados externo e não envia nenhuma informação para a internet. O progresso fica no armazenamento local do navegador.</p>' +
+      '<div class="set-card"><h3>🔒 Privacidade</h3><p>' + (LA.Cloud.enabled()
+        ? 'O jogo pede só a turma, o <b>primeiro nome</b> dos integrantes e uma senha de figuras. Esses dados e o progresso ficam numa planilha do Google Drive da escola (do professor) e neste aparelho. Não pede e-mail nem dados pessoais.'
+        : 'O jogo pede só a turma e o primeiro nome dos integrantes. Tudo fica no armazenamento local deste aparelho: nada é enviado para a internet.') + '</p>' +
       '<p style="font-size:14px">Labirinto dos Algoritmos · usa Three.js (MIT) e Blockly (Apache 2.0), guardados no próprio jogo.</p></div>';
 
     function row(label, ctrl) { return '<div class="set-row"><span>' + label + '</span>' + ctrl + '</div>'; }
@@ -256,9 +171,22 @@
       };
     });
     $('#set-switch').onclick = function () { UI.show('players', 'home'); };
-    if ($('#set-rename')) $('#set-rename').onclick = function () { S.askName(p, false).then(function () { S.settings(); }); };
+    if ($('#set-rename')) $('#set-rename').onclick = function () { S.editMembers(p).then(function () { S.settings(); }); };
+    if ($('#set-logout')) $('#set-logout').onclick = function () {
+      UI.confirm('Sair do grupo?', 'O progresso continua salvo' + (p.cloud ? ' online' : ' neste aparelho') + '. Para voltar, escolham o grupo e usem a senha de figuras.', 'Sair', 'Cancelar').then(function (ok) {
+        if (!ok) return;
+        if (LA.Cloud.needsSync(p)) LA.Cloud.flush();
+        Store.logout(); UI.toast('👋', 'Até a próxima!'); UI.show('home');
+      });
+    };
+    if ($('#set-sync')) $('#set-sync').onclick = function () {
+      var b = this; b.disabled = true; b.textContent = '🔄 Salvando…';
+      if (p.cloud && p.cloud.expired) { b.disabled = false; S.enterGroup(p, null); return; }
+      LA.Cloud.flush().then(function () { S.settingsSync(); });
+    };
+    S.settingsSync();
     if ($('#set-reset-me')) $('#set-reset-me').onclick = function () {
-      UI.confirm('Reiniciar o progresso?', esc(Store.name(p)) + ' vai perder fases, estrelas e conquistas deste aparelho. Isso não pode ser desfeito.', 'Sim, reiniciar', 'Cancelar', true).then(function (ok) {
+      UI.confirm('Reiniciar o progresso?', esc(Store.name(p)) + ' vai perder fases, estrelas, conquistas, moedas e itens comprados' + (p.cloud ? ' (também online)' : '') + '. Isso não pode ser desfeito.', 'Sim, reiniciar', 'Cancelar', true).then(function (ok) {
         if (ok) { Store.resetPlayer(p.id); UI.toast('↺', 'Progresso reiniciado', esc(Store.name(p))); S.settings(); }
       });
     };
@@ -276,6 +204,29 @@
       UI.toast('👩‍🏫', st.demo ? 'Modo demonstração ligado' : 'Modo demonstração desligado', st.demo ? 'Todas as fases liberadas neste aparelho.' : 'As fases voltam a seguir o progresso.');
       S.settings();
     });
+  };
+
+  /* Cartão do grupo nas Configurações. */
+  function groupCard(p) {
+    if (!p) return '<div class="set-card"><h3>👥 Grupo</h3><p>Nenhum grupo escolhido.</p><button class="btn btn-blue" type="button" id="set-switch">👥 Escolher o grupo</button></div>';
+    return '<div class="set-card"><h3>👥 Grupo</h3>' +
+      '<div class="set-group">' + LA.ART.avatar(p, 56) + '<div><b>' + esc(Store.name(p)) + '</b><br>' +
+      (p.turma ? 'Turma ' + esc(LA.turmaLabel(p.turma)) : 'Sem turma') + (p.cloud ? ' · grupo nº ' + esc(p.cloud.code) : '') + '</div></div>' +
+      (p.secret ? '<p>🔑 Senha de figuras: <span class="secret-inline">' + p.secret.split(' ').map(LA.figureIcon).join(' ') + '</span></p>' : '') +
+      '<p id="set-sync-status"></p>' +
+      (LA.Cloud.enabled() && (p.turma || p.cloud) ? '<button class="btn btn-teal" type="button" id="set-sync">☁️ Salvar online agora</button>' : '') +
+      (p.turma ? '<button class="btn" type="button" id="set-rename">✏️ Integrantes do grupo</button>' : '') +
+      '<button class="btn btn-blue" type="button" id="set-switch">🔁 Trocar de grupo</button>' +
+      '<button class="btn" type="button" id="set-logout">🚪 Sair do grupo</button>' +
+      '<button class="btn btn-danger-soft" type="button" id="set-reset-me">↺ Reiniciar progresso do grupo</button></div>';
+  }
+  S.settingsSync = function () {
+    var el = $('#set-sync-status'), p = Store.player();
+    if (!el || !p) return;
+    var st = LA.Cloud.status(p);
+    el.innerHTML = st.icon + ' ' + esc(st.text) + (LA.Cloud.lastError && st.cls === 'warn' && LA.Cloud.online ? '<br><small>' + esc(LA.Cloud.lastError) + '</small>' : '');
+    var b = $('#set-sync');
+    if (b) { b.disabled = false; b.textContent = p.cloud && p.cloud.expired ? '🔑 Entrar de novo para salvar' : '☁️ Salvar online agora'; }
   };
 
   /* ---------- Celebrações ---------- */

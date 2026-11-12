@@ -201,8 +201,8 @@
     };
     Lab.id = maze.id;
     Store.saveMaze(maze);
-    var fresh = LA.checkAchievements(Store.player() || Store.ensurePlayer(), { mazeSaved: true });
-    Store.save();
+    var fresh = Store.player() ? LA.checkAchievements(Store.player(), { mazeSaved: true }) : [];
+    if (Store.player()) Store.changed(Store.player(), true);
     LA.Game.showAchievementToasts(fresh);
     $('#lab-msg').textContent = '✅ “' + Lab.name + '” salvo neste aparelho!';
     UI.toast('💾', 'Labirinto salvo!', Lab.name);

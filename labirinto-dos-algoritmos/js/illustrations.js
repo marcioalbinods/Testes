@@ -53,13 +53,15 @@
     var n = p ? p.num + (p.device ? p.device.charCodeAt(0) : 0) * (p.imported ? 3 : 0) : 0;
     return COLORS[(n - 1 + COLORS.length * 10) % COLORS.length];
   };
+  /* Avatar do grupo: rosto (listas, ranking) ou corpo inteiro. */
+  ART.avatarCfg = function (p) { return p && p.avatar ? p.avatar : LA.avatarDefault('pessoa', p ? p.num : 1); };
   ART.avatar = function (p, size) {
-    var c = ART.playerColor(p);
-    return '<span class="avatar" style="width:' + (size || 40) + 'px;height:' + (size || 40) + 'px">' +
-      '<svg viewBox="0 0 64 64"><rect x="4" y="4" width="56" height="56" rx="18" fill="' + c + '"/>' +
-      '<rect x="14" y="18" width="36" height="26" rx="8" fill="#0f1a33"/><rect x="21" y="25" width="7" height="10" rx="2" fill="#64f4ff"/><rect x="36" y="25" width="7" height="10" rx="2" fill="#64f4ff"/>' +
-      '<rect x="27" y="38" width="10" height="2.5" rx="1" fill="#64f4ff"/><line x1="32" y1="4" x2="32" y2="12" stroke="#fff" stroke-width="3"/><circle cx="32" cy="6" r="4" fill="#ffd23f"/>' +
-      '<text x="32" y="58" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="sans-serif">' + (p ? p.num : '') + '</text></svg></span>';
+    return '<span class="avatar" style="width:' + (size || 40) + 'px;height:' + (size || 40) + 'px;background:' + ART.playerColor(p) + '">' +
+      LA.avatarSVG(ART.avatarCfg(p), { crop: 'head', noBg: true }) + '</span>';
+  };
+  ART.avatarFull = function (p, height, cls) {
+    return '<span class="avatar-full' + (cls ? ' ' + cls : '') + '" style="height:' + (height || 160) + 'px;width:' + Math.round((height || 160) * 2 / 3) + 'px">' +
+      LA.avatarSVG(ART.avatarCfg(p), { noBg: true }) + '</span>';
   };
   ART.byteFace = function (mood) {
     var eye = mood === 'sad' ? '#ff5a5a' : mood === 'happy' ? '#7dff9b' : '#64f4ff';

@@ -1,7 +1,8 @@
 /* =========================================================
    LABIRINTO DOS ALGORITMOS — Armazenamento local
-   Tudo fica NO PRÓPRIO APARELHO (localStorage). Nada é enviado
-   para a internet. Jogadores são genéricos: “Jogador 1”, “Jogador 2”…
+   Tudo fica no aparelho (localStorage). Os grupos de uma turma
+   também são enviados ao servidor da escola quando ele está
+   configurado (veja cloud.js); sem servidor, nada sai do aparelho.
    ========================================================= */
 (function (LA) {
   'use strict';
@@ -9,7 +10,8 @@
   var KEY = 'labirinto-algoritmos:v1';
   var KEY_PROG = 'labirinto-algoritmos:programas:v1';
   var KEY_MAZES = 'labirinto-algoritmos:labirintos:v1';
-  var FORMAT = 1;
+  var FORMAT = 2;
+  var TURMA_RE = /^[0-9][A-Z]{1,2}$/;
 
   var memory = {}; // reserva caso o localStorage esteja bloqueado
   function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return memory[k] || null; } }
@@ -43,7 +45,8 @@
       created: Date.now(), updated: Date.now(),
       levels: {}, achievements: {},
       stats: { runs: 0, wins: 0, items: 0, attempts: {} },
-      last: null
+      last: null,
+      turma: '', members: [], secret: '', avatar: null, inv: {}, cloud: null, resetAt: 0
     };
   }
 
@@ -82,8 +85,39 @@
     }
     if (p.last != null && LA.levelById(p.last)) out.last = p.last;
     out.name = cleanName(p.name);
+    out.turma = cleanTurma(p.turma);
+    out.members = cleanMembers(p.members);
+    out.secret = cleanSecret(p.secret);
+    out.avatar = p.avatar ? LA.avatarClean(p.avatar, out.num) : null;
+    if (isObj(p.inv)) for (var it in p.inv) { var item = LA.avItem(it); if (item && item.price > 0) out.inv[it] = 1; }
+    if (isObj(p.cloud) && /^\d{3,6}$/.test(String(p.cloud.code))) {
+      out.cloud = { code: String(p.cloud.code), token: typeof p.cloud.token === 'string' ? p.cloud.token.slice(0, 80) : '', syncedAt: num(p.cloud.syncedAt, 0), expired: !!p.cloud.expired };
+    }
+    out.resetAt = num(p.resetAt, 0);
     return out;
   }
+  function cleanTurma(t) { t = String(t || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); return TURMA_RE.test(t) ? t : ''; }
+  function cleanMembers(list) {
+    if (!Array.isArray(list)) return [];
+    var out = [];
+    list.forEach(function (n) { n = cleanName(String(n || '').replace(/,/g, ' ')); if (n && out.length < 6) out.push(n); });
+    return out;
+  }
+  function cleanSecret(s) {
+    var l = String(s || '').toLowerCase().split(/[\s,]+/).filter(function (x) { return LA.FIGURE_IDS.indexOf(x) >= 0; });
+    return l.length === 3 ? l.join(' ') : '';
+  }
+  LA.cleanTurma = cleanTurma;
+  LA.cleanMembers = cleanMembers;
+  /* Figuras da senha do grupo (sem teclado). */
+  LA.FIGURES = [
+    { id: 'cachorro', icon: '🐶' }, { id: 'gato', icon: '🐱' }, { id: 'leao', icon: '🦁' }, { id: 'sapo', icon: '🐸' },
+    { id: 'macaco', icon: '🐵' }, { id: 'unicornio', icon: '🦄' }, { id: 'maca', icon: '🍎' }, { id: 'pizza', icon: '🍕' },
+    { id: 'bola', icon: '⚽' }, { id: 'foguete', icon: '🚀' }, { id: 'estrela', icon: '⭐' }, { id: 'arco-iris', icon: '🌈' }
+  ];
+  LA.FIGURE_IDS = LA.FIGURES.map(function (f) { return f.id; });
+  LA.figureIcon = function (id) { var f = LA.FIGURES.filter(function (x) { return x.id === id; })[0]; return f ? f.icon : '?'; };
+  LA.turmaLabel = function (t) { return t ? t.replace(/^(\d)/, '$1º ') : ''; };
   /* Nome opcional digitado pelo estudante: só texto simples, até 20 letras. */
   function cleanName(n) {
     if (typeof n !== 'string') return '';
@@ -111,7 +145,35 @@
       if (p) { out.players[p.id] = p; if (!p.imported) out.nextNum = Math.max(out.nextNum, p.num + 1); }
     }
     if (d.current && out.players[d.current]) out.current = d.current;
+    out.lastTurma = cleanTurma(d.lastTurma);
     return out;
+  }
+
+  /* Junta a cópia do servidor (b) com a deste aparelho (a), sem perder progresso.
+     Se um dos lados reiniciou o progresso depois da última mudança do outro, vale o reiniciado. */
+  function mergeInto(a, b) {
+    var aOld = (a.updated || 0) < (b.resetAt || 0), bOld = (b.updated || 0) < (a.resetAt || 0);
+    var newer = (b.updated || 0) >= (a.updated || 0) ? b : a;
+    if (aOld) { copyAll(a, b); return; }
+    if (!bOld) {
+      for (var k in b.levels) {
+        var x = a.levels[k], y = b.levels[k];
+        if (!x || y.best > x.best) a.levels[k] = y;
+        else { x.completed = x.completed || y.completed; x.stars = Math.max(x.stars, y.stars); x.bestEff = Math.max(x.bestEff || 0, y.bestEff || 0); }
+      }
+      for (var ac in b.achievements) if (!a.achievements[ac]) a.achievements[ac] = b.achievements[ac];
+      for (var it in b.inv) a.inv[it] = 1;
+      a.stats.runs = Math.max(a.stats.runs, b.stats.runs);
+      a.stats.wins = Math.max(a.stats.wins, b.stats.wins);
+      a.stats.items = Math.max(a.stats.items, b.stats.items);
+      for (var t in b.stats.attempts) a.stats.attempts[t] = Math.max(a.stats.attempts[t] || 0, b.stats.attempts[t]);
+    }
+    if (newer === b) { if (b.avatar) a.avatar = b.avatar; if (b.last) a.last = b.last; }
+    a.resetAt = Math.max(a.resetAt || 0, b.resetAt || 0);
+    a.updated = Math.max(a.updated || 0, b.updated || 0);
+  }
+  function copyAll(a, b) {
+    ['levels', 'achievements', 'stats', 'last', 'avatar', 'inv', 'resetAt', 'updated'].forEach(function (k) { a[k] = b[k]; });
   }
 
   /* ---------- Carregar e salvar ---------- */
@@ -149,7 +211,14 @@
     ensurePlayer: function () { return Store.player() || Store.localPlayers()[0] && Store.setPlayer(Store.localPlayers()[0].id) || Store.newPlayer(); },
     setPlayer: function (id) { if (data.players[id]) { data.current = id; Store.save(); } return data.players[id]; },
     /* Nome do jogador: o que ele digitou ou “Jogador N”. */
-    name: function (p) { return p ? (p.name || 'Jogador ' + p.num) : ''; },
+    name: function (p) {
+      if (!p) return '';
+      if (p.members && p.members.length) {
+        var m = p.members;
+        return m.length === 1 ? m[0] : m.slice(0, -1).join(', ') + ' e ' + m[m.length - 1];
+      }
+      return p.name || 'Jogador ' + p.num;
+    },
     setName: function (id, name) {
       var p = data.players[id]; if (!p) return null;
       p.name = cleanName(name); p.updated = Date.now();
@@ -158,7 +227,101 @@
     },
     label: function (p) {
       if (!p) return '';
-      return Store.name(p) + (p.imported || p.device !== data.device ? ' · aparelho ' + p.device : '');
+      return Store.name(p) + (p.turma ? ' · ' + LA.turmaLabel(p.turma) : '') + (p.imported || p.device !== data.device ? ' · aparelho ' + p.device : '');
+    },
+    /* Grava e avisa o salvamento online (urgent = enviar logo). */
+    changed: function (p, urgent) {
+      p = p || Store.player();
+      if (p) p.updated = Math.max(Date.now(), (p.updated || 0) + 1);
+      Store.save();
+      if (LA.Cloud) LA.Cloud.schedule(!!urgent);
+    },
+    logout: function () { data.current = null; Store.save(); },
+    get lastTurma() { return data.lastTurma || ''; },
+    set lastTurma(t) { data.lastTurma = cleanTurma(t); Store.save(); },
+
+    /* ---------- Grupos (turma + integrantes + senha de figuras) ---------- */
+    newGroup: function (opts) {
+      var p = newPlayerRecord(data.nextNum++, data.device, false);
+      p.turma = cleanTurma(opts.turma);
+      p.members = cleanMembers(opts.members);
+      p.secret = cleanSecret(opts.secret);
+      p.avatar = LA.avatarClean(opts.avatar || LA.avatarDefault('pessoa', p.num), p.num);
+      data.players[p.id] = p;
+      data.current = p.id;
+      data.lastTurma = p.turma;
+      Store.save();
+      return p;
+    },
+    setGroupInfo: function (id, turma, members) {
+      var p = data.players[id]; if (!p) return null;
+      var m = cleanMembers(members);
+      if (m.length) p.members = m;
+      if (cleanTurma(turma) && !p.cloud) p.turma = cleanTurma(turma);
+      Store.changed(p, true);
+      return p;
+    },
+    completeGroup: function (id, opts) {
+      var p = data.players[id]; if (!p) return null;
+      p.turma = cleanTurma(opts.turma); p.members = cleanMembers(opts.members); p.secret = cleanSecret(opts.secret);
+      if (!p.avatar) p.avatar = LA.avatarClean(opts.avatar || LA.avatarDefault('pessoa', p.num), p.num);
+      Store.changed(p, true);
+      return p;
+    },
+    checkSecret: function (p, secret) { return !!p && !!p.secret && p.secret === cleanSecret(secret); },
+    findByCode: function (code) {
+      return Store.localPlayers().filter(function (p) { return p.cloud && p.cloud.code === String(code); })[0] || null;
+    },
+    /* Recebe um grupo vindo do servidor (ao entrar) e junta com a cópia deste aparelho. */
+    adoptCloudGroup: function (res, secret) {
+      var code = String(res.codigo);
+      var p = Store.findByCode(code);
+      if (!p) {
+        p = newPlayerRecord(data.nextNum++, data.device, false);
+        p.updated = 0;
+        data.players[p.id] = p;
+      }
+      var remote = res.progresso && isObj(res.progresso) ? cleanPlayer(Object.assign({}, res.progresso, { num: p.num, device: p.device }), p.device) : null;
+      if (remote) {
+        remote.updated = num(res.progresso.updated, num(res.atualizadoEm, 0));
+        remote.resetAt = num(res.progresso.resetAt, 0);
+        mergeInto(p, remote);
+      }
+      p.turma = cleanTurma(res.turma) || p.turma;
+      if (Array.isArray(res.integrantes) && res.integrantes.length) p.members = cleanMembers(res.integrantes);
+      p.secret = cleanSecret(secret) || p.secret;
+      if (!p.avatar) p.avatar = LA.avatarDefault('pessoa', p.num);
+      // programas (blocos) salvos online: completa o que faltar neste aparelho
+      if (isObj(res.programas)) {
+        var all = Store._programs(); all[p.id] = all[p.id] || {};
+        for (var k in res.programas) if (!all[p.id][k] && LA.levelById(k)) all[p.id][k] = res.programas[k];
+        lsSet(KEY_PROG, JSON.stringify(all));
+      }
+      var serverNewer = !remote || remote.updated >= p.updated;
+      p.cloud = { code: code, token: res.token, syncedAt: serverNewer ? p.updated : 0, expired: false };
+      data.current = p.id;
+      data.lastTurma = p.turma;
+      Store.save();
+      if (!serverNewer && LA.Cloud) LA.Cloud.schedule(true);
+      return p;
+    },
+
+    /* ---------- Avatar e loja ---------- */
+    setAvatar: function (cfg) {
+      var p = Store.player(); if (!p) return null;
+      p.avatar = LA.avatarClean(cfg, p.num);
+      Store.changed(p, true);
+      return p.avatar;
+    },
+    buy: function (itemId) {
+      var p = Store.player(), it = LA.avItem(itemId);
+      if (!p || !it) return { ok: false, reason: 'item' };
+      if (LA.owns(p, itemId)) return { ok: true, already: true };
+      var have = LA.coins(p);
+      if (have < it.price) return { ok: false, reason: 'coins', missing: it.price - have };
+      p.inv[itemId] = 1;
+      Store.changed(p, true);
+      return { ok: true };
     },
     removePlayer: function (id) {
       delete data.players[id];
@@ -193,8 +356,8 @@
       var p = Store.player(); if (!p) return 0;
       p.stats.runs++;
       p.stats.attempts[levelId] = (p.stats.attempts[levelId] || 0) + 1;
-      p.last = levelId; p.updated = Date.now();
-      Store.save();
+      p.last = levelId;
+      Store.changed(p, false);
       return p.stats.attempts[levelId];
     },
     /* Registra um resultado. Só substitui se for MELHOR (não duplica). */
@@ -218,8 +381,7 @@
           if (!prev.sig) prev.sig = sig || '';
         }
       }
-      p.updated = Date.now();
-      Store.save();
+      Store.changed(p, !!score.completed);
       return out;
     },
     totals: function (p, levels) {
@@ -240,8 +402,17 @@
     resetPlayer: function (id) {
       var p = data.players[id]; if (!p) return;
       p.levels = {}; p.achievements = {}; p.stats = { runs: 0, wins: 0, items: 0, attempts: {} }; p.last = null;
+      // moedas voltam a zero: itens comprados também saem
+      p.inv = {};
+      if (p.avatar) {
+        var a = p.avatar;
+        ['hair', 'top', 'bottom', 'shoes', 'hat', 'glasses', 'neck', 'hand', 'back', 'pet', 'bg'].forEach(function (k) {
+          if (a[k] && !LA.owns(p, a[k])) a[k] = LA.AV_OPTIONAL[k] ? '' : LA.avatarDefault('pessoa', p.num)[k];
+        });
+      }
+      p.resetAt = Date.now();
       var progs = Store._programs(); delete progs[id]; lsSet(KEY_PROG, JSON.stringify(progs));
-      Store.save();
+      Store.changed(p, true);
     },
     resetAll: function () {
       var keepSettings = data.settings, dev = data.device;
@@ -260,6 +431,16 @@
       all[p.id] = all[p.id] || {};
       all[p.id][levelId] = json;
       lsSet(KEY_PROG, JSON.stringify(all));
+      if (p.cloud || p.turma) Store.changed(p, false);
+    },
+    /* Programas enviados ao servidor: as fases não concluídas e a última jogada. */
+    programsOf: function (id) {
+      var p = data.players[id], mine = Store._programs()[id] || {}, out = {};
+      for (var k in mine) {
+        var r = p && p.levels[k];
+        if (!r || !r.completed || String(p.last) === String(k)) out[k] = mine[k];
+      }
+      return out;
     },
     loadProgram: function (levelId) {
       var p = Store.player(); if (!p) return null;
@@ -287,20 +468,21 @@
       return {
         app: 'labirinto-dos-algoritmos', format: FORMAT, exportedAt: new Date().toISOString(), device: data.device,
         players: Store.players().map(function (p) {
-          return { num: p.num, name: p.name || '', device: p.device, imported: p.device !== data.device, levels: p.levels, achievements: p.achievements, stats: { runs: p.stats.runs, wins: p.stats.wins, items: p.stats.items } };
+          return { num: p.num, name: p.name || '', turma: p.turma || '', members: p.members || [], avatar: p.avatar, inv: p.inv, device: p.device, imported: p.device !== data.device, levels: p.levels, achievements: p.achievements, stats: { runs: p.stats.runs, wins: p.stats.wins, items: p.stats.items } };
         })
       };
     },
     exportJSON: function () { return JSON.stringify(Store.exportObject(), null, 2); },
     exportCSV: function () {
-      var rows = [['tipo', 'aparelho', 'jogador', 'fase', 'mundo', 'titulo', 'pontos', 'estrelas', 'concluida', 'conquista', 'nome']];
+      var rows = [['tipo', 'aparelho', 'jogador', 'fase', 'mundo', 'titulo', 'pontos', 'estrelas', 'concluida', 'conquista', 'nome', 'turma', 'integrantes']];
       Store.players().forEach(function (p) {
+        var t = LA.turmaLabel(p.turma), m = csvSafe((p.members || []).join(', '));
         LA.LEVELS.forEach(function (l) {
           var r = p.levels[l.id];
-          if (r) rows.push(['fase', p.device, p.num, l.id, l.world, l.title, r.best, r.stars, r.completed ? 'sim' : 'nao', '', csvSafe(p.name)]);
+          if (r) rows.push(['fase', p.device, p.num, l.id, l.world, l.title, r.best, r.stars, r.completed ? 'sim' : 'nao', '', csvSafe(p.name), t, m]);
         });
-        Object.keys(p.achievements).forEach(function (a) { rows.push(['conquista', p.device, p.num, '', '', '', '', '', '', a, csvSafe(p.name)]); });
-        if (!Object.keys(p.levels).length && !Object.keys(p.achievements).length && p.name) rows.push(['jogador', p.device, p.num, '', '', '', '', '', '', '', csvSafe(p.name)]);
+        Object.keys(p.achievements).forEach(function (a) { rows.push(['conquista', p.device, p.num, '', '', '', '', '', '', a, csvSafe(p.name), t, m]); });
+        if (!Object.keys(p.levels).length && !Object.keys(p.achievements).length && (p.name || m)) rows.push(['jogador', p.device, p.num, '', '', '', '', '', '', '', csvSafe(p.name), t, m]);
       });
       return '﻿' + rows.map(function (r) {
         return r.map(function (c) { c = String(c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';');
@@ -333,6 +515,8 @@
         var k = dev + ':' + n;
         var p = players[k] = players[k] || { num: n, device: dev, levels: {}, achievements: {} };
         if (col('nome') >= 0 && c[col('nome')]) p.name = c[col('nome')].replace(/^'/, '');
+        if (col('turma') >= 0 && c[col('turma')]) p.turma = c[col('turma')];
+        if (col('integrantes') >= 0 && c[col('integrantes')]) p.members = c[col('integrantes')].replace(/^'/, '').split(',');
         var tipo = col('tipo') >= 0 ? c[col('tipo')] : 'fase';
         if (tipo === 'jogador') return;
         if (tipo === 'conquista') { var a = c[col('conquista')]; if (a) p.achievements[a.trim()] = Date.now(); return; }
@@ -373,6 +557,8 @@
         }
         for (var ac in p.achievements) if (!cur.achievements[ac]) cur.achievements[ac] = p.achievements[ac];
         if (p.name && !cur.name) cur.name = p.name;
+        if (p.turma && !cur.turma) cur.turma = p.turma;
+        if (p.members.length && !cur.members.length) cur.members = p.members;
         cur.stats.runs = Math.max(cur.stats.runs, p.stats.runs);
         cur.stats.wins = Math.max(cur.stats.wins, p.stats.wins);
         cur.stats.items = Math.max(cur.stats.items, p.stats.items);

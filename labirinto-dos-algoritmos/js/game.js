@@ -505,7 +505,7 @@
     UI.confetti(60);
     if (level.custom) {
       var fresh0 = LA.checkAchievements(LA.Store.player(), { customWon: true });
-      LA.Store.save();
+      LA.Store.changed(LA.Store.player(), true);
       showAchievementToasts(fresh0);
       await celebrate;
       await UI.modal({
@@ -521,9 +521,11 @@
     var player = LA.Store.player();
     var wasWorldDone = LA.levelsOfWorld(level.world).every(function (l) { return player.levels[l.id] && player.levels[l.id].completed; });
     var wasAllDone = LA.LEVELS.every(function (l) { return player.levels[l.id] && player.levels[l.id].completed; });
+    var coinsBefore = LA.coinsEarned(player);
     var rec = LA.Store.recordResult(level.id, score, sig, items);
     var fresh = LA.checkAchievements(player, { info: score.info, won: true, attempts: attempts, differentSolution: rec.differentSolution });
-    LA.Store.save();
+    LA.Store.changed(player, true);
+    var coinsGained = LA.coinsEarned(player) - coinsBefore;
     await celebrate;
 
     var nextL = LA.levelById(level.id + 1);
@@ -538,6 +540,7 @@
     }).join('') + '</div>' +
       '<div class="score-total"><span id="score-count">0</span><small> / 100 pontos</small></div>' +
       '<div class="record">' + recordTxt + '</div>' +
+      (coinsGained > 0 ? '<div class="coin-gain">' + LA.ART.avatar(player, 44) + '<span>+' + coinsGained + ' 🪙 moedas para a loja!</span><small>Total: 🪙 ' + LA.coins(player) + '</small></div>' : '') +
       '<div class="score-parts">' + parts.map(function (p) {
         return '<div class="score-part"><span>' + p[0] + '</span><span class="bar"><i data-w="' + (p[1] / p[2] * 100) + '"></i></span><b>' + p[1] + '/' + p[2] + '</b></div>';
       }).join('') + '</div>' +

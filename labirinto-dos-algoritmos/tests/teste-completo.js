@@ -3,7 +3,9 @@
    Joga as 25 fases pela interface, testa arrastar blocos com mouse
    e com TOQUE, desbloqueio, pontuação, estrelas, ranking, conquistas,
    salvamento, exportar/importar, dados corrompidos, Laboratório,
-   responsividade e funcionamento offline (PWA).
+   responsividade e funcionamento offline (PWA). Também testa grupos
+   e turmas, avatar e loja de moedas e o salvamento ONLINE com o
+   servidor das turmas (Code.gs rodando num servidor simulado).
 
    Uso (precisa de Node.js e Playwright):
      cd labirinto-dos-algoritmos
@@ -16,6 +18,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+const { criarServidor } = require('./servidor-simulado');
+const URL_SERVIDOR = 'https://script.google.com/macros/s/TESTE/exec';
 const OUT = process.env.OUT || path.join(__dirname, 'resultados');
 fs.mkdirSync(OUT, { recursive: true });
 const ARGS = ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'];
@@ -42,8 +46,9 @@ function serve() {
   });
 }
 
-async function newPage(browser, base, opts = {}) {
+async function newPage(browser, base, opts = {}, prepare) {
   const ctx = await browser.newContext(Object.assign({ viewport: { width: 1280, height: 800 }, acceptDownloads: true }, opts));
+  if (prepare) await prepare(ctx);
   const page = await ctx.newPage();
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
@@ -52,6 +57,45 @@ async function newPage(browser, base, opts = {}) {
   await page.waitForFunction(() => window.LA && LA.app && LA.app.scene);
   await page.waitForTimeout(400);
   return { ctx, page };
+}
+
+/* Liga o jogo ao servidor simulado das turmas (config.json + Apps Script). */
+async function ligarServidor(ctx, servidor) {
+  await ctx.route('**/config.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ servidorUrl: URL_SERVIDOR, turmas: ['5A', '5B', '5C'] }) }));
+  await ctx.route(URL_SERVIDOR, (r) => {
+    if (servidor.fora) return r.abort('internetdisconnected');
+    return r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(servidor.post(r.request().postData())) });
+  });
+}
+
+/* Cria um grupo pela interface: turma, integrantes, personagem e senha de figuras. */
+async function criarGrupo(page, { turma = '5A', nomes = ['Ana', 'Bruno', 'Caio'], base = 'gato', senha = ['cachorro', 'foguete', 'estrela'], toque = false } = {}) {
+  const press = (sel) => (toque ? page.tap(sel) : page.click(sel));
+  await page.waitForSelector('#scr-players.active');
+  await press('.turma-btn[data-turma="' + turma + '"]');
+  await page.waitForTimeout(250);
+  await press('.player-card.new');
+  await page.waitForSelector('.member-input');
+  const ins = await page.$$('.member-input');
+  for (let i = 0; i < nomes.length; i++) {
+    if (toque) { await ins[i].tap(); await page.keyboard.type(nomes[i]); } else await ins[i].fill(nomes[i]);
+  }
+  await press('#btn-group-next');
+  await page.waitForSelector('.base-opt');
+  await press('.base-opt[data-base="' + base + '"]');
+  await press('#btn-avatar-next');
+  await page.waitForSelector('.figure');
+  for (const f of senha) await press('.figure[data-fig="' + f + '"]');
+  await press('#btn-group-create');
+  await page.waitForSelector('#btn-group-start', { timeout: 15000 });
+  await press('#btn-group-start');
+  await page.waitForTimeout(300);
+}
+
+async function digitarSenha(page, senha) {
+  await page.waitForSelector('.secret-modal .figure');
+  for (const f of senha) await page.click('.secret-modal .figure[data-fig="' + f + '"]');
+  await page.click('#btn-secret-ok');
 }
 
 async function closeModals(page) { await page.evaluate(() => LA.UI.closeAllModals()); await page.waitForTimeout(150); }
@@ -138,14 +182,20 @@ async function playWithSolution(page, id, ast) {
     await page.waitForTimeout(200);
   }
   await page.click('[data-action="play"]');
-  ok(await page.isVisible('#scr-players.active'), 'JOGAR abre a escolha de jogador (sem formulário)');
+  ok(await page.isVisible('#scr-players.active'), 'JOGAR abre a escolha do grupo');
+  ok((await page.locator('.turma-btn').allTextContents()).join('|') === '5º A|5º B|5º C', 'turmas 5º A, 5º B e 5º C para escolher');
+  await page.click('.turma-btn[data-turma="5A"]');
   await page.click('.player-card.new');
-  await page.waitForSelector('#player-name');
-  ok(true, 'novo jogador: aparece a caixa para digitar o nome (opcional)');
-  await page.click('#btn-name-skip');
+  await page.waitForSelector('.member-input');
+  await page.click('#btn-group-next');
+  ok((await page.textContent('#members-msg')).includes('pelo menos um'), 'grupo novo exige pelo menos um nome');
+  await closeModals(page);
+  await criarGrupo(page, { turma: '5A', nomes: ['Ana', 'Bruno', 'Caio'], base: 'gato' });
   await page.waitForSelector('#btn-intro-go');
-  ok(await page.isVisible('#scr-game.active'), 'novo jogador começa direto na fase 1');
-  ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Jogador 1', 'identificação genérica “Jogador 1”');
+  ok(await page.isVisible('#scr-game.active'), 'grupo novo começa direto na fase 1');
+  ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Ana, Bruno e Caio · 5º A', 'grupo identificado pelos nomes e pela turma');
+  ok(await page.evaluate(() => LA.Store.player().avatar.base) === 'gato', 'personagem escolhido (gato) salvo no grupo');
+  ok(await page.evaluate(() => LA.Store.player().secret) === 'cachorro foguete estrela', 'senha de figuras guardada');
   await page.click('#btn-intro-go');
   for (const s of ['achievements', 'map']) {
     await page.click('#game-back'); await page.waitForTimeout(200);
@@ -253,15 +303,16 @@ async function playWithSolution(page, id, ast) {
 
   /* ===== 17. Ranking local ===== */
   console.log('▶ 17. Ranking local');
-  await page.evaluate(() => { const p1 = LA.Store.player().id; LA.Store.newPlayer(); LA.Store.setPlayer(LA.Store.localPlayers()[1].id); window._p1 = p1; });
+  await page.evaluate(() => { const p1 = LA.Store.player().id; LA.Store.newGroup({ turma: '5B', members: ['Duda'], secret: 'gato gato gato' }); window._p1 = p1; });
   await playWithSolution(page, 1, LA_P(['F', 'F', 'F', 'F']));
   await closeModals(page);
   await page.evaluate(() => LA.UI.show('ranking'));
   await page.waitForTimeout(1200);
-  ok(await page.locator('.local-banner').count() === 1 && (await page.textContent('.local-banner')).includes('deste aparelho'), 'aviso de ranking local visível');
+  ok(await page.locator('.local-banner').count() === 1 && (await page.textContent('.local-banner')).includes('deste aparelho'), 'sem servidor: aviso de ranking local visível');
   ok(await page.locator('.pod').count() === 3, 'pódio com 3 posições');
   ok(await page.locator('#rank-table tbody tr').count() === 2, 'ranking geral lista os 2 jogadores');
-  ok((await page.textContent('#rank-table tbody tr:first-child')).includes('Jogador 1'), 'Jogador 1 em primeiro (mais pontos)');
+  ok((await page.textContent('#rank-table tbody tr:first-child')).includes('Ana, Bruno e Caio'), 'grupo com mais pontos em primeiro');
+  ok((await page.textContent('#rank-table')).includes('5º B'), 'ranking mostra a turma de cada grupo');
   ok((await page.textContent('#rank-table thead')).includes('Mundos'), 'colunas: pontos, fases, estrelas, mundos');
   await page.screenshot({ path: path.join(OUT, '05-ranking.png') });
   for (const tab of ['mundo', 'fase', 'conquistas']) {
@@ -280,7 +331,7 @@ async function playWithSolution(page, id, ast) {
   await page.reload();
   await page.waitForFunction(() => window.LA && LA.app && LA.app.scene);
   ok(await page.evaluate(() => LA.Store.players().length) === 2, 'jogadores recuperados após recarregar');
-  ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Jogador 2', 'jogador atual lembrado');
+  ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Duda · 5º B', 'grupo atual lembrado');
   ok(await page.evaluate(() => LA.Store.data.players[window.localStorage && Object.keys(LA.Store.data.players)[0]].levels[25].best) === 100, 'pontuações recuperadas');
   ok(await page.evaluate(() => JSON.stringify(LA.Store.loadProgram(1))) === progBefore, 'programa em blocos da fase recuperado');
 
@@ -293,13 +344,14 @@ async function playWithSolution(page, id, ast) {
   await dl.saveAs(jsonPath);
   const exp = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   ok(exp.app === 'labirinto-dos-algoritmos' && exp.players.length === 2, 'JSON exportado com 2 jogadores');
-  ok(!/nome|email|e-mail|turma/i.test(JSON.stringify(Object.keys(exp.players[0]))), 'exportação sem dados pessoais');
+  ok(exp.players.some((p) => p.turma === '5A' && p.members.join() === 'Ana,Bruno,Caio'), 'exportação leva turma e integrantes');
+  ok(!/cachorro|foguete|secret|email/i.test(JSON.stringify(exp)), 'exportação sem senha de figuras nem e-mail');
   await page.click('#scr-ranking [data-action="export"]');
   [dl] = await Promise.all([page.waitForEvent('download'), page.click('.modal .btn-teal')]);
   const csvPath = path.join(OUT, 'export.csv');
   await dl.saveAs(csvPath);
   const csv = fs.readFileSync(csvPath, 'utf8');
-  ok(csv.includes('aparelho;jogador;fase') && csv.split('\n').length > 25, 'CSV exportado (planilha)');
+  ok(csv.includes('aparelho;jogador;fase') && csv.includes(';turma;integrantes') && csv.split('\n').length > 25, 'CSV exportado (planilha) com turma e integrantes');
   const device1 = await page.evaluate(() => LA.Store.device);
   await ctx.close();
 
@@ -307,24 +359,24 @@ async function playWithSolution(page, id, ast) {
   ({ ctx, page } = await newPage(browser, base));
   const device2 = await page.evaluate(() => LA.Store.device);
   ok(device1 !== device2, 'cada aparelho tem seu código próprio');
-  console.log('▶ Nome do jogador');
+  console.log('▶ Integrantes do grupo');
   await page.evaluate(() => LA.UI.show('players', 'home'));
-  await page.click('.player-card.new');
-  await page.fill('#player-name', '  Ana <b>Clara</b> da Silva Santos  ');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  await criarGrupo(page, { turma: '5C', nomes: ['  Ana <b>Clara</b> da Silva Santos  '], base: 'pessoa', senha: ['sapo', 'pizza', 'bola'] });
   const nm = await page.evaluate(() => LA.Store.name(LA.Store.player()));
   ok(nm.startsWith('Ana') && !/[<>]/.test(nm) && nm.length <= 20, 'nome limpo (sem HTML) e limitado a 20 letras (' + nm + ')');
-  await page.evaluate(() => LA.UI.show('players', 'home'));
-  await page.click('.player-card .ren');
-  await page.fill('#player-name', 'Ana Clara');
-  await page.click('#btn-name-save');
+  await page.evaluate(() => LA.UI.show('settings'));
+  await page.click('#set-rename');
+  const mi = await page.$$('.modal .member-input');
+  await mi[0].fill('Ana Clara'); await mi[1].fill('Leo');
+  await page.click('#btn-members-save');
   await page.waitForTimeout(200);
-  ok((await page.textContent('#players-grid')).includes('Ana Clara'), 'nome alterado pelo botão ✏️ aparece no cartão');
+  await page.evaluate(() => LA.UI.show('players', 'home'));
+  await page.waitForTimeout(200);
+  ok((await page.textContent('#players-grid')).includes('Ana Clara e Leo'), 'integrantes editados em Configurações aparecem no cartão do grupo');
   await page.evaluate(() => { const p = LA.Store.player(); p.levels[1] = { best: 90, stars: 3, completed: true }; LA.Store.save(); LA.UI.show('ranking'); });
   await page.waitForTimeout(300);
-  ok((await page.textContent('#rank-table')).includes('Ana Clara'), 'nome aparece no ranking');
-  ok(JSON.parse(await page.evaluate(() => LA.Store.exportJSON())).players.some((p) => p.name === 'Ana Clara'), 'nome vai no arquivo exportado');
+  ok((await page.textContent('#rank-table')).includes('Ana Clara e Leo'), 'integrantes aparecem no ranking');
+  ok(JSON.parse(await page.evaluate(() => LA.Store.exportJSON())).players.some((p) => p.members.join() === 'Ana Clara,Leo'), 'integrantes vão no arquivo exportado');
   await page.evaluate(() => LA.UI.show('ranking'));
   await page.click('#scr-ranking [data-action="import"]');
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.modal .btn-green')]);
@@ -354,6 +406,181 @@ async function playWithSolution(page, id, ast) {
   await page.click('.modal .btn-red');
   ok(await page.evaluate(() => Object.keys(LA.Store.player().levels).length) === 0, 'progresso reiniciado após confirmar');
   await ctx.close();
+
+  /* ===== Avatar e loja (moedas) ===== */
+  console.log('▶ Avatar e loja');
+  ({ ctx, page } = await newPage(browser, base));
+  await page.click('[data-action="play"]');
+  await criarGrupo(page, { turma: '5A', nomes: ['Rafa'], base: 'pessoa' });
+  await closeModals(page);
+  ok(await page.evaluate(() => LA.coins(LA.Store.player())) === 0, 'grupo novo começa com 0 moedas');
+  await playWithSolution(page, 1);
+  ok((await page.textContent('.victory')).includes('+45 🪙'), 'vitória mostra as moedas ganhas (+45: fase, 3 estrelas e 2 conquistas)');
+  await closeModals(page);
+  r = await playWithSolution(page, 1);
+  ok(!(await page.textContent('.victory')).includes('🪙 moedas'), 'repetir a fase não dá moedas de novo');
+  await closeModals(page);
+  await page.evaluate(() => LA.UI.show('home'));
+  await page.click('#home-shop');
+  await page.waitForSelector('#scr-avatar.active');
+  ok((await page.textContent('#av-coins')).includes('45'), 'loja mostra 45 moedas');
+  ok(await page.locator('#av-stage svg').count() === 1, 'avatar de corpo inteiro na loja');
+  await page.click('.tab[data-tab="acessorios"]');
+  await page.click('.av-tile[data-val="cha-coroa"]');
+  ok(await page.isVisible('#av-try') && await page.isDisabled('#btn-buy'), 'item caro: dá para experimentar, mas não comprar (faltam moedas)');
+  ok((await page.textContent('#av-try')).includes('Faltam 🪙 105'), 'mostra quantas moedas faltam');
+  await page.click('#btn-try-undo');
+  await page.click('.av-tile[data-val="cha-bone"]');
+  ok(await page.evaluate(() => LA.Store.player().avatar.hat) === '', 'experimentar não muda o avatar salvo');
+  await page.click('#btn-buy');
+  await page.waitForTimeout(200);
+  ok(await page.evaluate(() => LA.Store.player().avatar.hat) === 'cha-bone' && await page.evaluate(() => LA.coins(LA.Store.player())) === 20, 'comprou o boné: 25 moedas descontadas e boné no avatar');
+  await page.click('.swatch[data-slot="hatColor"][data-val="3"]');
+  ok(await page.evaluate(() => LA.Store.player().avatar.hatColor) === 3, 'trocar a cor do item comprado é grátis');
+  await page.click('.tab[data-tab="corpo"]');
+  await page.click('.av-tile[data-slot="base"][data-val="leao"]');
+  ok(await page.evaluate(() => LA.Store.player().avatar.base) === 'leao' && await page.evaluate(() => LA.Store.player().avatar.hat) === 'cha-bone', 'trocar de pessoa para bicho mantém as roupas e acessórios');
+  await page.click('.tab[data-tab="roupas"]');
+  await page.click('.av-tile[data-val="bot-saia"]');
+  ok(await page.evaluate(() => LA.Store.player().avatar.bottom) === 'bot-saia', 'roupa grátis é usada na hora');
+  await page.screenshot({ path: path.join(OUT, '09-loja.png') });
+  await page.click('.tab[data-tab="acessorios"]');
+  await page.click('.av-tile[data-val="ocu-visor"]');
+  await page.click('#avatar-back');
+  await page.waitForTimeout(200);
+  ok(await page.evaluate(() => LA.Store.player().avatar.glasses) === '', 'sair da loja desfaz o item só experimentado');
+  ok(await page.evaluate(() => LA.Store.buy('cha-coroa').ok) === false, 'compra sem moedas suficientes é recusada');
+  await page.reload();
+  await page.waitForFunction(() => window.LA && LA.app && LA.app.scene);
+  ok(await page.evaluate(() => LA.Store.player().inv['cha-bone'] === 1 && LA.Store.player().avatar.base === 'leao'), 'compras e avatar continuam depois de recarregar');
+  ok(await page.locator('#home-group .avatar-full').count() === 1, 'avatar aparece na tela inicial');
+  await page.evaluate(() => { LA.UI.show('settings'); });
+  await page.click('#set-reset-me'); await page.click('.modal .btn-red');
+  ok(await page.evaluate(() => Object.keys(LA.Store.player().inv).length === 0 && LA.Store.player().avatar.hat === '' && LA.coins(LA.Store.player()) === 0), 'reiniciar o progresso zera moedas e tira os itens comprados');
+  ok(page.errors.length === 0, 'loja sem erros no console ' + page.errors.join(' | '));
+  await ctx.close();
+
+  /* ===== Servidor das turmas (Code.gs) ===== */
+  console.log('▶ Servidor das turmas (Code.gs)');
+  {
+    const sv = criarServidor();
+    const call = (o) => sv.post(JSON.stringify(Object.assign({ app: 'labirinto-dos-algoritmos' }, o)));
+    ok(sv.get().ok === true, 'doGet responde que o servidor está funcionando');
+    ok(call({ acao: 'criar', turma: '9Z', integrantes: ['A'], senha: ['gato', 'gato', 'gato'] }).ok === false, 'turma que não existe é recusada');
+    ok(call({ acao: 'criar', turma: '5A', integrantes: [], senha: ['gato', 'gato', 'gato'] }).ok === false, 'grupo sem nomes é recusado');
+    ok(call({ acao: 'criar', turma: '5A', integrantes: ['A'], senha: ['gato', 'gato'] }).ok === false, 'senha com menos de 3 figuras é recusada');
+    const c = call({ acao: 'criar', turma: '5a', integrantes: ['=SOMA(A1)', 'Bia'], senha: ['gato', 'pizza', 'bola'] });
+    ok(c.ok && c.codigo === '101' && c.token, 'grupo criado com código 101');
+    ok(sv.linhasComoObjetos()[0].Integrantes === 'SOMA(A1), Bia', 'nomes limpos (sem fórmula de planilha)');
+    const c2 = call({ acao: 'criar', turma: '5A', integrantes: ['SOMA(A1)', 'Bia'], senha: ['gato', 'pizza', 'bola'] });
+    ok(c2.codigo === '101' && sv.linhasComoObjetos().length === 1, 'tocar duas vezes em “Criar” não duplica o grupo');
+    ok(call({ acao: 'salvar', codigo: '101', token: 'errado', progresso: {} }).erro === 'SESSAO_EXPIRADA', 'salvar sem a chave de sessão é recusado');
+    for (let i = 0; i < 8; i++) call({ acao: 'entrar', codigo: '101', senha: ['gato', 'gato', 'gato'] });
+    const bloq = call({ acao: 'entrar', codigo: '101', senha: ['gato', 'pizza', 'bola'] });
+    ok(bloq.ok === false && /10 minutos/.test(bloq.erro), 'depois de 8 senhas erradas o grupo fica bloqueado por 10 minutos');
+    ok(call({ acao: 'turma', turma: '5B' }).grupos.length === 0 && call({ acao: 'turma', turma: '5A' }).grupos.length === 1, 'lista de grupos separada por turma');
+  }
+
+  /* ===== Salvamento online: continuar em outro aparelho ===== */
+  console.log('▶ Salvamento online (servidor simulado)');
+  {
+    const servidor = criarServidor();
+    // aparelho A
+    const A = await newPage(browser, base, {}, async (c) => ligarServidor(c, servidor));
+    await A.page.waitForFunction(() => LA.Cloud.enabled());
+    ok((await A.page.textContent('#home-sync')).includes('online'), 'com servidor: tela inicial avisa que os grupos ficam salvos online');
+    await A.page.click('[data-action="play"]');
+    await criarGrupo(A.page, { turma: '5A', nomes: ['Lia', 'Theo'], base: 'raposa', senha: ['leao', 'maca', 'foguete'] });
+    let linha = servidor.linhasComoObjetos()[0];
+    ok(linha && linha.Turma === '5A' && linha.Integrantes === 'Lia, Theo' && linha['Senha (figuras)'] === 'leao maca foguete', 'grupo criado na planilha (turma, nomes e senha)');
+    ok(await A.page.evaluate(() => LA.Store.player().cloud.code) === linha['Código'], 'aparelho guarda o código do grupo');
+    await closeModals(A.page);
+    await A.page.evaluate(() => { LA.Game.applySpeed = function () { LA.Game.scene.speed = 8; }; LA.Game.applySpeed(); });
+    await playWithSolution(A.page, 1);
+    await closeModals(A.page);
+    await A.page.waitForFunction(() => !LA.Cloud.needsSync(LA.Store.player()), null, { timeout: 15000 });
+    linha = servidor.linhasComoObjetos()[0];
+    ok(linha.Pontos === 100 && linha.Estrelas === 3 && linha['Fases concluídas'] === 1 && linha.Moedas === 45, 'fase vencida salva online (pontos, estrelas, fases e moedas na planilha)');
+    ok(/Fase 2/.test(linha['Fase atual']) && linha.Avatar === 'Raposa', 'planilha mostra a fase atual e o personagem');
+    await A.page.evaluate(() => { LA.Store.buy('cha-bone'); const a = LA.Store.player().avatar; a.hat = 'cha-bone'; LA.Store.setAvatar(a); });
+    await A.page.waitForFunction(() => !LA.Cloud.needsSync(LA.Store.player()), null, { timeout: 15000 });
+
+    // aparelho B: outra aula, outro tablet
+    const B = await newPage(browser, base, {}, async (c) => ligarServidor(c, servidor));
+    await B.page.waitForFunction(() => LA.Cloud.enabled());
+    await B.page.click('[data-action="play"]');
+    await B.page.click('.turma-btn[data-turma="5A"]');
+    await B.page.waitForSelector('.group-card');
+    ok((await B.page.textContent('#players-grid')).includes('Lia e Theo'), 'outro aparelho: o grupo aparece na lista da turma 5º A');
+    await B.page.click('.turma-btn[data-turma="5B"]');
+    await B.page.waitForTimeout(400);
+    ok(!(await B.page.textContent('#players-grid')).includes('Lia e Theo'), 'o grupo não aparece em outra turma');
+    await B.page.click('.turma-btn[data-turma="5A"]');
+    await B.page.waitForSelector('.group-card');
+    await B.page.click('.group-card');
+    await digitarSenha(B.page, ['leao', 'maca', 'bola']);
+    await B.page.waitForFunction(() => document.querySelector('#secret-msg') && document.querySelector('#secret-msg').textContent.includes('errada'));
+    ok(true, 'senha de figuras errada é recusada');
+    await digitarSenha(B.page, ['leao', 'maca', 'foguete']);
+    await B.page.waitForFunction(() => LA.Store.player() && LA.Store.player().cloud);
+    await closeModals(B.page);
+    const pb = await B.page.evaluate(() => { const p = LA.Store.player(); return { best: p.levels[1] && p.levels[1].best, hat: p.avatar.hat, base: p.avatar.base, inv: p.inv, coins: LA.coins(p), un2: LA.Store.isUnlocked(2) }; });
+    ok(pb.best === 100 && pb.un2, 'outro aparelho: progresso carregado (fase 1 com 100 e fase 2 liberada)');
+    ok(pb.base === 'raposa' && pb.hat === 'cha-bone' && pb.inv['cha-bone'] === 1 && pb.coins === 20, 'outro aparelho: avatar, compras e moedas carregados');
+    // joga a fase 2 no aparelho B
+    await B.page.evaluate(() => { LA.Game.applySpeed = function () { LA.Game.scene.speed = 8; }; LA.Game.applySpeed(); });
+    await playWithSolution(B.page, 2);
+    await closeModals(B.page);
+    await B.page.waitForFunction(() => !LA.Cloud.needsSync(LA.Store.player()), null, { timeout: 15000 });
+    ok(servidor.linhasComoObjetos()[0]['Fases concluídas'] === 2, 'fase 2 (jogada no outro aparelho) salva online');
+
+    // sem internet: guarda e envia depois
+    servidor.fora = true;
+    await playWithSolution(B.page, 3);
+    await closeModals(B.page);
+    await B.page.waitForTimeout(2500);
+    await B.page.evaluate(() => LA.UI.show('settings'));
+    await B.page.waitForFunction(() => document.querySelector('#set-sync-status').textContent.includes('Sem internet'), null, { timeout: 8000 }).catch(() => {});
+    ok((await B.page.textContent('#set-sync-status')).includes('Sem internet'), 'sem internet: avisa que vai salvar online quando voltar');
+    ok(servidor.linhasComoObjetos()[0]['Fases concluídas'] === 2, 'sem internet: nada é perdido (fica no aparelho)');
+    servidor.fora = false;
+    await B.page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await B.page.waitForFunction(() => !LA.Cloud.needsSync(LA.Store.player()), null, { timeout: 15000 });
+    ok(servidor.linhasComoObjetos()[0]['Fases concluídas'] === 3, 'internet voltou: progresso enviado sozinho');
+    ok((await B.page.textContent('#set-sync-status')).includes('Salvo online'), 'Configurações mostram “Salvo online”');
+
+    // de volta ao aparelho A: o grupo entra de novo e recebe o que foi feito no B
+    await A.page.evaluate(() => { LA.Store.logout(); LA.UI.show('players', 'home'); });
+    await A.page.click('.turma-btn[data-turma="5A"]');
+    await A.page.waitForSelector('.group-card');
+    await A.page.click('.group-card');
+    await digitarSenha(A.page, ['leao', 'maca', 'foguete']);
+    await A.page.waitForFunction(() => LA.Store.player() && LA.Store.player().levels[3]);
+    ok(await A.page.evaluate(() => Object.keys(LA.Store.player().levels).length) === 3, 'aparelho A recebe as fases feitas no aparelho B (sem duplicar o grupo)');
+    ok(await A.page.evaluate(() => LA.Store.localPlayers().length) === 1, 'continua um grupo só no aparelho A');
+    ok(await B.page.evaluate(() => LA.Store.localPlayers().length) === 1, 'continua um grupo só no aparelho B');
+
+    // segundo grupo e ranking da turma
+    await B.page.evaluate(() => LA.UI.show('players', 'home'));
+    await criarGrupo(B.page, { turma: '5A', nomes: ['Nina'], base: 'coelho', senha: ['bola', 'bola', 'bola'] });
+    await closeModals(B.page);
+    await playWithSolution(B.page, 1);
+    await closeModals(B.page);
+    await B.page.waitForFunction(() => !LA.Cloud.needsSync(LA.Store.player()), null, { timeout: 15000 });
+    await A.page.evaluate(() => LA.UI.show('ranking'));
+    await A.page.waitForFunction(() => document.querySelectorAll('#rank-table tbody tr').length === 2, null, { timeout: 15000 });
+    ok((await A.page.textContent('#rank-banner')).includes('turma 5º A'), 'ranking da turma (online) aberto por padrão');
+    ok((await A.page.textContent('#rank-table tbody tr:first-child')).includes('Lia e Theo') && (await A.page.textContent('#rank-table')).includes('Nina'), 'ranking da turma junta os grupos de aparelhos diferentes');
+    ok(await A.page.locator('#rank-table tr.me').count() === 1, 'o próprio grupo aparece destacado no ranking');
+    await A.page.screenshot({ path: path.join(OUT, '10-ranking-turma.png') });
+    await A.page.locator('#rank-source .chip', { hasText: 'Este aparelho' }).click();
+    await A.page.waitForTimeout(300);
+    ok(await A.page.locator('#rank-table tbody tr').count() === 1, 'ranking “Este aparelho” mostra só quem jogou aqui');
+    // o erro de rede provocado de propósito (internet desligada) não conta
+    const errosOnline = A.page.errors.concat(B.page.errors).filter((e) => !/ERR_INTERNET_DISCONNECTED/.test(e));
+    ok(errosOnline.length === 0, 'salvamento online sem erros no console ' + errosOnline.join(' | '));
+    await A.ctx.close(); await B.ctx.close();
+  }
 
   /* ===== Laboratório de Criação ===== */
   console.log('▶ Laboratório de Criação');
@@ -388,12 +615,8 @@ async function playWithSolution(page, id, ast) {
     ({ ctx, page } = await newPage(browser, base, { viewport: { width: dev.w, height: dev.h }, hasTouch: true, isMobile: true }));
     const cdp = await ctx.newCDPSession(page);
     await page.tap('[data-action="play"]');
-    await page.tap('.player-card.new');
-    await page.waitForSelector('#player-name');
-    await page.tap('#player-name');
-    await page.keyboard.type('Bia ' + dev.w);
-    await page.tap('#btn-name-save');
-    ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Bia ' + dev.w, `${dev.name}: nome digitado pelo estudante`);
+    await criarGrupo(page, { turma: '5B', nomes: ['Bia', 'Davi'], base: 'panda', toque: true });
+    ok(await page.evaluate(() => LA.Store.label(LA.Store.player())) === 'Bia e Davi · 5º B', `${dev.name}: grupo criado só com toque`);
     await page.waitForSelector('#btn-intro-go');
     await page.tap('#btn-intro-go');
     await page.waitForTimeout(300);
@@ -409,7 +632,7 @@ async function playWithSolution(page, id, ast) {
     ok(small.length === 0, `${dev.name}: botões com área de toque ≥ 44px ${small.join(',')}`);
     const over = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     ok(!over, `${dev.name}: sem rolagem horizontal da página`);
-    for (const s of ['map', 'ranking', 'settings', 'home']) {
+    for (const s of ['map', 'ranking', 'settings', 'avatar', 'players', 'home']) {
       await page.evaluate((s) => LA.UI.show(s), s);
       await page.waitForTimeout(250);
       const ov = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -432,8 +655,7 @@ async function playWithSolution(page, id, ast) {
   ok(await page.isVisible('#scr-home.active'), 'jogo abre SEM internet');
   ok(await page.evaluate(() => typeof THREE !== 'undefined' && typeof Blockly !== 'undefined'), 'Three.js e Blockly carregados do cache local');
   await page.click('[data-action="play"]');
-  await page.click('.player-card.new');
-  await page.click('#btn-name-skip');
+  await criarGrupo(page, { turma: '5C', nomes: ['Gabi'] });
   await page.waitForSelector('#btn-intro-go');
   await page.click('#btn-intro-go');
   await page.evaluate(() => LA.debug.loadSolution());

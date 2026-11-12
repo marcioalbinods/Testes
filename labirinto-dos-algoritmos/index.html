@@ -32,7 +32,7 @@
           <span class="logo-bottom">Algoritmos</span>
         </h1>
         <p class="tagline">Ajude o robô <b>Byte</b> a escapar programando com blocos!</p>
-        <button class="player-chip" id="home-player" type="button" aria-label="Trocar jogador"></button>
+        <div class="home-group" id="home-group"></div>
         <nav class="home-menu">
           <button class="btn btn-xl btn-yellow" data-action="play" type="button">▶ JOGAR</button>
           <button class="btn btn-xl btn-teal" data-action="continue" type="button" id="btn-continue">⏩ CONTINUAR</button>
@@ -45,7 +45,7 @@
             <button class="btn btn-tile" data-action="lab" type="button" id="btn-lab"><span>🧩</span>Laboratório</button>
           </div>
         </nav>
-        <p class="privacy-note">🔒 Sem cadastro e sem internet: o progresso fica salvo só neste aparelho.</p>
+        <p class="privacy-note" id="home-sync"></p>
       </div>
     </section>
 
@@ -53,11 +53,34 @@
     <section id="scr-players" class="screen" aria-label="Quem vai jogar">
       <header class="screen-head">
         <button class="btn btn-back" data-go="home" type="button" aria-label="Voltar">←</button>
-        <h2>Quem vai jogar?</h2>
+        <h2>Qual é o seu grupo?</h2>
       </header>
       <div class="screen-body">
-        <p class="lead">Cada jogador guarda o próprio progresso <b>neste aparelho</b>. O nome é opcional: toque em ✏️ para mudar.</p>
+        <div class="turma-pick" id="turma-pick" role="tablist" aria-label="Turma"></div>
+        <p class="lead" id="groups-lead"></p>
         <div class="players-grid" id="players-grid"></div>
+        <div id="legacy-players"></div>
+      </div>
+    </section>
+
+    <!-- ============ AVATAR E LOJA ============ -->
+    <section id="scr-avatar" class="screen" aria-label="Avatar e loja">
+      <header class="screen-head">
+        <button class="btn btn-back" id="avatar-back" type="button" aria-label="Voltar">←</button>
+        <h2>👕 Avatar e Loja</h2>
+        <div class="head-right"><span class="coin-chip" id="av-coins"></span></div>
+      </header>
+      <div class="screen-body avatar-body">
+        <div class="av-preview">
+          <div class="av-stage" id="av-stage"></div>
+          <div class="av-name" id="av-name"></div>
+          <div class="av-try" id="av-try" hidden></div>
+          <p class="av-help">🪙 <b>Como ganhar moedas:</b> 10 por fase concluída, +5 por estrela e +10 por conquista. Repetir uma fase não dá moedas de novo, mas ganhar mais estrelas dá!</p>
+        </div>
+        <div class="av-shop">
+          <div class="tabs" id="av-tabs" role="tablist"></div>
+          <div id="av-sections"></div>
+        </div>
       </div>
     </section>
 
@@ -139,7 +162,8 @@
         </div>
       </header>
       <div class="screen-body">
-        <div class="local-banner">📍 <b>Ranking deste aparelho.</b> Cada tablet ou computador tem o seu próprio ranking — não há competição online. Para juntar resultados de vários aparelhos, use <b>Exportar</b> em cada um e <b>Importar</b> no aparelho do professor.</div>
+        <div class="chips rank-source" id="rank-source"></div>
+        <div class="local-banner" id="rank-banner"></div>
         <div class="tabs" id="rank-tabs" role="tablist">
           <button class="tab" data-tab="geral" type="button" role="tab">🌍 Geral</button>
           <button class="tab" data-tab="mundo" type="button" role="tab">🗺️ Por mundo</button>
@@ -204,7 +228,9 @@
   <script src="js/interpreter.js"></script>
   <script src="js/scoring.js"></script>
   <script src="js/achievements.js"></script>
+  <script src="js/avatars.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/byte3d.js"></script>
   <script src="js/scene3d.js"></script>
@@ -215,6 +241,8 @@
   <script src="js/ranking.js"></script>
   <script src="js/lab.js"></script>
   <script src="js/screens.js"></script>
+  <script src="js/groups.js"></script>
+  <script src="js/shop.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

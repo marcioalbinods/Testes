@@ -9,11 +9,13 @@ cenário **3D low poly** com câmera isométrica.
 - **25 fases** em **5 mundos**, com dificuldade progressiva
 - **Programação em blocos real** (Blockly): os blocos são lidos por um interpretador próprio e executados passo a passo
 - O bloco que está rodando fica **destacado** enquanto o Byte se move
-- **Pontuação** de até 100 por fase, **3 estrelas**, **23 conquistas** e **rankings locais** com pódio
+- **Pontuação** de até 100 por fase, **3 estrelas**, **23 conquistas** e **ranking** com pódio (da turma ou do aparelho)
+- **Grupos por turma** (5º A, 5º B e 5º C): primeiro nome dos integrantes e uma **senha de 3 figuras**, sem e-mail
+- **Salvamento online** (opcional, numa planilha do Google Drive do professor): o grupo continua em outra aula, em qualquer aparelho
+- **Avatares de corpo inteiro** (pessoa ou 7 bichos) e uma **loja**: as **moedas 🪙** das fases compram roupas, chapéus, óculos, bichinhos e fundos
 - **Laboratório de Criação** (liberado após as 25 fases) para criar e testar labirintos
 - Feito para **tablets** (toque, botões grandes, retrato e paisagem) e computadores
-- **Sem cadastro, sem login, sem banco de dados, sem servidor.** Tudo fica salvo no próprio aparelho
-- Funciona **offline** depois do primeiro acesso (PWA)
+- Funciona **offline** depois do primeiro acesso (PWA); sem internet, o progresso fica no aparelho e sobe depois
 
 ---
 
@@ -52,6 +54,30 @@ uma vez com internet, os arquivos ficam guardados no aparelho e o jogo funciona 
 > tela cheia, como um aplicativo.
 
 ---
+
+## ☁️ Grupos, turmas e salvamento online
+
+1. **JOGAR** → escolham a **turma** (5º A, 5º B ou 5º C) → **Grupo novo**.
+2. Escrevam o **primeiro nome** de cada integrante (até 6), escolham o **personagem** e uma **senha de 3 figuras** (🐶 🚀 ⭐…).
+3. Na próxima aula, em qualquer tablet ou computador: **JOGAR** → turma → toquem no grupo → senha de figuras.
+
+Para o progresso ir para a internet, o professor instala uma vez o **servidor das turmas** (Google Apps Script, grátis,
+cerca de 10 minutos) e cola o endereço em `config.json`. O passo a passo está em
+[`google-apps-script/LEIA-ME.md`](google-apps-script/LEIA-ME.md). A planilha no Drive do professor mostra, para cada grupo:
+turma, integrantes, senha de figuras, pontos, estrelas, fases concluídas, fase atual, moedas e conquistas.
+
+Sem o servidor configurado (ou sem internet), tudo continua funcionando e fica salvo **no aparelho**. Quando a internet
+volta, o que ficou guardado é enviado sozinho.
+
+## 🪙 Moedas, avatar e loja
+
+- Cada fase concluída dá **10 moedas** + **5 por estrela**; cada conquista dá **10** (as especiais, **20**).
+  As moedas vêm do progresso: **repetir uma fase não dá moedas de novo**, mas melhorar as estrelas dá.
+- Em **👕 Avatar e Loja** o grupo escolhe pessoa (6 tons de pele, 10 cabelos, 10 cores de cabelo) ou bicho
+  (gato, cachorro, coelho, urso, panda, raposa, leão) e personaliza roupas, calçados, chapéus, óculos, itens de pescoço,
+  objetos na mão, itens nas costas (capa, asas, jetpack…), bichinhos e fundos. São mais de 60 itens.
+- Dá para **experimentar** antes de comprar. Mudar a cor de um item comprado é grátis.
+- O avatar aparece na tela inicial, na lista de grupos, no ranking e na tela de vitória.
 
 ## 🗺️ Mundos e fases
 
@@ -99,22 +125,26 @@ Cada fase vale até **100 pontos**:
 
 ---
 
-## 🏆 Ranking (local) e resultados
+## 🏆 Ranking e resultados
 
-- Não há cadastro: ao criar um jogador, o estudante pode **digitar o nome** (opcional, até 20 letras) ou tocar em “Pular” e ser o **“Jogador 1”, “Jogador 2”…**. O nome pode ser trocado no botão ✏️ ou em *Configurações*.
-- O ranking mostra posição, jogador, pontos, fases concluídas, estrelas e mundos desbloqueados, com
+- O ranking mostra posição, grupo, pontos, fases concluídas, estrelas e mundos desbloqueados, com
   pódio animado. Há ranking **geral, por mundo, por fase e de conquistas**.
-- **O ranking é local:** cada tablet ou computador tem o seu. Não existe competição online.
-- Para reunir resultados de vários aparelhos: em cada um, use **Ranking → Exportar** (JSON ou CSV) e,
-  no aparelho do professor, **Ranking → Importar**. Os jogadores de outros aparelhos aparecem com o
-  código do aparelho (ex.: “Ana · aparelho K7MP”). Os arquivos exportados levam o nome digitado. Nada é enviado pela internet.
+- Com o servidor das turmas: **ranking da turma** (☁️ 5º A, 5º B, 5º C) com os grupos de todos os aparelhos.
+  Sempre há também o ranking **📍 Este aparelho**.
+- Sem servidor, dá para reunir resultados de vários aparelhos: em cada um, use **Ranking → Exportar** (JSON ou CSV) e,
+  no aparelho do professor, **Ranking → Importar**. Os arquivos levam turma e integrantes, mas não a senha de figuras.
 - O CSV abre no Excel / Google Planilhas (separador `;`).
+- Os grupos criados na versão antiga (“Jogador 1”, “Jogador 2”…) aparecem em **Jogadores antigos deste aparelho**:
+  ao tocar, o grupo completa o cadastro (turma, nomes e senha) sem perder o progresso.
 
 ## 👩‍🏫 Para o professor
 
 - **Modo demonstração:** em *Configurações*, **segure o botão por 3 segundos**. Ele libera todas as
   fases e o Laboratório e mostra “Ver solução” nas dicas (bom para projetar em sala).
-- **Reiniciar progresso:** em *Configurações* (de um jogador ou do aparelho todo), sempre com confirmação.
+- **Reiniciar progresso:** em *Configurações* (de um grupo ou do aparelho todo), sempre com confirmação.
+  Reiniciar um grupo zera também as moedas e os itens comprados (e o progresso online).
+- **Senha esquecida:** veja a coluna “Senha (figuras)” na planilha das turmas.
+- **Tablets compartilhados:** ao terminar, *Configurações → Sair do grupo*. Para entrar de novo, o grupo usa a senha.
 - **Qualidade gráfica “Leve”:** use em tablets mais simples se o 3D ficar lento.
 - Se os dados salvos forem danificados, o jogo avisa, guarda uma cópia de segurança e recomeça sem travar.
 
@@ -138,8 +168,10 @@ node tests/teste-completo.js
 
 Joga as 25 fases pela interface, arrasta blocos com mouse **e com toque**, testa desbloqueio, pontuação,
 estrelas, conquistas, ranking, salvamento, exportar/importar, dados corrompidos, Laboratório, layouts
-de tablet (iPad e Android, retrato e paisagem) e o funcionamento **offline**. As capturas de tela ficam
-em `tests/resultados/`.
+de tablet (iPad e Android, retrato e paisagem) e o funcionamento **offline**. Também testa grupos e turmas,
+avatar, moedas e loja, e o **salvamento online** entre dois aparelhos (com queda de internet), usando o
+`google-apps-script/Code.gs` de verdade num servidor simulado (`tests/servidor-simulado.js`).
+As capturas de tela ficam em `tests/resultados/`.
 
 ---
 
@@ -148,8 +180,10 @@ em `tests/resultados/`.
 ```
 labirinto-dos-algoritmos/
 ├── index.html              telas do jogo
+├── config.json             endereço do servidor das turmas (vazio = só no aparelho)
 ├── manifest.webmanifest    PWA (instalar / tela cheia)
 ├── sw.js                   service worker (modo offline)
+├── google-apps-script/     servidor das turmas (Code.gs) e passo a passo (LEIA-ME.md)
 ├── css/                    base, telas, fase e responsividade
 ├── js/
 │   ├── levels.js           mundos, 25 fases e soluções de referência
@@ -157,14 +191,18 @@ labirinto-dos-algoritmos/
 │   ├── interpreter.js      interpretador dos blocos (com proteção contra laço infinito)
 │   ├── scoring.js          pontuação e estrelas
 │   ├── achievements.js     conquistas
-│   ├── storage.js          salvamento local, exportar e importar
+│   ├── storage.js          salvamento local, grupos, compras, exportar e importar
+│   ├── cloud.js            salvamento online (fila quando está sem internet)
+│   ├── avatars.js          avatares em SVG, itens da loja e moedas
 │   ├── blocks.js           blocos Blockly em português e conversão blocos ⇄ programa
 │   ├── byte3d.js           o robô Byte e suas animações
 │   ├── scene3d.js          cenários 3D low poly (Three.js)
 │   ├── game.js             tela da fase (editor + 3D + execução)
 │   ├── ranking.js          rankings e pódio
 │   ├── lab.js              Laboratório de Criação
-│   ├── screens.js          início, mapa, conquistas, ajuda, configurações
+│   ├── screens.js          mapa, conquistas, ajuda, configurações
+│   ├── groups.js           início, turmas, grupo novo e senha de figuras
+│   ├── shop.js             tela do avatar e loja
 │   └── app.js              inicialização
 ├── vendor/                 Three.js r158 (MIT) e Blockly 11 (Apache 2.0), guardados localmente
 ├── assets/                 fonte Fredoka (OFL) e ícones
@@ -187,9 +225,11 @@ Depois de mudar uma fase, rode `node tests/teste-motor.js` para conferir se ela 
 
 ## 🔒 Privacidade
 
-O jogo não pede e-mail, turma ou senha. O nome do jogador é **opcional** e fica só no aparelho (e nos arquivos que o professor exportar). O jogo não usa Supabase, Firebase ou
-outro banco de dados e não envia nenhuma informação para a internet. Todo o progresso fica no
-`localStorage` do navegador do próprio aparelho.
+O jogo pede só a **turma**, o **primeiro nome** (ou apelido) dos integrantes e uma **senha de figuras**. Não pede e-mail
+nem outros dados pessoais. Sem o servidor das turmas, tudo fica no `localStorage` do aparelho e nada é enviado pela internet.
+Com o servidor, os grupos e o progresso ficam também numa planilha **do Google Drive do professor** (nenhum outro
+serviço é usado). Os nomes dos grupos de uma turma aparecem para quem escolhe aquela turma no jogo. Apague a planilha
+quando o ano letivo terminar.
 
 ## Créditos
 

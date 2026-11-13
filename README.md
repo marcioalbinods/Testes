@@ -75,6 +75,19 @@ Depois de ativar o GitHub Pages, o jogo fica em
 
 ---
 
+# 🧪 Monstrinhos! — O Laboratório das Criaturas Fantásticas (pasta `3o ano/monstrinhos-app/`)
+
+Jogo de criação digital para o 3º ano (EF03TPA05): em duplas, os estudantes inventam um monstrinho peça por peça,
+animam, criam sons e voz, constroem um habitat, vivem 5 aventuras e produzem uma história animada. 30 missões em 6 etapas,
+salvamento online no Supabase com código de recuperação por dupla, funciona sem internet temporariamente e tem painel do professor.
+Configuração do Supabase passo a passo em [`3o ano/monstrinhos-app/README.md`](3o%20ano/monstrinhos-app/README.md).
+
+Depois de ativar o GitHub Pages e configurar o `config.json`, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/3o%20ano/monstrinhos/`
+(painel do professor: mesmo endereço com `#/professor` no final).
+
+---
+
 # 🎤 TCA — Da Pesquisa à Intervenção (pasta `tca-apresentacoes/`)
 
 Site para o 8º ano organizar a pesquisa do Trabalho Colaborativo de Autoria e gerar automaticamente

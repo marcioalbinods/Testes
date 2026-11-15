@@ -195,6 +195,9 @@
     });
     const deck = shuffle(cards);
     let open = [], matched = 0, busy = false;
+    const found = new Set();
+    // PDF só no jogo da memória da cultura (Missão 6), não no de personalidades (Missão 19)
+    const withPdf = !d.portraits;
     const top = bar(ctx, 'Vire duas cartas e encontre os pares.', `Pares: 0 de ${d.pairs.length}`);
     const counter = $('.counter', top);
     const grid = el('<div class="memory"></div>');
@@ -213,9 +216,16 @@
               a.b.classList.add('done'); z.b.classList.add('done');
               matched++; counter.textContent = `Pares: ${matched} de ${d.pairs.length}`;
               SFX.play('ok');
-              ctx.feedback('ok', `<b>Par encontrado: ${esc(d.pairs[a.c.k].name)}!</b> ${esc(d.pairs[a.c.k].fact)}`);
+              found.add(a.c.k);
               open = []; busy = false;
-              if (matched === d.pairs.length) setTimeout(() => ctx.done({ thresholds: [5, 10] }), 1200);
+              if (withPdf) pdf.disabled = false;
+              if (withPdf && matched === d.pairs.length) {
+                SFX.play('win');
+                ctx.feedback('ok', `<b>Todos os pares encontrados!</b> ${esc(d.pairs[a.c.k].name)}: ${esc(d.pairs[a.c.k].fact)} Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done({ thresholds: [5, 10] }) });
+              } else {
+                ctx.feedback('ok', `<b>Par encontrado: ${esc(d.pairs[a.c.k].name)}!</b> ${esc(d.pairs[a.c.k].fact)}`);
+                if (matched === d.pairs.length) setTimeout(() => ctx.done({ thresholds: [5, 10] }), 1200);
+              }
             }, 450);
           } else {
             ctx.mistake();
@@ -229,7 +239,52 @@
       });
       grid.appendChild(b);
     });
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF da memória</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !found.size) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(memorySVG(d.pairs, found), 1200, 1600, 'memoria-da-cultura-missao-respeito.pdf', 'Memoria da cultura - Missao Respeito');
+        toast('PDF da memória salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
     ctx.root.append(top, grid);
+    if (withPdf) ctx.root.appendChild(pdfRow);
+  }
+
+  /* Pares encontrados no jogo da memória da cultura (SVG em pé, 1200×1600) para o PDF */
+  function memorySVG(pairs, found) {
+    const W = 1200, H = 1600, cw = 500, ch = 340;
+    const cards = pairs.map((p, i) => {
+      const x = 80 + (i % 2) * 540, y = 262 + Math.floor(i / 2) * 372;
+      if (!found.has(i)) {
+        return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="26" fill="#FFFBF2" stroke="#c7bfd8" stroke-width="4" stroke-dasharray="14 10"/>
+          <text x="${x + cw / 2}" y="${y + 170}" text-anchor="middle" font-size="90" font-weight="700" fill="#d6d0e2">?</text>
+          <text x="${x + cw / 2}" y="${y + 250}" text-anchor="middle" font-size="26" fill="#a39bb8">Par ainda não encontrado</text>`;
+      }
+      const fl = wrapText(p.fact, 34);
+      return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="26" fill="#fff" stroke="#2B2140" stroke-width="4"/>
+        <rect x="${x}" y="${y}" width="${cw}" height="14" rx="7" fill="#FF8A3D"/>
+        <rect x="${x + 26}" y="${y + 34}" width="120" height="120" rx="22" fill="#FFF1D6" stroke="#2B2140" stroke-width="3"/>
+        <g transform="translate(${x + 36},${y + 44}) scale(1.5625)">${iconInner(p.icon)}</g>
+        <text x="${x + 170}" y="${y + 110}" font-size="44" font-weight="700" fill="#2B2140">${esc(p.name)}</text>
+        ${fl.slice(0, 5).map((l, k) => `<text x="${x + 28}" y="${y + 200 + k * 30}" font-size="24" fill="#4d4466">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#FF8A3D"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#FF8A3D"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="120" text-anchor="middle" font-size="62" font-weight="700" fill="#fff">Memória da cultura</text>
+      <text x="${W / 2}" y="184" text-anchor="middle" font-size="34" font-weight="500" fill="#2B2140">Missão 6 · Nossa História, Nossa Cultura</text>
+      ${cards}
+      <text x="${W / 2}" y="${H - 52}" text-anchor="middle" font-size="26" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
   }
 
   /* ============ 6. LIGAR (associação) ============ */

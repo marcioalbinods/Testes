@@ -694,6 +694,7 @@
   function mural(ctx) {
     const d = ctx.m.data;
     let pinnedN = 0, sel = null;
+    const pinnedTexts = [];
     const top = bar(ctx, 'Arraste para o mural só as mensagens que combatem o racismo.', `No mural: 0 de ${d.need}`);
     const counter = $('.counter', top);
     const wrap = el('<div class="mural-area"><div class="notes"></div><button class="board" aria-label="Mural da escola"><h3>🏫 Mural: Escola sem Racismo</h3><div class="pinned"></div></button></div>');
@@ -708,9 +709,15 @@
         pc.style.setProperty('--r', (Math.random() * 6 - 3).toFixed(1) + 'deg');
         card.remove();
         pinned.appendChild(pc);
+        pinnedTexts.push(it.t);
         pinnedN++; counter.textContent = `No mural: ${pinnedN} de ${d.need}`;
-        ctx.feedback('ok', `<b>Ótima mensagem!</b> "${esc(it.t)}" foi para o mural.`);
-        if (pinnedN === d.need) { setTimeout(() => ctx.done(), 1200); }
+        pdf.disabled = false;
+        if (pinnedN === d.need) {
+          SFX.play('win');
+          ctx.feedback('ok', `<b>Mural completo!</b> Todas as mensagens que combatem o racismo estão no mural. Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done() });
+        } else {
+          ctx.feedback('ok', `<b>Ótima mensagem!</b> "${esc(it.t)}" foi para o mural.`);
+        }
       } else {
         SFX.play('bad'); ctx.mistake();
         card.classList.add('rejected', 'shake'); card.disabled = true;
@@ -727,7 +734,53 @@
       });
       notes.appendChild(c);
     });
-    ctx.root.append(top, wrap);
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF do mural</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !pinnedTexts.length) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(muralSVG(pinnedTexts), 1600, 1131, 'mural-coletivo-missao-respeito.pdf', 'Mural coletivo - Missao Respeito');
+        toast('PDF do mural salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
+    ctx.root.append(top, wrap, pdfRow);
+  }
+
+  /* Mural coletivo (SVG deitado, 1600×1131) para o PDF */
+  function muralSVG(texts) {
+    const W = 1600, H = 1131;
+    const colors = ['#FFF6B0', '#CDEBFF', '#FFD6E5'];
+    const cols = 3, nw = 420, nh = 300, gx = 50, gy = 60;
+    const x0 = (W - (cols * nw + (cols - 1) * gx)) / 2, y0 = 270;
+    const notes = texts.slice(0, 9).map((t, i) => {
+      const c = i % cols, r = Math.floor(i / cols);
+      const x = x0 + c * (nw + gx), y = y0 + r * (nh + gy);
+      const rot = [-2.5, 1.8, -1.2, 2.2, -1.8, 1.4, -2, 2.4, -1.4][i];
+      const lines = wrapText(t, 18);
+      const ty = y + nh / 2 - (lines.length - 1) * 24 + 14;
+      return `<g transform="rotate(${rot} ${x + nw / 2} ${y + nh / 2})">
+        <rect x="${x + 6}" y="${y + 10}" width="${nw}" height="${nh}" rx="14" fill="#000" opacity=".18"/>
+        <rect x="${x}" y="${y}" width="${nw}" height="${nh}" rx="14" fill="${colors[i % 3]}" stroke="#2B2140" stroke-width="5"/>
+        ${lines.map((l, k) => `<text x="${x + nw / 2}" y="${ty + k * 48}" text-anchor="middle" font-size="38" font-weight="700" fill="#2B2140">${esc(l)}</text>`).join('')}
+        <circle cx="${x + nw / 2}" cy="${y + 8}" r="16" fill="#E53950" stroke="#2B2140" stroke-width="3"/><circle cx="${x + nw / 2 - 5}" cy="${y + 3}" r="5" fill="#fff" opacity=".7"/>
+      </g>`;
+    }).join('');
+    let dots = '';
+    for (let yy = 120; yy < H - 60; yy += 34) for (let xx = 60 + (yy % 68 ? 17 : 0); xx < W - 60; xx += 34) dots += `<circle cx="${xx}" cy="${yy}" r="3.5" fill="#b67c4b"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#8B5A3C"/>
+      <rect x="36" y="36" width="${W - 72}" height="${H - 72}" rx="20" fill="#C98D5A" stroke="#5e3a22" stroke-width="6"/>
+      ${dots}
+      <rect x="${W / 2 - 430}" y="80" width="860" height="110" rx="22" fill="#FF5C8A" stroke="#2B2140" stroke-width="6"/>
+      <text x="${W / 2}" y="153" text-anchor="middle" font-size="56" font-weight="700" fill="#fff">Mural: Escola sem Racismo</text>
+      ${notes}
+      <rect x="${W / 2 - 330}" y="${H - 104}" width="660" height="50" rx="25" fill="#fff" opacity=".9"/>
+      <text x="${W / 2}" y="${H - 70}" text-anchor="middle" font-size="28" fill="#2B2140">Missão Respeito · Mural coletivo da turma</text>
+    </svg>`;
   }
 
   /* ============ 15. ESTÚDIO DE CARTAZ ============ */

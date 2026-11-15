@@ -28,6 +28,7 @@ artísticas, não retratos fiéis.
   (com espaço para o nome escrito à mão: o jogo não pede nomes).
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
 - O Caderno de Frases (Missão 21) pode ser baixado em PDF, com as frases criadas e a frase própria do estudante.
+- O Mural coletivo (Missão 22) pode ser baixado em PDF (A4 deitado), com as mensagens que a turma prendeu no mural.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.
 - Som opcional (botão 🔊). Nenhuma atividade depende de áudio.
 - Cartazes podem ser impressos ou salvos como imagem PNG ou baixados em PDF (A4), tanto na Oficina de cartazes quanto na campanha final.

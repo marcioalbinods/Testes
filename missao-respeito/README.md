@@ -24,7 +24,7 @@ artísticas, não retratos fiéis.
 ## Recursos
 
 - Menu inicial, apresentação da turma, mapa com os 5 mundos e desbloqueio progressivo.
-- Estrelas (1 a 3) e pontos por missão, medalha por mundo, comemorações e certificado para imprimir ou baixar como imagem PNG
+- Estrelas (1 a 3) e pontos por missão, medalha por mundo, comemorações e certificado para imprimir ou baixar como imagem PNG ou PDF (A4 deitado)
   (com espaço para o nome escrito à mão: o jogo não pede nomes).
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.

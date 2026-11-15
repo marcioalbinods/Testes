@@ -351,8 +351,20 @@
       <div class="crew">${['ayo', 'kiara', 'luna', 'kaua', 'mei', 'theo', 'lucia'].map(k => portrait(k, 'happy')).join('')}</div>
       <p class="note">${esc(date)}</p>
     </div>
-    <div class="row center no-print" style="margin-top:18px"><button class="btn primary big pr">🖨️ Imprimir certificado</button><button class="btn go big dl">💾 Baixar como imagem</button><button class="btn tomap">🗺️ Mapa</button></div>`);
+    <div class="row center no-print" style="margin-top:18px"><button class="btn primary big pr">🖨️ Imprimir certificado</button><button class="btn go big dl">💾 Baixar como imagem</button><button class="btn big pdf">📄 Baixar PDF</button><button class="btn tomap">🗺️ Mapa</button></div>`);
     $('.pr', s).addEventListener('click', () => window.print());
+    const pdf = $('.pdf', s);
+    pdf.addEventListener('click', async () => {
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await ACT.svgToPDF(certSVG(date), 1600, 1131, 'certificado-missao-respeito.pdf', 'Certificado - Missao Respeito');
+        toast('PDF do certificado salvo! Procure na pasta de downloads.');
+      } catch (e) {
+        toast('Não foi possível criar o PDF neste navegador. Use "Imprimir" e escolha "Salvar como PDF".', 4000);
+      }
+      pdf.disabled = false;
+    });
     const dl = $('.dl', s);
     dl.addEventListener('click', async () => {
       SFX.play('click');

@@ -767,7 +767,9 @@
   /* PDF de uma página A4 com a imagem (JPEG) centralizada. Feito sem bibliotecas externas. */
   function jpegToPDF(jpegBytes, imgW, imgH, title) {
     const enc = new TextEncoder();
-    const pageW = 595.28, pageH = 841.89, margin = 36;
+    // A4: em pé para imagens verticais (cartazes), deitada para horizontais (certificado)
+    const land = imgW > imgH;
+    const pageW = land ? 841.89 : 595.28, pageH = land ? 595.28 : 841.89, margin = land ? 24 : 36;
     const scale = Math.min((pageW - 2 * margin) / imgW, (pageH - 2 * margin) / imgH);
     const dw = +(imgW * scale).toFixed(2), dh = +(imgH * scale).toFixed(2);
     const dx = +((pageW - dw) / 2).toFixed(2), dy = +((pageH - dh) / 2).toFixed(2);
@@ -793,16 +795,20 @@
     push(x + 'trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
     return new Blob(parts, { type: 'application/pdf' });
   }
-  async function downloadPDF(p, name, title) {
-    const cv = await svgToCanvas(posterForExport(p), 1200, 1600);
+  /* Converte um SVG (texto, com {{FONT}}) em PDF A4 e baixa o arquivo. */
+  async function svgToPDF(svgText, w, h, name, title) {
+    const cv = await svgToCanvas(svgText, w, h);
     const b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const blob = jpegToPDF(bytes, 1200, 1600, title || 'Cartaz - Missao Respeito');
+    const blob = jpegToPDF(bytes, w, h, title || 'Missao Respeito');
     const url = URL.createObjectURL(blob);
     saveHref(url, name);
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  function downloadPDF(p, name, title) {
+    return svgToPDF(posterForExport(p), 1200, 1600, name, title || 'Cartaz - Missao Respeito');
   }
   const PDF_FAIL = 'Não foi possível criar o PDF neste navegador. Use "Imprimir" e escolha "Salvar como PDF".';
   function printPoster(p) {
@@ -1024,5 +1030,5 @@
     step1();
   }
 
-  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard, svgToPNG };
+  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard, svgToPNG, svgToPDF };
 })();

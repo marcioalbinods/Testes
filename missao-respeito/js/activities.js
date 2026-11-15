@@ -793,13 +793,13 @@
     push(x + 'trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
     return new Blob(parts, { type: 'application/pdf' });
   }
-  async function downloadPDF(p, name) {
+  async function downloadPDF(p, name, title) {
     const cv = await svgToCanvas(posterForExport(p), 1200, 1600);
     const b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const blob = jpegToPDF(bytes, 1200, 1600, 'Cartaz da campanha - Missao Respeito');
+    const blob = jpegToPDF(bytes, 1200, 1600, title || 'Cartaz - Missao Respeito');
     const url = URL.createObjectURL(blob);
     saveHref(url, name);
     setTimeout(() => URL.revokeObjectURL(url), 4000);
@@ -814,12 +814,15 @@
     setTimeout(() => { window.print(); setTimeout(after, 1500); }, 50);
   }
 
-  function pdfButton(btn, p) {
+  function pdfButton(btn, p, mode = 'campaign') {
     btn.addEventListener('click', async () => {
       if (btn.disabled) return;
       SFX.play('click');
       btn.disabled = true;
-      try { await downloadPDF(p, 'cartaz-campanha-missao-respeito.pdf'); toast('PDF do cartaz salvo! Procure na pasta de downloads.'); }
+      try {
+        if (mode === 'campaign') await downloadPDF(p, 'cartaz-campanha-missao-respeito.pdf', 'Cartaz da campanha - Missao Respeito');
+        else await downloadPDF(p, 'cartaz-missao-respeito.pdf', 'Cartaz da Oficina - Missao Respeito');
+        toast('PDF do cartaz salvo! Procure na pasta de downloads.'); }
       catch (e) { toast(PDF_FAIL, 4000); }
       btn.disabled = false;
     });
@@ -946,14 +949,14 @@
     });
     const finishRow = el(`<div class="card"><h4 style="margin:0 0 8px">📋 Lista do cartaz</h4></div>`);
     finishRow.appendChild(checks);
-    const actions = el(`<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button>${mode === 'campaign' ? '<button class="btn small pdf">📄 Baixar PDF</button>' : ''}<span class="spacer"></span></div>`);
+    const actions = el(`<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button><button class="btn small pdf">📄 Baixar PDF</button><span class="spacer"></span></div>`);
     const finishBtn = el(`<button class="btn go">${mode === 'campaign' ? 'Revisar campanha ➜' : 'Terminar cartaz ✔'}</button>`);
     actions.appendChild(finishBtn);
     finishRow.appendChild(actions);
     tools.insertBefore(finishRow, tools.firstChild);
     $('.pr', actions).addEventListener('click', () => printPoster(p));
     $('.dl', actions).addEventListener('click', () => downloadPNG(p, mode === 'campaign' ? 'cartaz-campanha-missao-respeito.png' : 'cartaz-missao-respeito.png').catch(() => toast('Não foi possível salvar a imagem neste navegador. Use "Imprimir".')));
-    if (mode === 'campaign') pdfButton($('.pdf', actions), p);
+    pdfButton($('.pdf', actions), p, mode);
     finishBtn.addEventListener('click', () => { if (!finishBtn.disabled) { SFX.play('ok'); onFinish(p); } });
     ctx.root.appendChild(wrap);
     render();

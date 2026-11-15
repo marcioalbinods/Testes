@@ -280,7 +280,19 @@
   function puzzle(ctx) {
     const d = ctx.m.data, n = d.size, N = n * n, art = rodaArt(), cell = 300 / n;
     let order = shuffleNot([...Array(N).keys()], r => r.every((v, i) => v === i));
-    let sel = null;
+    let sel = null, wordsDone = 0;
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf">📄 Baixar PDF do quebra-cabeça</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(puzzleSVG(d, wordsDone), 1200, 1600, 'quebra-cabeca-da-roda-missao-respeito.pdf', 'Quebra-cabeca da roda - Missao Respeito');
+        toast('PDF do quebra-cabeça salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
     const top = bar(ctx, 'Parte 1: toque em duas peças para trocá-las de lugar.', 'Peças certas: 0');
     const counter = $('.counter', top);
     const row = el('<div class="row" style="justify-content:center;align-items:flex-start;gap:20px"></div>');
@@ -310,6 +322,7 @@
     function solved() {
       grid.classList.add('solved');
       SFX.play('win'); confetti(40);
+      ctx.root.appendChild(pdfRow);
       ctx.feedback('ok', `<b>Imagem completa!</b> ${esc(d.facts)}`, { button: 'Parte 2: palavras ➜', onButton: () => { ctx.feedback(null); words(); } });
     }
     function words() {
@@ -318,7 +331,7 @@
       const top2 = bar(ctx, 'Parte 2: toque nas sílabas na ordem certa para formar a palavra.', '');
       const c2 = el('<span class="counter"></span>'); top2.appendChild(c2);
       const box = el('<div class="card center"></div>');
-      ctx.root.append(top2, box);
+      ctx.root.append(top2, box, pdfRow);
       function showWord() {
         const w = d.words[wi];
         c2.textContent = `Palavra ${wi + 1} de ${d.words.length}`;
@@ -336,6 +349,7 @@
               pos++;
               if (pos === w.w.length) {
                 SFX.play('ok');
+                wordsDone = wi + 1;
                 const last = wi === d.words.length - 1;
                 ctx.feedback('ok', `<b>${esc(w.w.join(''))}!</b> ${esc(w.clue)}`, { button: last ? 'Concluir ✔' : 'Próxima palavra ➜', onButton: () => { ctx.feedback(null); if (last) ctx.done(); else { wi++; showWord(); } } });
               }
@@ -352,6 +366,43 @@
     }
     ctx.root.append(top, row);
     draw();
+  }
+
+  /* Quebra-cabeça montado + palavras (SVG em pé, 1200×1600) para o PDF */
+  function puzzleSVG(d, wordsDone) {
+    const W = 1200, H = 1600;
+    const factLines = wrapText(d.facts, 50);
+    const cards = d.words.map((w, i) => {
+      const x = 80 + (i % 2) * 540, y = 1150 + Math.floor(i / 2) * 190, cw = 500, ch = 170;
+      const done = i < wordsDone;
+      let word;
+      if (done) {
+        word = `<text x="${x + cw / 2}" y="${y + 66}" text-anchor="middle" font-size="50" font-weight="700" fill="#6A4CE0">${esc(w.w.join(''))}</text>`;
+      } else {
+        const bw = 64, gap = 12, tot = w.w.length * bw + (w.w.length - 1) * gap, bx = x + (cw - tot) / 2;
+        word = w.w.map((_, k) => `<rect x="${bx + k * (bw + gap)}" y="${y + 22}" width="${bw}" height="56" rx="10" fill="#fff" stroke="#2B2140" stroke-width="3" stroke-dasharray="8 6"/>`).join('');
+      }
+      const cl = wrapText(w.clue, 42);
+      return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="22" fill="${done ? '#F4F0FF' : '#FFFBF2'}" stroke="#2B2140" stroke-width="4"/>
+        ${word}
+        ${cl.slice(0, 3).map((l, k) => `<text x="${x + cw / 2}" y="${y + 110 + k * 26}" text-anchor="middle" font-size="22" fill="#4d4466">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#6A4CE0"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#6A4CE0"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="120" text-anchor="middle" font-size="62" font-weight="700" fill="#fff">Quebra-cabeça da roda</text>
+      <text x="${W / 2}" y="184" text-anchor="middle" font-size="34" font-weight="500" fill="#FFE08A">Missão 8 · Nossa História, Nossa Cultura</text>
+      <rect x="${W / 2 - 316}" y="254" width="632" height="632" rx="26" fill="#2B2140"/>
+      <svg x="${W / 2 - 300}" y="270" width="600" height="600" viewBox="0 0 300 300">${rodaArt()}</svg>
+      ${factLines.map((l, k) => `<text x="${W / 2}" y="${950 + k * 42}" text-anchor="middle" font-size="32" font-weight="600" fill="#2B2140">${esc(l)}</text>`).join('')}
+      <text x="${W / 2}" y="1120" text-anchor="middle" font-size="40" font-weight="700" fill="#FF8A3D">Palavras da nossa cultura</text>
+      ${cards}
+      <text x="${W / 2}" y="${H - 52}" text-anchor="middle" font-size="26" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
   }
 
   /* ============ 8. LINHA DO TEMPO ============ */

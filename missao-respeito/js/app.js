@@ -351,9 +351,51 @@
       <div class="crew">${['ayo', 'kiara', 'luna', 'kaua', 'mei', 'theo', 'lucia'].map(k => portrait(k, 'happy')).join('')}</div>
       <p class="note">${esc(date)}</p>
     </div>
-    <div class="row center no-print" style="margin-top:18px"><button class="btn primary big pr">🖨️ Imprimir certificado</button><button class="btn tomap">🗺️ Mapa</button></div>`);
+    <div class="row center no-print" style="margin-top:18px"><button class="btn primary big pr">🖨️ Imprimir certificado</button><button class="btn go big dl">💾 Baixar como imagem</button><button class="btn tomap">🗺️ Mapa</button></div>`);
     $('.pr', s).addEventListener('click', () => window.print());
+    const dl = $('.dl', s);
+    dl.addEventListener('click', async () => {
+      SFX.play('click');
+      dl.disabled = true;
+      try {
+        await ACT.svgToPNG(certSVG(date), 1600, 1131, 'certificado-missao-respeito.png');
+        toast('Certificado salvo! Procure na pasta de downloads.');
+      } catch (e) {
+        toast('Não foi possível salvar a imagem neste navegador. Use "Imprimir".');
+      }
+      dl.disabled = false;
+    });
     $('.tomap', s).addEventListener('click', () => { location.hash = '#/mapa'; });
+  }
+
+  /* Certificado em SVG (paisagem, proporção A4) para baixar como imagem */
+  function certSVG(date) {
+    const W = 1600, H = 1131;
+    const crew = ['ayo', 'kiara', 'luna', 'kaua', 'mei', 'theo', 'lucia'];
+    const pw = 120, gap = 14, x0 = (W - (crew.length * pw + (crew.length - 1) * gap)) / 2;
+    const faces = crew.map((k, i) => portrait(k, 'happy').replace('<svg ', `<svg x="${x0 + i * (pw + gap)}" y="790" width="${pw}" height="${pw * 130 / 120}" `)).join('');
+    const medals = WORLDS.map((w, i) => `<g transform="translate(${W / 2 - 2 * 92 + i * 92 - 32},690)"><circle cx="32" cy="32" r="34" fill="${w.color}" stroke="#2B2140" stroke-width="4"/><g transform="translate(12,12) scale(.625)">${window.ART.iconInner(w.medal.icon)}</g></g>`).join('');
+    const t = (y, size, txt, opts = '') => `<text x="${W / 2}" y="${y}" text-anchor="middle" font-size="${size}" ${opts}>${esc(txt)}</text>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif" fill="#2B2140">
+      {{FONT}}
+      <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6DA"/><stop offset="1" stop-color="#F1ECFF"/></linearGradient></defs>
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="30" y="30" width="${W - 60}" height="${H - 60}" rx="40" fill="url(#cg)" stroke="#2B2140" stroke-width="8"/>
+      <rect x="54" y="54" width="${W - 108}" height="${H - 108}" rx="28" fill="none" stroke="#2B2140" stroke-width="3"/>
+      ${['#FF5C8A', '#FFC531', '#14A098', '#6A4CE0', '#FF8A3D'].map((c, i) => `<rect x="${330 + i * 188}" y="54" width="188" height="14" fill="${c}"/><rect x="${330 + i * 188}" y="${H - 68}" width="188" height="14" fill="${c}"/>`).join('')}
+      <g transform="translate(${W / 2 - 50},86) scale(1.5625)">${window.ART.iconInner('star')}</g>
+      ${t(250, 76, 'Certificado de Participação', 'font-weight="700" fill="#6A4CE0"')}
+      ${t(318, 34, 'Certificamos que')}
+      <line x1="${W / 2 - 360}" y1="400" x2="${W / 2 + 360}" y2="400" stroke="#2B2140" stroke-width="4"/>
+      ${t(436, 22, '(escreva seu nome à mão depois de imprimir)', 'fill="#4d4466"')}
+      ${t(500, 32, 'concluiu as 25 missões do jogo MISSÃO RESPEITO — UMA ESCOLA SEM RACISMO,')}
+      ${t(546, 32, 'tornando-se um(a) Agente do Respeito.', 'font-weight="700"')}
+      ${t(612, 30, 'Uma escola antirracista é construída todos os dias,', 'font-weight="600"')}
+      ${t(652, 30, 'com nossas palavras, escolhas e atitudes.', 'font-weight="600"')}
+      ${medals}
+      ${faces}
+      ${t(1010, 26, `${totalStars()} estrelas · 5 medalhas · ${date}`, 'fill="#4d4466"')}
+    </svg>`;
   }
 
   /* ---------- Área do professor ---------- */

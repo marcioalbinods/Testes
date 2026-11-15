@@ -88,6 +88,19 @@ Depois de ativar o GitHub Pages e configurar o `config.json`, o jogo fica em
 
 ---
 
+# 🧠 Treinando uma IA sem preconceitos (pasta `ia-sem-preconceitos/`)
+
+Jogo para o 8º ano (Educação Digital) sobre inteligência artificial, racismo algorítmico, diversidade e ética:
+o estudante entra na NEXUS LAB para investigar e corrigir a NEXUS AI. 6 missões com 24 desafios e 20 mecânicas
+diferentes (arrastar e soltar, investigação de pistas, gráficos, regras de algoritmo, decisões com consequências…),
+XP, níveis, medalhas, conquistas, formatura com certificado e Menu do Professor. Sem cadastro e offline.
+Veja [`ia-sem-preconceitos/README.md`](ia-sem-preconceitos/README.md).
+
+Depois de ativar o GitHub Pages, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/ia-sem-preconceitos/`.
+
+---
+
 # 🎤 TCA — Da Pesquisa à Intervenção (pasta `tca-apresentacoes/`)
 
 Site para o 8º ano organizar a pesquisa do Trabalho Colaborativo de Autoria e gerar automaticamente

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Treinando uma IA sem preconceitos — NEXUS LAB</title>
+  <meta name="description" content="Jogo educativo de Educação Digital (8º ano): investigue e corrija uma inteligência artificial que reproduz preconceitos. Seis missões sobre dados, algoritmos, racismo algorítmico, diversidade e ética.">
+  <meta name="theme-color" content="#050816">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="assets/fonts/orbitron-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/exo-2-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="bg" aria-hidden="true"></canvas>
+  <div id="app">
+    <header id="hud" class="hidden" aria-label="Painel do jogador"></header>
+    <main id="screen">
+      <div id="boot" style="min-height:80vh;display:grid;place-items:center;font-family:sans-serif;color:#9aa8d1">Carregando a NEXUS LAB…</div>
+    </main>
+  </div>
+  <div id="overlay"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="certificate" aria-hidden="true"></div>
+  <noscript><p style="color:#fff;text-align:center;padding:40px">Este jogo precisa de JavaScript ativado no navegador.</p></noscript>
+
+  <!-- Conteúdo do jogo (missões, textos e respostas) separado da lógica -->
+  <script src="js/data.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/mechanics.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

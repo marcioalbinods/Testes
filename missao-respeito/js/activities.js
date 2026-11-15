@@ -735,17 +735,24 @@
     } catch (e) { fontDataCache = ''; }
     return fontDataCache;
   }
-  async function downloadPNG(p, name) {
+  /* Converte um SVG (texto) em PNG e baixa o arquivo. O SVG deve conter {{FONT}} onde entra a fonte. */
+  async function svgToPNG(svgText, w, h, name) {
     const style = await fontCSS();
-    const svg = posterSVG(p, { fontStyle: style }).replace('class="poster-svg"', 'width="1200" height="1600"');
+    const svg = svgText.replace('{{FONT}}', style);
     const img = new Image();
     const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
-    const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 1600;
-    cv.getContext('2d').drawImage(img, 0, 0, 1200, 1600);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
+    g.drawImage(img, 0, 0, w, h);
     const a = document.createElement('a');
     a.download = name; a.href = cv.toDataURL('image/png');
     document.body.appendChild(a); a.click(); a.remove();
+  }
+  function downloadPNG(p, name) {
+    const svg = posterSVG(p, { fontStyle: '{{FONT}}' }).replace('class="poster-svg"', 'width="1200" height="1600"');
+    return svgToPNG(svg, 1200, 1600, name);
   }
   function printPoster(p) {
     const holder = el(`<div class="print-target" style="display:none">${posterSVG(p)}</div>`);
@@ -950,5 +957,5 @@
     step1();
   }
 
-  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard };
+  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard, svgToPNG };
 })();

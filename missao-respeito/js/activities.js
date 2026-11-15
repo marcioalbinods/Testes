@@ -628,9 +628,21 @@
         <h3 style="margin-top:16px">✏️ Quer escrever a sua própria frase? (opcional)</h3>
         <p class="note">Não escreva nomes de pessoas. A frase fica salva só neste aparelho e pode ir para o cartaz final.</p>
         <textarea maxlength="90" rows="2" placeholder="Ex.: Na nossa turma, todo mundo é respeitado."></textarea>
-        <div class="row center" style="margin-top:12px"><button class="btn go big">Concluir ✔</button></div>`;
+        <div class="row center" style="margin-top:12px"><button class="btn big pdf">📄 Baixar PDF do caderno</button><button class="btn go big">Concluir ✔</button></div>`;
       const ta = $('textarea', box);
       ta.value = st.customPhrase || '';
+      const pdf = $('.pdf', box);
+      pdf.addEventListener('click', async () => {
+        SFX.play('click');
+        st.customPhrase = ta.value.trim().slice(0, 90);
+        ctx.save();
+        pdf.disabled = true;
+        try {
+          await svgToPDF(notebookSVG(made, st.customPhrase), 1200, 1600, 'caderno-de-frases-missao-respeito.pdf', 'Caderno de Frases - Missao Respeito');
+          toast('PDF do caderno salvo! Procure na pasta de downloads.');
+        } catch (e) { toast(PDF_FAIL, 4000); }
+        pdf.disabled = false;
+      });
       $('.btn.go', box).addEventListener('click', () => {
         st.customPhrase = ta.value.trim().slice(0, 90);
         ctx.save();
@@ -638,6 +650,44 @@
       });
     }
     show();
+  }
+
+  /* Página do Caderno de Frases (SVG em pé, 1200×1600) para o PDF */
+  function notebookSVG(phrases, custom) {
+    const W = 1200, H = 1600, L = 64, top = 330, x = 190, maxChars = 40;
+    const rows = [];
+    phrases.forEach((p, i) => wrapText(p, maxChars).forEach((l, k) => rows.push({ t: l, n: k === 0 ? `${i + 1}.` : '', b: false })));
+    if (custom) {
+      rows.push({ t: '', n: '' });
+      rows.push({ t: 'Minha frase:', n: '★', b: true, c: '#6A4CE0' });
+      wrapText(custom, maxChars).forEach(l => rows.push({ t: l, n: '', b: true }));
+    }
+    const nLines = 16;
+    let lines = '';
+    for (let i = 0; i < nLines; i++) lines += `<line x1="70" y1="${top + i * L + 18}" x2="${W - 70}" y2="${top + i * L + 18}" stroke="#BFD7FF" stroke-width="3"/>`;
+    const text = rows.slice(0, nLines).map((r, i) => {
+      const y = top + i * L;
+      return (r.n ? `<text x="${x - 16}" y="${y}" text-anchor="end" font-size="38" font-weight="700" fill="#FF5C8A">${esc(r.n)}</text>` : '') +
+        `<text x="${x}" y="${y}" font-size="40" font-weight="${r.b ? 700 : 600}" fill="${r.c || '#2B2140'}">${esc(r.t)}</text>`;
+    }).join('');
+    const holes = Array.from({ length: 12 }, (_, i) => `<circle cx="56" cy="${150 + i * 118}" r="16" fill="#FFF8EC" stroke="#2B2140" stroke-width="3"/>`).join('');
+    const crew = ['luna', 'ayo', 'kiara', 'kaua', 'mei', 'theo'];
+    const faces = crew.map((k, i) => portrait(k, 'happy').replace('<svg ', `<svg x="${W / 2 - 3 * 116 + i * 116 + 8}" y="${H - 250}" width="100" height="108" `)).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      ${holes}
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#FFC531"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#FFC531"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="118" text-anchor="middle" font-size="68" font-weight="700" fill="#2B2140">Meu Caderno de Frases</text>
+      <text x="${W / 2}" y="182" text-anchor="middle" font-size="32" font-weight="500" fill="#2B2140">Frases para uma escola sem racismo</text>
+      <line x1="${x - 60}" y1="236" x2="${x - 60}" y2="${H - 290}" stroke="#FF8A9A" stroke-width="3"/>
+      ${lines}${text}
+      ${faces}
+      <text x="${W / 2}" y="${H - 80}" text-anchor="middle" font-size="28" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
   }
 
   /* ============ 14. MURAL ============ */

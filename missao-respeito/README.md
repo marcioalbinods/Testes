@@ -27,6 +27,7 @@ artísticas, não retratos fiéis.
 - Estrelas (1 a 3) e pontos por missão, medalha por mundo, comemorações e certificado para imprimir ou baixar como imagem PNG ou PDF (A4 deitado)
   (com espaço para o nome escrito à mão: o jogo não pede nomes).
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
+- O Caderno de Frases (Missão 21) pode ser baixado em PDF, com as frases criadas e a frase própria do estudante.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.
 - Som opcional (botão 🔊). Nenhuma atividade depende de áudio.
 - Cartazes podem ser impressos ou salvos como imagem PNG ou baixados em PDF (A4), tanto na Oficina de cartazes quanto na campanha final.

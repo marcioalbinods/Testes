@@ -735,8 +735,8 @@
     } catch (e) { fontDataCache = ''; }
     return fontDataCache;
   }
-  /* Converte um SVG (texto) em PNG e baixa o arquivo. O SVG deve conter {{FONT}} onde entra a fonte. */
-  async function svgToPNG(svgText, w, h, name) {
+  /* Desenha um SVG (texto) num canvas. O SVG deve conter {{FONT}} onde entra a fonte. */
+  async function svgToCanvas(svgText, w, h) {
     const style = await fontCSS();
     const svg = svgText.replace('{{FONT}}', style);
     const img = new Image();
@@ -746,14 +746,65 @@
     const g = cv.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
     g.drawImage(img, 0, 0, w, h);
+    return cv;
+  }
+  function saveHref(href, name) {
     const a = document.createElement('a');
-    a.download = name; a.href = cv.toDataURL('image/png');
+    a.download = name; a.href = href;
     document.body.appendChild(a); a.click(); a.remove();
   }
-  function downloadPNG(p, name) {
-    const svg = posterSVG(p, { fontStyle: '{{FONT}}' }).replace('class="poster-svg"', 'width="1200" height="1600"');
-    return svgToPNG(svg, 1200, 1600, name);
+  async function svgToPNG(svgText, w, h, name) {
+    const cv = await svgToCanvas(svgText, w, h);
+    saveHref(cv.toDataURL('image/png'), name);
   }
+  function posterForExport(p) {
+    return posterSVG(p, { fontStyle: '{{FONT}}' }).replace('class="poster-svg"', 'width="1200" height="1600"');
+  }
+  function downloadPNG(p, name) {
+    return svgToPNG(posterForExport(p), 1200, 1600, name);
+  }
+
+  /* PDF de uma página A4 com a imagem (JPEG) centralizada. Feito sem bibliotecas externas. */
+  function jpegToPDF(jpegBytes, imgW, imgH, title) {
+    const enc = new TextEncoder();
+    const pageW = 595.28, pageH = 841.89, margin = 36;
+    const scale = Math.min((pageW - 2 * margin) / imgW, (pageH - 2 * margin) / imgH);
+    const dw = +(imgW * scale).toFixed(2), dh = +(imgH * scale).toFixed(2);
+    const dx = +((pageW - dw) / 2).toFixed(2), dy = +((pageH - dh) / 2).toFixed(2);
+    const content = `q ${dw} 0 0 ${dh} ${dx} ${dy} cm /Im0 Do Q`;
+    const parts = [];
+    let size = 0;
+    const offsets = [];
+    const push = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); size += b.length; };
+    const obj = (n, body) => { offsets[n] = size; push(`${n} 0 obj\n${body}\nendobj\n`); };
+    push(new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52, 10, 37, 226, 227, 207, 211, 10])); // %PDF-1.4 + marcador binário
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+    offsets[4] = size;
+    push(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+    push(jpegBytes);
+    push('\nendstream\nendobj\n');
+    obj(5, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    obj(6, `<< /Title (${title}) /Producer (Missao Respeito) >>`);
+    const xref = size;
+    let x = 'xref\n0 7\n0000000000 65535 f \n';
+    for (let i = 1; i <= 6; i++) x += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    push(x + 'trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+  async function downloadPDF(p, name) {
+    const cv = await svgToCanvas(posterForExport(p), 1200, 1600);
+    const b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = jpegToPDF(bytes, 1200, 1600, 'Cartaz da campanha - Missao Respeito');
+    const url = URL.createObjectURL(blob);
+    saveHref(url, name);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  const PDF_FAIL = 'Não foi possível criar o PDF neste navegador. Use "Imprimir" e escolha "Salvar como PDF".';
   function printPoster(p) {
     const holder = el(`<div class="print-target" style="display:none">${posterSVG(p)}</div>`);
     document.getElementById('app').appendChild(holder);
@@ -761,6 +812,17 @@
     const after = () => { document.body.classList.remove('print-poster'); holder.remove(); window.removeEventListener('afterprint', after); };
     window.addEventListener('afterprint', after);
     setTimeout(() => { window.print(); setTimeout(after, 1500); }, 50);
+  }
+
+  function pdfButton(btn, p) {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      SFX.play('click');
+      btn.disabled = true;
+      try { await downloadPDF(p, 'cartaz-campanha-missao-respeito.pdf'); toast('PDF do cartaz salvo! Procure na pasta de downloads.'); }
+      catch (e) { toast(PDF_FAIL, 4000); }
+      btn.disabled = false;
+    });
   }
 
   /* Estúdio reutilizável. mode: 'workshop' (m23) ou 'campaign' (m25) */
@@ -884,13 +946,14 @@
     });
     const finishRow = el(`<div class="card"><h4 style="margin:0 0 8px">📋 Lista do cartaz</h4></div>`);
     finishRow.appendChild(checks);
-    const actions = el('<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button><span class="spacer"></span></div>');
+    const actions = el(`<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button>${mode === 'campaign' ? '<button class="btn small pdf">📄 Baixar PDF</button>' : ''}<span class="spacer"></span></div>`);
     const finishBtn = el(`<button class="btn go">${mode === 'campaign' ? 'Revisar campanha ➜' : 'Terminar cartaz ✔'}</button>`);
     actions.appendChild(finishBtn);
     finishRow.appendChild(actions);
     tools.insertBefore(finishRow, tools.firstChild);
     $('.pr', actions).addEventListener('click', () => printPoster(p));
     $('.dl', actions).addEventListener('click', () => downloadPNG(p, mode === 'campaign' ? 'cartaz-campanha-missao-respeito.png' : 'cartaz-missao-respeito.png').catch(() => toast('Não foi possível salvar a imagem neste navegador. Use "Imprimir".')));
+    if (mode === 'campaign') pdfButton($('.pdf', actions), p);
     finishBtn.addEventListener('click', () => { if (!finishBtn.disabled) { SFX.play('ok'); onFinish(p); } });
     ctx.root.appendChild(wrap);
     render();
@@ -946,11 +1009,12 @@
         <div class="card"><h3>📣 Plano da campanha</h3><p><b>${esc(d.title)}</b></p>
         <ol>${(st.campaign || []).map(a => `<li>${esc(a)}</li>`).join('')}</ol>
         <p class="note">Converse com a professora ou o professor sobre como colocar essas ações em prática na escola!</p>
-        <div class="row"><button class="btn small back">⬅ Voltar ao cartaz</button><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button></div>
+        <div class="row"><button class="btn small back">⬅ Voltar ao cartaz</button><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button><button class="btn small pdf">📄 Baixar PDF</button></div>
         <div class="row center" style="margin-top:16px"><button class="btn go big launch">🚀 Lançar a campanha!</button></div></div></div>`);
       $('.back', v).addEventListener('click', step2);
       $('.pr', v).addEventListener('click', () => printPoster(p));
       $('.dl', v).addEventListener('click', () => downloadPNG(p, 'cartaz-campanha-missao-respeito.png').catch(() => toast('Não foi possível salvar a imagem neste navegador. Use "Imprimir".')));
+      pdfButton($('.pdf', v), p);
       $('.launch', v).addEventListener('click', () => ctx.done());
       body.appendChild(v);
     }

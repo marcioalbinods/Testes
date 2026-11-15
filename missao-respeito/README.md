@@ -29,7 +29,7 @@ artísticas, não retratos fiéis.
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.
 - Som opcional (botão 🔊). Nenhuma atividade depende de áudio.
-- Cartazes podem ser impressos ou salvos como imagem PNG.
+- Cartazes podem ser impressos ou salvos como imagem PNG; o cartaz da campanha final também pode ser baixado em PDF (A4).
 - **Área do professor** (botão discreto no canto da tela inicial, com uma pergunta de multiplicação):
   progresso das 25 missões, mundos concluídos, liberar todas as missões para demonstração,
   apagar o progresso para outra turma e reiniciar o jogo (sempre com confirmação), além de um guia pedagógico.

@@ -117,6 +117,7 @@
   }
 
   function toast(msg, ms = 2600) {
+    document.querySelectorAll('.toast').forEach(o => o.remove());
     const t = el(`<div class="toast" role="status">${esc(msg)}</div>`);
     document.body.appendChild(t);
     setTimeout(() => t.remove(), ms);

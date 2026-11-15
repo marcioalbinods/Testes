@@ -238,7 +238,8 @@
         if (r.bottom > window.innerHeight || r.top < 70) fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       },
       done(opts = {}) {
-        if (finished) return;
+        // Ignora se a pessoa já saiu desta atividade (ex.: voltou ao mapa logo após a última resposta)
+        if (finished || !root.isConnected) return;
         finished = true;
         const th = opts.thresholds || [1, 3];
         const st = mistakes <= th[0] ? 3 : mistakes <= th[1] ? 2 : 1;

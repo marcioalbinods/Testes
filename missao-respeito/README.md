@@ -28,6 +28,7 @@ artísticas, não retratos fiéis.
   (com espaço para o nome escrito à mão: o jogo não pede nomes).
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
 - O Caderno de Frases (Missão 21) pode ser baixado em PDF, com as frases criadas e a frase própria do estudante.
+- A Linha do tempo (Missão 10) pode ser baixada em PDF, com os acontecimentos já colocados em ordem.
 - O Mural coletivo (Missão 22) pode ser baixado em PDF (A4 deitado), com as mensagens que a turma prendeu no mural.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.
 - Som opcional (botão 🔊). Nenhuma atividade depende de áudio.

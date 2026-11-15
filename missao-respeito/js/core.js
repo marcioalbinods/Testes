@@ -169,13 +169,10 @@
       dragging = false;
       pid = null;
     };
-    node.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (canStart && !canStart()) return;
-      sx = e.clientX; sy = e.clientY; pid = e.pointerId; dragging = false;
-      try { node.setPointerCapture(pid); } catch (er) { /* ok */ }
-    });
-    node.addEventListener('pointermove', (e) => {
+    /* Durante o arraste, ouvimos o movimento na janela inteira (e não só no cartão).
+       Assim o arraste não se perde se o navegador soltar a "captura" do ponteiro
+       no meio do caminho, o que pode acontecer em computadores mais lentos. */
+    const onMove = (e) => {
       if (pid !== e.pointerId) return;
       if (!dragging && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) {
         dragging = true;
@@ -199,9 +196,15 @@
           if (over) over.classList.add('hover');
         }
       }
-    });
-    node.addEventListener('pointerup', (e) => {
+    };
+    const stopListening = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+    };
+    const onUp = (e) => {
       if (pid !== e.pointerId) return;
+      stopListening();
       if (dragging) {
         const t = targetAt(e.clientX, e.clientY);
         justDragged = true;
@@ -211,9 +214,21 @@
       } else {
         pid = null;
       }
+    };
+    const onCancel = (e) => {
+      if (pid !== e.pointerId) return;
+      stopListening();
+      cleanup();
+    };
+    node.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (canStart && !canStart()) return;
+      if (pid !== null) { stopListening(); cleanup(); }
+      sx = e.clientX; sy = e.clientY; pid = e.pointerId; dragging = false;
+      window.addEventListener('pointermove', onMove, { passive: false });
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
     });
-    node.addEventListener('pointercancel', cleanup);
-    node.addEventListener('lostpointercapture', () => { if (dragging) cleanup(); });
     node.addEventListener('click', (e) => {
       if (justDragged) { e.preventDefault(); return; }
       if (canStart && !canStart()) return;

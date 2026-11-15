@@ -373,8 +373,13 @@
           s.innerHTML = `<span class="y">${esc(it.y)}</span><span>${esc(it.t)}</span>`;
           b.classList.add('used');
           next++; counter.textContent = `${next} de ${items.length}`;
-          ctx.feedback('ok', `<b>${esc(it.y)}:</b> ${esc(it.t)}`);
-          if (next === items.length) setTimeout(() => ctx.done(), 1200);
+          pdf.disabled = false;
+          if (next === items.length) {
+            SFX.play('win');
+            ctx.feedback('ok', `<b>Linha do tempo completa!</b> ${esc(it.y)}: ${esc(it.t)} Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done() });
+          } else {
+            ctx.feedback('ok', `<b>${esc(it.y)}:</b> ${esc(it.t)}`);
+          }
         } else {
           SFX.play('bad'); ctx.mistake();
           b.classList.add('shake'); setTimeout(() => b.classList.remove('shake'), 450);
@@ -383,7 +388,54 @@
       });
       cards.appendChild(b);
     });
-    ctx.root.append(top, wrap);
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF da linha do tempo</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !next) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(timelineSVG(items, next), 1200, 1600, 'linha-do-tempo-missao-respeito.pdf', 'Linha do tempo - Missao Respeito');
+        toast('PDF da linha do tempo salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
+    ctx.root.append(top, wrap, pdfRow);
+  }
+
+  /* Linha do tempo (SVG em pé, 1200×1600) para o PDF. "placed" = quantos acontecimentos já foram colocados. */
+  function timelineSVG(items, placed) {
+    const W = 1200, H = 1600, top = 290, step = (H - top - 170) / items.length, lineX = 170;
+    const colors = ['#8B5A3C', '#14A098', '#6A4CE0', '#FF5C8A', '#FF8A3D', '#3D8BFF', '#E9A23B'];
+    const rows = items.map((it, i) => {
+      const y = top + i * step, cy = y + step / 2 - 8, c = colors[i % colors.length];
+      if (i >= placed) {
+        return `<circle cx="${lineX}" cy="${cy}" r="18" fill="#fff" stroke="#c7bfd8" stroke-width="5"/>
+          <rect x="230" y="${y + 6}" width="${W - 300}" height="${step - 28}" rx="22" fill="none" stroke="#c7bfd8" stroke-width="4" stroke-dasharray="14 10"/>
+          <text x="270" y="${cy + 12}" font-size="34" fill="#a39bb8">...</text>`;
+      }
+      const lines = wrapText(it.t, 38);
+      const ty = cy - (lines.length - 1) * 19 + 12;
+      return `<circle cx="${lineX}" cy="${cy}" r="22" fill="${c}" stroke="#2B2140" stroke-width="5"/>
+        <rect x="230" y="${y + 6}" width="${W - 300}" height="${step - 28}" rx="22" fill="#fff" stroke="#2B2140" stroke-width="4"/>
+        <rect x="230" y="${y + 6}" width="18" height="${step - 28}" rx="9" fill="${c}"/>
+        <rect x="270" y="${cy - 30}" width="196" height="60" rx="16" fill="#2B2140"/>
+        <text x="368" y="${cy + 12}" text-anchor="middle" font-size="32" font-weight="700" fill="#fff">${esc(it.y)}</text>
+        ${lines.map((l, k) => `<text x="490" y="${ty + k * 38}" font-size="30" font-weight="500" fill="#2B2140">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="210" rx="34" fill="#FF8A3D"/>
+      <rect x="20" y="190" width="${W - 40}" height="40" fill="#FF8A3D"/>
+      <line x1="20" y1="230" x2="${W - 20}" y2="230" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="118" text-anchor="middle" font-size="60" font-weight="700" fill="#fff">Linha do tempo</text>
+      <text x="${W / 2}" y="186" text-anchor="middle" font-size="36" font-weight="600" fill="#2B2140">da luta e da criação do povo negro no Brasil</text>
+      <rect x="${lineX - 6}" y="${top}" width="12" height="${items.length * step - 30}" rx="6" fill="#FFC531"/>
+      ${rows}
+      <text x="${W / 2}" y="${H - 70}" text-anchor="middle" font-size="28" fill="#4d4466">Missão Respeito · Mundo 2: Nossa História, Nossa Cultura</text>
+    </svg>`;
   }
 
   /* ============ 9. HISTÓRIA COM DECISÕES ============ */

@@ -123,3 +123,15 @@ Veja [`academia-arduino/README.md`](academia-arduino/README.md).
 
 Depois de ativar o GitHub Pages, o site fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/arduino/`.
+
+---
+
+# ✊🏾 Missão Respeito — Uma escola sem racismo (pasta `missao-respeito/`)
+
+Jogo educativo de educação antirracista para o 4º ano (9 e 10 anos): 5 mundos e 25 missões com investigação de cenas,
+jogos da memória, quebra-cabeças, linha do tempo, histórias com decisões, biografias de personalidades negras brasileiras
+e criação de cartazes e de uma campanha. Menu do Professor, progresso salvo só no navegador, sem cadastro e offline.
+Veja [`missao-respeito/README.md`](missao-respeito/README.md).
+
+Depois de ativar o GitHub Pages, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/missao-respeito/`.

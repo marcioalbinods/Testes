@@ -39,7 +39,7 @@
     $('colecao-nome').textContent = col.nome;
     $('colecao-nome').style.setProperty('--cc', col.cor);
     const total = AA.DESENHOS.filter((d) => AA.Salvar.estado(d.id) === 'concluido').length;
-    $('contador-total').innerHTML = `<span class="ico">${AA.icone('estrela')}</span> ${total}/50`;
+    $('contador-total').innerHTML = `<span class="ico">${AA.icone('estrela')}</span> ${total}/${AA.DESENHOS.length}`;
     const grade = $('grade');
     grade.innerHTML = '';
     doColecao(G.colecao).forEach((d) => {

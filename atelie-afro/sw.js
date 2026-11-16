@@ -1,9 +1,9 @@
 /* ATELIÊ AFRO — service worker: guarda todos os arquivos para funcionar sem internet. */
-const CACHE = 'atelie-afro-v1';
+const CACHE = 'atelie-afro-v2';
 const ARQUIVOS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
-  './js/icones.js', './js/art/core.js', './js/art/people.js', './js/art/props.js',
-  './js/desenhos/registro.js', './js/desenhos/colecao1.js', './js/desenhos/colecao2.js', './js/desenhos/colecao3.js', './js/desenhos/colecao4.js', './js/desenhos/colecao5.js',
+  './js/icones.js', './js/art/core.js', './js/art/people.js', './js/art/props.js', './js/art/scenery.js',
+  './js/desenhos/registro.js', './js/desenhos/colecao1.js', './js/desenhos/colecao2.js', './js/desenhos/colecao3.js', './js/desenhos/colecao4.js', './js/desenhos/colecao5.js', './js/desenhos/colecao6.js', './js/desenhos/colecao7.js', './js/desenhos/colecao8.js', './js/desenhos/colecao9.js', './js/desenhos/colecao10.js',
   './js/paleta.js', './js/salvar.js', './js/som.js', './js/pintura.js', './js/galeria.js', './js/app.js',
   './assets/fonts/fredoka.woff2', './assets/icons/icon.svg', './assets/icons/icon-192.png', './assets/icons/icon-512.png'
 ];

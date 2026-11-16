@@ -135,3 +135,11 @@ Veja [`missao-respeito/README.md`](missao-respeito/README.md).
 
 Depois de ativar o GitHub Pages, o jogo fica em
 `https://<seu-usuario>.github.io/<nome-do-repositorio>/missao-respeito/`.
+
+---
+
+# FREQUÊNCIA ESCOLAR (pasta `frequencia-escolar/`)
+
+Sistema web de chamada e acompanhamento da frequência escolar em Google Apps Script + Google Sheets.
+Instalação, publicação, segurança, backup e manual completos em
+[`frequencia-escolar/README.md`](frequencia-escolar/README.md).

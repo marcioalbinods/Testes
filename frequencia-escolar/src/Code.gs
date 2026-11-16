@@ -103,7 +103,7 @@ function doGet(e) {
     return paginaMensagem_('Acesso não autorizado',
       'A conta ' + email + ' não está cadastrada no sistema FREQUÊNCIA ESCOLAR. Solicite o acesso à equipe gestora da escola.');
   }
-  var t = HtmlService.createTemplateFromFile('Index');
+  var t = typeof HTML_EMBUTIDO_ !== 'undefined' ? HtmlService.createTemplate(HTML_EMBUTIDO_.Index) : HtmlService.createTemplateFromFile('Index');
   t.contextoJson = jsonSeguro_(contextoUsuario_(u));
   var out = t.evaluate()
     .setTitle('Frequência Escolar')
@@ -120,9 +120,13 @@ function doGet(e) {
   return out;
 }
 
-/** Inclui um arquivo HTML dentro de outro (usado em Index.html). */
+/**
+ * Inclui um arquivo HTML dentro de outro (usado em Index.html).
+ * No pacote de instalação de arquivo único, as telas vêm embutidas em HTML_EMBUTIDO_.
+ */
 function include(nome) {
   if (['Styles', 'JavaScript'].indexOf(nome) < 0) throw new Error('Arquivo não permitido.');
+  if (typeof HTML_EMBUTIDO_ !== 'undefined') return HTML_EMBUTIDO_[nome];
   return HtmlService.createHtmlOutputFromFile(nome).getContent();
 }
 

@@ -53,7 +53,7 @@ Todos os arquivos que vão para o Google Apps Script estão em **`src/`**:
 | `JavaScript.html` | Toda a interatividade: telas, salvamento confiável, modo sem conexão e gráficos. |
 
 Fora de `src/`:
-- `instalacao/`: pacote pronto com 5 arquivos (servidor num único `Code.gs`), gerado por `node ferramentas/gerar-pacote.js`. Os testes também validam esse pacote: `FE_PACOTE=1 node tests/backend.test.js`.
+- `instalacao/`: pacote pronto em **um único arquivo** `Code.gs` (servidor + telas HTML embutidas), gerado por `node ferramentas/gerar-pacote.js`. Os testes também validam esse pacote: `FE_PACOTE=1 node tests/backend.test.js`.
 - `ferramentas/`: gerador do pacote de instalação.
 - `tests/`: testes automatizados (simulador do Google Sheets + navegador real).
 - `docs/`: capturas de tela.
@@ -76,7 +76,7 @@ Fora de `src/`:
 
 ### 2.3 Adicionar os arquivos
 
-> **Caminho mais rápido:** a pasta [`instalacao/`](instalacao/LEIA-ME.md) tem o mesmo sistema em **5 arquivos**, com todo o código de servidor reunido num único `Code.gs`. Siga o [`instalacao/LEIA-ME.md`](instalacao/LEIA-ME.md). As instruções abaixo são para quem prefere os arquivos separados de `src/`.
+> **Caminho mais rápido:** a pasta [`instalacao/`](instalacao/LEIA-ME.md) tem o sistema inteiro num **único arquivo** `Code.gs`, com o servidor e as telas embutidas. Basta colar um arquivo. Siga o [`instalacao/LEIA-ME.md`](instalacao/LEIA-ME.md). As instruções abaixo são para quem prefere os arquivos separados de `src/`.
 
 O projeto já vem com o arquivo `Código.gs`. **Renomeie-o para `Code`** (três pontinhos ao lado do nome → Renomear) e cole nele o conteúdo de `src/Code.gs`.
 

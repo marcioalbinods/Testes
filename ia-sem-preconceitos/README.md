@@ -14,7 +14,10 @@ representatividade, dados e algoritmos, ética e responsabilidade tecnológica.
 - Abra `index.html` no navegador (Chrome, Edge ou Safari) — funciona até sem servidor.
 - Publicado no GitHub Pages: `https://<seu-usuario>.github.io/<repositorio>/ia-sem-preconceitos/`
 - Funciona com mouse, toque (tablets) e teclado. Depois de carregado uma vez pelo GitHub Pages, funciona **offline**.
-- Sem cadastro, sem banco de dados externo, sem envio de dados: o progresso fica **só no navegador** (localStorage).
+- Sem e-mail e sem cadastro. Por padrão o progresso fica **só no navegador** (localStorage).
+- **Salvamento online opcional por dupla** (turmas 8º A–C e 9º A–D): a dupla cria uma senha de 4 números e continua em
+  outra aula, em qualquer aparelho. Os dados vão para uma planilha no Google Drive do professor (Google Apps Script).
+  Instalação em [`google-apps-script/LEIA-ME.md`](google-apps-script/LEIA-ME.md); o endereço do servidor vai em `config.json`.
 
 ## Estrutura do jogo
 
@@ -29,7 +32,7 @@ Abertura cinematográfica → criação do personagem (avatar + apelido) → map
 | 5. Teste de qualidade | Esteira de testes surpresa · relatório com taxas de erro por grupo (cálculo e gráfico) · sala de decisões com consequências e “simulação do futuro” |
 | 6. A grande missão final | 7 etapas: investigar, analisar evidências, identificar grupos prejudicados, revisar dados, corrigir critérios, testar com perfis gêmeos e escrever a justificativa da solução |
 
-São **24 desafios** (mais de 50 etapas interativas). Ao errar, o jogador recebe explicação, pode tentar de novo
+São **24 desafios** (48 etapas interativas). Ao errar, o jogador recebe explicação, pode tentar de novo
 e recebe dicas progressivas — a resposta não é entregue de imediato.
 
 **Progressão:** XP, 7 níveis, pontuação por missão, medalhas (bronze/prata/ouro) — Detetive dos Dados,
@@ -69,7 +72,10 @@ js/mechanics.js       as 20 mecânicas de jogo
 js/app.js             telas, fluxo, HUD, menu do professor
 sw.js, manifest       funcionamento offline
 assets/               fontes (licença OFL) e ícones
-tools/                servidor local e teste automático que joga as 6 missões
+js/cloud.js           salvamento online das duplas (opcional)
+config.json           endereço do servidor e lista de turmas
+google-apps-script/   servidor da planilha (Code.gs) e passo a passo
+tools/                servidor local, teste que joga as 6 missões e teste do salvamento online
 ```
 
 Teste automático: `node tools/serve.js 8765` e, em outro terminal, `node tools/e2e.js 1024 768`.

@@ -787,6 +787,30 @@ body.tap-mode .drop-zone { outline: 2px dashed rgba(250, 204, 21, .5); outline-o
   .cert p { margin: 0; }
 }
 
+/* ---------- Turmas, duplas e senha ---------- */
+.pick { max-width: 860px; margin: 4vh auto 0; display: grid; gap: 14px; justify-items: start; }
+.turma-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; width: 100%; }
+.turma-btn { font-family: var(--head); font-size: 1.5rem; font-weight: 900; padding: 26px 10px; border-radius: 18px; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(34, 211, 238, .14), rgba(139, 92, 246, .2)); cursor: pointer; transition: transform .15s, box-shadow .2s; }
+.turma-btn:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+.dupla-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; width: 100%; }
+.dupla-card { text-align: left; display: grid; gap: 6px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
+.dupla-card b { font-size: 1.1rem; } .dupla-card .progbar { width: 100%; }
+.dupla-card:hover { box-shadow: var(--glow); }
+.pin-box { text-align: center; }
+.pin-dots { display: flex; justify-content: center; gap: 14px; margin: 10px 0 16px; }
+.pin-dots span { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--cyan); }
+.pin-dots span.on { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; justify-content: center; }
+.pin-key { height: 60px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); font-weight: 700; font-size: 1.6rem; cursor: pointer; }
+.pin-key:active { background: rgba(34, 211, 238, .25); }
+.pin-msg { min-height: 1.5em; margin-top: 10px; }
+.pin-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pin-small { font-family: var(--head); letter-spacing: .4em; text-align: center; }
+.turma-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; background: rgba(34, 211, 238, .12); border: 1px solid var(--line); font-size: .9rem; justify-self: start; width: max-content; }
+.hud-cloud { display: inline-flex; align-items: center; gap: 4px; font-size: .68rem; border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); white-space: nowrap; }
+.hud-cloud .ico { width: 12px; height: 12px; }
+.hud-cloud.ok { color: var(--green); } .hud-cloud.warn { color: var(--amber); } .hud-cloud.sync { color: var(--cyan); }
+
 /* ---------- Responsivo (tablets e telas menores) ---------- */
 @media (max-width: 1100px) {
   .pairs-grid { grid-template-columns: repeat(2, 1fr); }

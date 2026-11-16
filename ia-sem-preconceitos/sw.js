@@ -1,8 +1,8 @@
 /* TREINANDO UMA IA SEM PRECONCEITOS — Service worker: guarda os arquivos para jogar sem internet. */
-const CACHE = 'nexuslab-ia-justa-v1';
+const CACHE = 'nexuslab-ia-justa-v2';
 const FILES = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
-  './js/data.js', './js/art.js', './js/audio.js', './js/engine.js', './js/mechanics.js', './js/app.js',
+  './js/data.js', './js/art.js', './js/audio.js', './js/engine.js', './js/cloud.js', './js/mechanics.js', './js/app.js',
   './assets/icons/icon.svg', './assets/icons/icon-192.png', './assets/icons/icon-512.png',
   './assets/fonts/orbitron-latin-500-normal.woff2', './assets/fonts/orbitron-latin-700-normal.woff2', './assets/fonts/orbitron-latin-900-normal.woff2',
   './assets/fonts/exo-2-latin-400-normal.woff2', './assets/fonts/exo-2-latin-400-italic.woff2', './assets/fonts/exo-2-latin-600-normal.woff2', './assets/fonts/exo-2-latin-700-normal.woff2'

@@ -1,7 +1,7 @@
 /**
  * Gera a pasta "instalacao/" com o mínimo de arquivos para colar no Google Apps Script:
  *  - Code.gs: todos os arquivos .gs de src/ concatenados (o Apps Script aceita tudo num só arquivo);
- *  - Index.html, Styles.html, JavaScript.html, Mensagem.html e appsscript.json (cópias).
+ *  - Index.html, Styles.html, JavaScript.html e appsscript.json (cópias).
  * Executar: node ferramentas/gerar-pacote.js
  */
 'use strict';
@@ -20,7 +20,7 @@ for (const n of ordem) {
   saida += fs.readFileSync(path.join(src, n + '.gs'), 'utf8');
 }
 fs.writeFileSync(path.join(dest, 'Code.gs'), saida);
-for (const f of ['Index.html', 'Styles.html', 'JavaScript.html', 'Mensagem.html', 'appsscript.json']) {
+for (const f of ['Index.html', 'Styles.html', 'JavaScript.html', 'appsscript.json']) {
   fs.copyFileSync(path.join(src, f), path.join(dest, f));
 }
 console.log('Pacote gerado em instalacao/ (' + fs.readdirSync(dest).length + ' arquivos).');

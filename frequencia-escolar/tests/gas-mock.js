@@ -302,6 +302,7 @@ function criarAmbiente(opcoes) {
   }
   const HtmlService = {
     XFrameOptionsMode: { DEFAULT: 'DEFAULT', ALLOWALL: 'ALLOWALL' },
+    createHtmlOutput(c) { return saidaHtml(String(c)); },
     createHtmlOutputFromFile(n) { return saidaHtml(fs.readFileSync(path.join(raizSrc, n + '.html'), 'utf8')); },
     createTemplateFromFile(n) {
       const t = { _n: n, evaluate() { return saidaHtml(processarTemplate(fs.readFileSync(path.join(raizSrc, n + '.html'), 'utf8'), Object.assign({}, t), ctx)); } };

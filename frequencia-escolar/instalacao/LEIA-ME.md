@@ -1,6 +1,6 @@
 # Instalação rápida — FREQUÊNCIA ESCOLAR
 
-Esta pasta tem **só os 6 arquivos** que vão para o Google Apps Script:
+Esta pasta tem **só os 5 arquivos** que vão para o Google Apps Script:
 
 | Arquivo | Tipo no Apps Script | Nome a usar |
 |---|---|---|
@@ -9,7 +9,6 @@ Esta pasta tem **só os 6 arquivos** que vão para o Google Apps Script:
 | `Index.html` | HTML | `Index` |
 | `Styles.html` | HTML | `Styles` |
 | `JavaScript.html` | HTML | `JavaScript` |
-| `Mensagem.html` | HTML | `Mensagem` |
 
 `Code.gs` reúne todos os arquivos de servidor de `src/` num só. O funcionamento é idêntico.
 
@@ -35,14 +34,14 @@ Use um **computador**. A instalação não funciona bem pelo tablet ou celular.
 2. Clique nos três pontinhos ao lado dele → **Renomear** → digite `Code`.
 3. Apague o conteúdo, cole o conteúdo de `Code.gs` e salve com **Ctrl+S**.
 
-## Passo 4 — Os 4 arquivos HTML (3 min)
-Faça isto quatro vezes, uma para cada arquivo: **Index**, **Styles**, **JavaScript** e **Mensagem**.
-1. Clique no **+** ao lado de "Arquivos" e escolha **HTML**.
+## Passo 4 — Os 3 arquivos HTML (3 min)
+Faça isto três vezes, uma para cada arquivo: **Index**, **Styles** e **JavaScript**.
+1. Clique no **+** ao lado de "Arquivos" e escolha **HTML** (não "Script": arquivo HTML colado num Script gera o erro `Unexpected token '<'`).
 2. Digite o nome **sem** `.html`, respeitando maiúsculas e minúsculas, e aperte **Enter**.
 3. Apague o conteúdo de exemplo e cole o arquivo correspondente.
 4. Salve com **Ctrl+S**.
 
-No final, a lista da esquerda deve ter exatamente: `appsscript.json`, `Code.gs`, `Index.html`, `Styles.html`, `JavaScript.html` e `Mensagem.html`.
+No final, a lista da esquerda deve ter exatamente: `appsscript.json`, `Code.gs`, `Index.html`, `Styles.html`, e `JavaScript.html`. O arquivo de código pode continuar com o nome `Código.gs`.
 
 ## Passo 5 — Instalar (2 min)
 1. Opcional: no início de `Code.gs`, troque `var NOME_ESCOLA_INICIAL = '';` por `var NOME_ESCOLA_INICIAL = 'NOME DA SUA ESCOLA';` e salve.
@@ -73,8 +72,9 @@ No final, a lista da esquerda deve ter exatamente: `appsscript.json`, `Code.gs`,
 ## Se algo der errado
 | Mensagem | O que fazer |
 |---|---|
-| `ReferenceError: ... is not defined` ao executar | Algum arquivo ficou faltando ou com conteúdo incompleto. Confira os 6 arquivos e cole de novo pelo botão "Copy raw file". |
-| `Arquivo não permitido` ou página em branco | O nome de um HTML está diferente de `Index`, `Styles`, `JavaScript` ou `Mensagem`. |
+| `SyntaxError: Unexpected token '<'` no `Código.gs` | Um conteúdo HTML foi colado no arquivo de código. Cole de novo o `Code.gs` no `Código.gs` e crie os HTML pelo **+ → HTML**. |
+| `ReferenceError: ... is not defined` ao executar | Algum arquivo ficou faltando ou com conteúdo incompleto. Confira os 5 arquivos e cole de novo pelo botão "Copy raw file". |
+| `Arquivo não permitido` ou página em branco | O nome de um HTML está diferente de `Index`, `Styles` ou `JavaScript`. |
 | "Não foi possível confirmar sua identidade" para o professor | É a situação descrita no item 3.1 do README (conta Gmail pessoal ou domínio diferente). |
 | "Acesso não autorizado" | O e-mail ainda não foi cadastrado em Administração → Usuários. |
 

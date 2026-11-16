@@ -24,12 +24,17 @@ artísticas, não retratos fiéis.
 ## Recursos
 
 - Menu inicial, apresentação da turma, mapa com os 5 mundos e desbloqueio progressivo.
-- Estrelas (1 a 3) e pontos por missão, medalha por mundo, comemorações e certificado para imprimir ou baixar como imagem PNG
+- Estrelas (1 a 3) e pontos por missão, medalha por mundo, comemorações e certificado para imprimir ou baixar como imagem PNG ou PDF (A4 deitado)
   (com espaço para o nome escrito à mão: o jogo não pede nomes).
 - Feedback imediato e explicativo em todas as respostas; botões de voltar, recomeçar e repetir.
+- O Caderno de Frases (Missão 21) pode ser baixado em PDF, com as frases criadas e a frase própria do estudante.
+- O jogo da Memória da cultura (Missão 6) pode ser baixado em PDF, com os pares encontrados e as curiosidades de cada um.
+- O Quebra-cabeça da roda (Missão 8) pode ser baixado em PDF depois de montado, com a imagem, o fato sobre a UNESCO e as palavras formadas.
+- A Linha do tempo (Missão 10) pode ser baixada em PDF, com os acontecimentos já colocados em ordem.
+- O Mural coletivo (Missão 22) pode ser baixado em PDF (A4 deitado), com as mensagens que a turma prendeu no mural.
 - Funciona com mouse, toque e teclado; arrastar e soltar também funciona tocando no item e depois no destino.
 - Som opcional (botão 🔊). Nenhuma atividade depende de áudio.
-- Cartazes podem ser impressos ou salvos como imagem PNG; o cartaz da campanha final também pode ser baixado em PDF (A4).
+- Cartazes podem ser impressos ou salvos como imagem PNG ou baixados em PDF (A4), tanto na Oficina de cartazes quanto na campanha final.
 - **Área do professor** (botão discreto no canto da tela inicial, com uma pergunta de multiplicação):
   progresso das 25 missões, mundos concluídos, liberar todas as missões para demonstração,
   apagar o progresso para outra turma e reiniciar o jogo (sempre com confirmação), além de um guia pedagógico.

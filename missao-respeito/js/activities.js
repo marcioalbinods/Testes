@@ -195,6 +195,9 @@
     });
     const deck = shuffle(cards);
     let open = [], matched = 0, busy = false;
+    const found = new Set();
+    // PDF só no jogo da memória da cultura (Missão 6), não no de personalidades (Missão 19)
+    const withPdf = !d.portraits;
     const top = bar(ctx, 'Vire duas cartas e encontre os pares.', `Pares: 0 de ${d.pairs.length}`);
     const counter = $('.counter', top);
     const grid = el('<div class="memory"></div>');
@@ -213,9 +216,16 @@
               a.b.classList.add('done'); z.b.classList.add('done');
               matched++; counter.textContent = `Pares: ${matched} de ${d.pairs.length}`;
               SFX.play('ok');
-              ctx.feedback('ok', `<b>Par encontrado: ${esc(d.pairs[a.c.k].name)}!</b> ${esc(d.pairs[a.c.k].fact)}`);
+              found.add(a.c.k);
               open = []; busy = false;
-              if (matched === d.pairs.length) setTimeout(() => ctx.done({ thresholds: [5, 10] }), 1200);
+              if (withPdf) pdf.disabled = false;
+              if (withPdf && matched === d.pairs.length) {
+                SFX.play('win');
+                ctx.feedback('ok', `<b>Todos os pares encontrados!</b> ${esc(d.pairs[a.c.k].name)}: ${esc(d.pairs[a.c.k].fact)} Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done({ thresholds: [5, 10] }) });
+              } else {
+                ctx.feedback('ok', `<b>Par encontrado: ${esc(d.pairs[a.c.k].name)}!</b> ${esc(d.pairs[a.c.k].fact)}`);
+                if (matched === d.pairs.length) setTimeout(() => ctx.done({ thresholds: [5, 10] }), 1200);
+              }
             }, 450);
           } else {
             ctx.mistake();
@@ -229,7 +239,52 @@
       });
       grid.appendChild(b);
     });
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF da memória</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !found.size) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(memorySVG(d.pairs, found), 1200, 1600, 'memoria-da-cultura-missao-respeito.pdf', 'Memoria da cultura - Missao Respeito');
+        toast('PDF da memória salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
     ctx.root.append(top, grid);
+    if (withPdf) ctx.root.appendChild(pdfRow);
+  }
+
+  /* Pares encontrados no jogo da memória da cultura (SVG em pé, 1200×1600) para o PDF */
+  function memorySVG(pairs, found) {
+    const W = 1200, H = 1600, cw = 500, ch = 340;
+    const cards = pairs.map((p, i) => {
+      const x = 80 + (i % 2) * 540, y = 262 + Math.floor(i / 2) * 372;
+      if (!found.has(i)) {
+        return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="26" fill="#FFFBF2" stroke="#c7bfd8" stroke-width="4" stroke-dasharray="14 10"/>
+          <text x="${x + cw / 2}" y="${y + 170}" text-anchor="middle" font-size="90" font-weight="700" fill="#d6d0e2">?</text>
+          <text x="${x + cw / 2}" y="${y + 250}" text-anchor="middle" font-size="26" fill="#a39bb8">Par ainda não encontrado</text>`;
+      }
+      const fl = wrapText(p.fact, 34);
+      return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="26" fill="#fff" stroke="#2B2140" stroke-width="4"/>
+        <rect x="${x}" y="${y}" width="${cw}" height="14" rx="7" fill="#FF8A3D"/>
+        <rect x="${x + 26}" y="${y + 34}" width="120" height="120" rx="22" fill="#FFF1D6" stroke="#2B2140" stroke-width="3"/>
+        <g transform="translate(${x + 36},${y + 44}) scale(1.5625)">${iconInner(p.icon)}</g>
+        <text x="${x + 170}" y="${y + 110}" font-size="44" font-weight="700" fill="#2B2140">${esc(p.name)}</text>
+        ${fl.slice(0, 5).map((l, k) => `<text x="${x + 28}" y="${y + 200 + k * 30}" font-size="24" fill="#4d4466">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#FF8A3D"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#FF8A3D"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="120" text-anchor="middle" font-size="62" font-weight="700" fill="#fff">Memória da cultura</text>
+      <text x="${W / 2}" y="184" text-anchor="middle" font-size="34" font-weight="500" fill="#2B2140">Missão 6 · Nossa História, Nossa Cultura</text>
+      ${cards}
+      <text x="${W / 2}" y="${H - 52}" text-anchor="middle" font-size="26" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
   }
 
   /* ============ 6. LIGAR (associação) ============ */
@@ -280,7 +335,19 @@
   function puzzle(ctx) {
     const d = ctx.m.data, n = d.size, N = n * n, art = rodaArt(), cell = 300 / n;
     let order = shuffleNot([...Array(N).keys()], r => r.every((v, i) => v === i));
-    let sel = null;
+    let sel = null, wordsDone = 0;
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf">📄 Baixar PDF do quebra-cabeça</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(puzzleSVG(d, wordsDone), 1200, 1600, 'quebra-cabeca-da-roda-missao-respeito.pdf', 'Quebra-cabeca da roda - Missao Respeito');
+        toast('PDF do quebra-cabeça salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
     const top = bar(ctx, 'Parte 1: toque em duas peças para trocá-las de lugar.', 'Peças certas: 0');
     const counter = $('.counter', top);
     const row = el('<div class="row" style="justify-content:center;align-items:flex-start;gap:20px"></div>');
@@ -310,6 +377,7 @@
     function solved() {
       grid.classList.add('solved');
       SFX.play('win'); confetti(40);
+      ctx.root.appendChild(pdfRow);
       ctx.feedback('ok', `<b>Imagem completa!</b> ${esc(d.facts)}`, { button: 'Parte 2: palavras ➜', onButton: () => { ctx.feedback(null); words(); } });
     }
     function words() {
@@ -318,7 +386,7 @@
       const top2 = bar(ctx, 'Parte 2: toque nas sílabas na ordem certa para formar a palavra.', '');
       const c2 = el('<span class="counter"></span>'); top2.appendChild(c2);
       const box = el('<div class="card center"></div>');
-      ctx.root.append(top2, box);
+      ctx.root.append(top2, box, pdfRow);
       function showWord() {
         const w = d.words[wi];
         c2.textContent = `Palavra ${wi + 1} de ${d.words.length}`;
@@ -336,6 +404,7 @@
               pos++;
               if (pos === w.w.length) {
                 SFX.play('ok');
+                wordsDone = wi + 1;
                 const last = wi === d.words.length - 1;
                 ctx.feedback('ok', `<b>${esc(w.w.join(''))}!</b> ${esc(w.clue)}`, { button: last ? 'Concluir ✔' : 'Próxima palavra ➜', onButton: () => { ctx.feedback(null); if (last) ctx.done(); else { wi++; showWord(); } } });
               }
@@ -352,6 +421,43 @@
     }
     ctx.root.append(top, row);
     draw();
+  }
+
+  /* Quebra-cabeça montado + palavras (SVG em pé, 1200×1600) para o PDF */
+  function puzzleSVG(d, wordsDone) {
+    const W = 1200, H = 1600;
+    const factLines = wrapText(d.facts, 50);
+    const cards = d.words.map((w, i) => {
+      const x = 80 + (i % 2) * 540, y = 1150 + Math.floor(i / 2) * 190, cw = 500, ch = 170;
+      const done = i < wordsDone;
+      let word;
+      if (done) {
+        word = `<text x="${x + cw / 2}" y="${y + 66}" text-anchor="middle" font-size="50" font-weight="700" fill="#6A4CE0">${esc(w.w.join(''))}</text>`;
+      } else {
+        const bw = 64, gap = 12, tot = w.w.length * bw + (w.w.length - 1) * gap, bx = x + (cw - tot) / 2;
+        word = w.w.map((_, k) => `<rect x="${bx + k * (bw + gap)}" y="${y + 22}" width="${bw}" height="56" rx="10" fill="#fff" stroke="#2B2140" stroke-width="3" stroke-dasharray="8 6"/>`).join('');
+      }
+      const cl = wrapText(w.clue, 42);
+      return `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="22" fill="${done ? '#F4F0FF' : '#FFFBF2'}" stroke="#2B2140" stroke-width="4"/>
+        ${word}
+        ${cl.slice(0, 3).map((l, k) => `<text x="${x + cw / 2}" y="${y + 110 + k * 26}" text-anchor="middle" font-size="22" fill="#4d4466">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#6A4CE0"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#6A4CE0"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="120" text-anchor="middle" font-size="62" font-weight="700" fill="#fff">Quebra-cabeça da roda</text>
+      <text x="${W / 2}" y="184" text-anchor="middle" font-size="34" font-weight="500" fill="#FFE08A">Missão 8 · Nossa História, Nossa Cultura</text>
+      <rect x="${W / 2 - 316}" y="254" width="632" height="632" rx="26" fill="#2B2140"/>
+      <svg x="${W / 2 - 300}" y="270" width="600" height="600" viewBox="0 0 300 300">${rodaArt()}</svg>
+      ${factLines.map((l, k) => `<text x="${W / 2}" y="${950 + k * 42}" text-anchor="middle" font-size="32" font-weight="600" fill="#2B2140">${esc(l)}</text>`).join('')}
+      <text x="${W / 2}" y="1120" text-anchor="middle" font-size="40" font-weight="700" fill="#FF8A3D">Palavras da nossa cultura</text>
+      ${cards}
+      <text x="${W / 2}" y="${H - 52}" text-anchor="middle" font-size="26" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
   }
 
   /* ============ 8. LINHA DO TEMPO ============ */
@@ -373,8 +479,13 @@
           s.innerHTML = `<span class="y">${esc(it.y)}</span><span>${esc(it.t)}</span>`;
           b.classList.add('used');
           next++; counter.textContent = `${next} de ${items.length}`;
-          ctx.feedback('ok', `<b>${esc(it.y)}:</b> ${esc(it.t)}`);
-          if (next === items.length) setTimeout(() => ctx.done(), 1200);
+          pdf.disabled = false;
+          if (next === items.length) {
+            SFX.play('win');
+            ctx.feedback('ok', `<b>Linha do tempo completa!</b> ${esc(it.y)}: ${esc(it.t)} Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done() });
+          } else {
+            ctx.feedback('ok', `<b>${esc(it.y)}:</b> ${esc(it.t)}`);
+          }
         } else {
           SFX.play('bad'); ctx.mistake();
           b.classList.add('shake'); setTimeout(() => b.classList.remove('shake'), 450);
@@ -383,7 +494,54 @@
       });
       cards.appendChild(b);
     });
-    ctx.root.append(top, wrap);
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF da linha do tempo</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !next) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(timelineSVG(items, next), 1200, 1600, 'linha-do-tempo-missao-respeito.pdf', 'Linha do tempo - Missao Respeito');
+        toast('PDF da linha do tempo salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
+    ctx.root.append(top, wrap, pdfRow);
+  }
+
+  /* Linha do tempo (SVG em pé, 1200×1600) para o PDF. "placed" = quantos acontecimentos já foram colocados. */
+  function timelineSVG(items, placed) {
+    const W = 1200, H = 1600, top = 290, step = (H - top - 170) / items.length, lineX = 170;
+    const colors = ['#8B5A3C', '#14A098', '#6A4CE0', '#FF5C8A', '#FF8A3D', '#3D8BFF', '#E9A23B'];
+    const rows = items.map((it, i) => {
+      const y = top + i * step, cy = y + step / 2 - 8, c = colors[i % colors.length];
+      if (i >= placed) {
+        return `<circle cx="${lineX}" cy="${cy}" r="18" fill="#fff" stroke="#c7bfd8" stroke-width="5"/>
+          <rect x="230" y="${y + 6}" width="${W - 300}" height="${step - 28}" rx="22" fill="none" stroke="#c7bfd8" stroke-width="4" stroke-dasharray="14 10"/>
+          <text x="270" y="${cy + 12}" font-size="34" fill="#a39bb8">...</text>`;
+      }
+      const lines = wrapText(it.t, 38);
+      const ty = cy - (lines.length - 1) * 19 + 12;
+      return `<circle cx="${lineX}" cy="${cy}" r="22" fill="${c}" stroke="#2B2140" stroke-width="5"/>
+        <rect x="230" y="${y + 6}" width="${W - 300}" height="${step - 28}" rx="22" fill="#fff" stroke="#2B2140" stroke-width="4"/>
+        <rect x="230" y="${y + 6}" width="18" height="${step - 28}" rx="9" fill="${c}"/>
+        <rect x="270" y="${cy - 30}" width="196" height="60" rx="16" fill="#2B2140"/>
+        <text x="368" y="${cy + 12}" text-anchor="middle" font-size="32" font-weight="700" fill="#fff">${esc(it.y)}</text>
+        ${lines.map((l, k) => `<text x="490" y="${ty + k * 38}" font-size="30" font-weight="500" fill="#2B2140">${esc(l)}</text>`).join('')}`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      <rect x="20" y="20" width="${W - 40}" height="210" rx="34" fill="#FF8A3D"/>
+      <rect x="20" y="190" width="${W - 40}" height="40" fill="#FF8A3D"/>
+      <line x1="20" y1="230" x2="${W - 20}" y2="230" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="118" text-anchor="middle" font-size="60" font-weight="700" fill="#fff">Linha do tempo</text>
+      <text x="${W / 2}" y="186" text-anchor="middle" font-size="36" font-weight="600" fill="#2B2140">da luta e da criação do povo negro no Brasil</text>
+      <rect x="${lineX - 6}" y="${top}" width="12" height="${items.length * step - 30}" rx="6" fill="#FFC531"/>
+      ${rows}
+      <text x="${W / 2}" y="${H - 70}" text-anchor="middle" font-size="28" fill="#4d4466">Missão Respeito · Mundo 2: Nossa História, Nossa Cultura</text>
+    </svg>`;
   }
 
   /* ============ 9. HISTÓRIA COM DECISÕES ============ */
@@ -628,9 +786,21 @@
         <h3 style="margin-top:16px">✏️ Quer escrever a sua própria frase? (opcional)</h3>
         <p class="note">Não escreva nomes de pessoas. A frase fica salva só neste aparelho e pode ir para o cartaz final.</p>
         <textarea maxlength="90" rows="2" placeholder="Ex.: Na nossa turma, todo mundo é respeitado."></textarea>
-        <div class="row center" style="margin-top:12px"><button class="btn go big">Concluir ✔</button></div>`;
+        <div class="row center" style="margin-top:12px"><button class="btn big pdf">📄 Baixar PDF do caderno</button><button class="btn go big">Concluir ✔</button></div>`;
       const ta = $('textarea', box);
       ta.value = st.customPhrase || '';
+      const pdf = $('.pdf', box);
+      pdf.addEventListener('click', async () => {
+        SFX.play('click');
+        st.customPhrase = ta.value.trim().slice(0, 90);
+        ctx.save();
+        pdf.disabled = true;
+        try {
+          await svgToPDF(notebookSVG(made, st.customPhrase), 1200, 1600, 'caderno-de-frases-missao-respeito.pdf', 'Caderno de Frases - Missao Respeito');
+          toast('PDF do caderno salvo! Procure na pasta de downloads.');
+        } catch (e) { toast(PDF_FAIL, 4000); }
+        pdf.disabled = false;
+      });
       $('.btn.go', box).addEventListener('click', () => {
         st.customPhrase = ta.value.trim().slice(0, 90);
         ctx.save();
@@ -640,10 +810,49 @@
     show();
   }
 
+  /* Página do Caderno de Frases (SVG em pé, 1200×1600) para o PDF */
+  function notebookSVG(phrases, custom) {
+    const W = 1200, H = 1600, L = 64, top = 330, x = 190, maxChars = 40;
+    const rows = [];
+    phrases.forEach((p, i) => wrapText(p, maxChars).forEach((l, k) => rows.push({ t: l, n: k === 0 ? `${i + 1}.` : '', b: false })));
+    if (custom) {
+      rows.push({ t: '', n: '' });
+      rows.push({ t: 'Minha frase:', n: '★', b: true, c: '#6A4CE0' });
+      wrapText(custom, maxChars).forEach(l => rows.push({ t: l, n: '', b: true }));
+    }
+    const nLines = 16;
+    let lines = '';
+    for (let i = 0; i < nLines; i++) lines += `<line x1="70" y1="${top + i * L + 18}" x2="${W - 70}" y2="${top + i * L + 18}" stroke="#BFD7FF" stroke-width="3"/>`;
+    const text = rows.slice(0, nLines).map((r, i) => {
+      const y = top + i * L;
+      return (r.n ? `<text x="${x - 16}" y="${y}" text-anchor="end" font-size="38" font-weight="700" fill="#FF5C8A">${esc(r.n)}</text>` : '') +
+        `<text x="${x}" y="${y}" font-size="40" font-weight="${r.b ? 700 : 600}" fill="${r.c || '#2B2140'}">${esc(r.t)}</text>`;
+    }).join('');
+    const holes = Array.from({ length: 12 }, (_, i) => `<circle cx="56" cy="${150 + i * 118}" r="16" fill="#FFF8EC" stroke="#2B2140" stroke-width="3"/>`).join('');
+    const crew = ['luna', 'ayo', 'kiara', 'kaua', 'mei', 'theo'];
+    const faces = crew.map((k, i) => portrait(k, 'happy').replace('<svg ', `<svg x="${W / 2 - 3 * 116 + i * 116 + 8}" y="${H - 250}" width="100" height="108" `)).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#FFF8EC"/>
+      <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="34" fill="#fff" stroke="#2B2140" stroke-width="6"/>
+      ${holes}
+      <rect x="20" y="20" width="${W - 40}" height="200" rx="34" fill="#FFC531"/>
+      <rect x="20" y="180" width="${W - 40}" height="40" fill="#FFC531"/>
+      <line x1="20" y1="220" x2="${W - 20}" y2="220" stroke="#2B2140" stroke-width="5"/>
+      <text x="${W / 2}" y="118" text-anchor="middle" font-size="68" font-weight="700" fill="#2B2140">Meu Caderno de Frases</text>
+      <text x="${W / 2}" y="182" text-anchor="middle" font-size="32" font-weight="500" fill="#2B2140">Frases para uma escola sem racismo</text>
+      <line x1="${x - 60}" y1="236" x2="${x - 60}" y2="${H - 290}" stroke="#FF8A9A" stroke-width="3"/>
+      ${lines}${text}
+      ${faces}
+      <text x="${W / 2}" y="${H - 80}" text-anchor="middle" font-size="28" fill="#4d4466">Missão Respeito · Uma escola sem racismo</text>
+    </svg>`;
+  }
+
   /* ============ 14. MURAL ============ */
   function mural(ctx) {
     const d = ctx.m.data;
     let pinnedN = 0, sel = null;
+    const pinnedTexts = [];
     const top = bar(ctx, 'Arraste para o mural só as mensagens que combatem o racismo.', `No mural: 0 de ${d.need}`);
     const counter = $('.counter', top);
     const wrap = el('<div class="mural-area"><div class="notes"></div><button class="board" aria-label="Mural da escola"><h3>🏫 Mural: Escola sem Racismo</h3><div class="pinned"></div></button></div>');
@@ -658,9 +867,15 @@
         pc.style.setProperty('--r', (Math.random() * 6 - 3).toFixed(1) + 'deg');
         card.remove();
         pinned.appendChild(pc);
+        pinnedTexts.push(it.t);
         pinnedN++; counter.textContent = `No mural: ${pinnedN} de ${d.need}`;
-        ctx.feedback('ok', `<b>Ótima mensagem!</b> "${esc(it.t)}" foi para o mural.`);
-        if (pinnedN === d.need) { setTimeout(() => ctx.done(), 1200); }
+        pdf.disabled = false;
+        if (pinnedN === d.need) {
+          SFX.play('win');
+          ctx.feedback('ok', `<b>Mural completo!</b> Todas as mensagens que combatem o racismo estão no mural. Se quiser, baixe o PDF antes de concluir.`, { button: 'Concluir ✔', onButton: () => ctx.done() });
+        } else {
+          ctx.feedback('ok', `<b>Ótima mensagem!</b> "${esc(it.t)}" foi para o mural.`);
+        }
       } else {
         SFX.play('bad'); ctx.mistake();
         card.classList.add('rejected', 'shake'); card.disabled = true;
@@ -677,7 +892,53 @@
       });
       notes.appendChild(c);
     });
-    ctx.root.append(top, wrap);
+    const pdfRow = el('<div class="row center" style="margin-top:14px"><button class="btn pdf" disabled>📄 Baixar PDF do mural</button></div>');
+    const pdf = $('.pdf', pdfRow);
+    pdf.addEventListener('click', async () => {
+      if (pdf.disabled || !pinnedTexts.length) return;
+      SFX.play('click');
+      pdf.disabled = true;
+      try {
+        await svgToPDF(muralSVG(pinnedTexts), 1600, 1131, 'mural-coletivo-missao-respeito.pdf', 'Mural coletivo - Missao Respeito');
+        toast('PDF do mural salvo! Procure na pasta de downloads.');
+      } catch (e) { toast(PDF_FAIL, 4000); }
+      pdf.disabled = false;
+    });
+    ctx.root.append(top, wrap, pdfRow);
+  }
+
+  /* Mural coletivo (SVG deitado, 1600×1131) para o PDF */
+  function muralSVG(texts) {
+    const W = 1600, H = 1131;
+    const colors = ['#FFF6B0', '#CDEBFF', '#FFD6E5'];
+    const cols = 3, nw = 420, nh = 300, gx = 50, gy = 60;
+    const x0 = (W - (cols * nw + (cols - 1) * gx)) / 2, y0 = 270;
+    const notes = texts.slice(0, 9).map((t, i) => {
+      const c = i % cols, r = Math.floor(i / cols);
+      const x = x0 + c * (nw + gx), y = y0 + r * (nh + gy);
+      const rot = [-2.5, 1.8, -1.2, 2.2, -1.8, 1.4, -2, 2.4, -1.4][i];
+      const lines = wrapText(t, 18);
+      const ty = y + nh / 2 - (lines.length - 1) * 24 + 14;
+      return `<g transform="rotate(${rot} ${x + nw / 2} ${y + nh / 2})">
+        <rect x="${x + 6}" y="${y + 10}" width="${nw}" height="${nh}" rx="14" fill="#000" opacity=".18"/>
+        <rect x="${x}" y="${y}" width="${nw}" height="${nh}" rx="14" fill="${colors[i % 3]}" stroke="#2B2140" stroke-width="5"/>
+        ${lines.map((l, k) => `<text x="${x + nw / 2}" y="${ty + k * 48}" text-anchor="middle" font-size="38" font-weight="700" fill="#2B2140">${esc(l)}</text>`).join('')}
+        <circle cx="${x + nw / 2}" cy="${y + 8}" r="16" fill="#E53950" stroke="#2B2140" stroke-width="3"/><circle cx="${x + nw / 2 - 5}" cy="${y + 3}" r="5" fill="#fff" opacity=".7"/>
+      </g>`;
+    }).join('');
+    let dots = '';
+    for (let yy = 120; yy < H - 60; yy += 34) for (let xx = 60 + (yy % 68 ? 17 : 0); xx < W - 60; xx += 34) dots += `<circle cx="${xx}" cy="${yy}" r="3.5" fill="#b67c4b"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Fredoka, 'Arial Rounded MT Bold', Arial, sans-serif">
+      {{FONT}}
+      <rect width="${W}" height="${H}" fill="#8B5A3C"/>
+      <rect x="36" y="36" width="${W - 72}" height="${H - 72}" rx="20" fill="#C98D5A" stroke="#5e3a22" stroke-width="6"/>
+      ${dots}
+      <rect x="${W / 2 - 430}" y="80" width="860" height="110" rx="22" fill="#FF5C8A" stroke="#2B2140" stroke-width="6"/>
+      <text x="${W / 2}" y="153" text-anchor="middle" font-size="56" font-weight="700" fill="#fff">Mural: Escola sem Racismo</text>
+      ${notes}
+      <rect x="${W / 2 - 330}" y="${H - 104}" width="660" height="50" rx="25" fill="#fff" opacity=".9"/>
+      <text x="${W / 2}" y="${H - 70}" text-anchor="middle" font-size="28" fill="#2B2140">Missão Respeito · Mural coletivo da turma</text>
+    </svg>`;
   }
 
   /* ============ 15. ESTÚDIO DE CARTAZ ============ */
@@ -767,7 +1028,9 @@
   /* PDF de uma página A4 com a imagem (JPEG) centralizada. Feito sem bibliotecas externas. */
   function jpegToPDF(jpegBytes, imgW, imgH, title) {
     const enc = new TextEncoder();
-    const pageW = 595.28, pageH = 841.89, margin = 36;
+    // A4: em pé para imagens verticais (cartazes), deitada para horizontais (certificado)
+    const land = imgW > imgH;
+    const pageW = land ? 841.89 : 595.28, pageH = land ? 595.28 : 841.89, margin = land ? 24 : 36;
     const scale = Math.min((pageW - 2 * margin) / imgW, (pageH - 2 * margin) / imgH);
     const dw = +(imgW * scale).toFixed(2), dh = +(imgH * scale).toFixed(2);
     const dx = +((pageW - dw) / 2).toFixed(2), dy = +((pageH - dh) / 2).toFixed(2);
@@ -793,16 +1056,20 @@
     push(x + 'trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
     return new Blob(parts, { type: 'application/pdf' });
   }
-  async function downloadPDF(p, name) {
-    const cv = await svgToCanvas(posterForExport(p), 1200, 1600);
+  /* Converte um SVG (texto, com {{FONT}}) em PDF A4 e baixa o arquivo. */
+  async function svgToPDF(svgText, w, h, name, title) {
+    const cv = await svgToCanvas(svgText, w, h);
     const b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1];
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const blob = jpegToPDF(bytes, 1200, 1600, 'Cartaz da campanha - Missao Respeito');
+    const blob = jpegToPDF(bytes, w, h, title || 'Missao Respeito');
     const url = URL.createObjectURL(blob);
     saveHref(url, name);
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  function downloadPDF(p, name, title) {
+    return svgToPDF(posterForExport(p), 1200, 1600, name, title || 'Cartaz - Missao Respeito');
   }
   const PDF_FAIL = 'Não foi possível criar o PDF neste navegador. Use "Imprimir" e escolha "Salvar como PDF".';
   function printPoster(p) {
@@ -814,12 +1081,15 @@
     setTimeout(() => { window.print(); setTimeout(after, 1500); }, 50);
   }
 
-  function pdfButton(btn, p) {
+  function pdfButton(btn, p, mode = 'campaign') {
     btn.addEventListener('click', async () => {
       if (btn.disabled) return;
       SFX.play('click');
       btn.disabled = true;
-      try { await downloadPDF(p, 'cartaz-campanha-missao-respeito.pdf'); toast('PDF do cartaz salvo! Procure na pasta de downloads.'); }
+      try {
+        if (mode === 'campaign') await downloadPDF(p, 'cartaz-campanha-missao-respeito.pdf', 'Cartaz da campanha - Missao Respeito');
+        else await downloadPDF(p, 'cartaz-missao-respeito.pdf', 'Cartaz da Oficina - Missao Respeito');
+        toast('PDF do cartaz salvo! Procure na pasta de downloads.'); }
       catch (e) { toast(PDF_FAIL, 4000); }
       btn.disabled = false;
     });
@@ -946,14 +1216,14 @@
     });
     const finishRow = el(`<div class="card"><h4 style="margin:0 0 8px">📋 Lista do cartaz</h4></div>`);
     finishRow.appendChild(checks);
-    const actions = el(`<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button>${mode === 'campaign' ? '<button class="btn small pdf">📄 Baixar PDF</button>' : ''}<span class="spacer"></span></div>`);
+    const actions = el(`<div class="row" style="margin-top:12px"><button class="btn small pr">🖨️ Imprimir</button><button class="btn small dl">💾 Salvar imagem</button><button class="btn small pdf">📄 Baixar PDF</button><span class="spacer"></span></div>`);
     const finishBtn = el(`<button class="btn go">${mode === 'campaign' ? 'Revisar campanha ➜' : 'Terminar cartaz ✔'}</button>`);
     actions.appendChild(finishBtn);
     finishRow.appendChild(actions);
     tools.insertBefore(finishRow, tools.firstChild);
     $('.pr', actions).addEventListener('click', () => printPoster(p));
     $('.dl', actions).addEventListener('click', () => downloadPNG(p, mode === 'campaign' ? 'cartaz-campanha-missao-respeito.png' : 'cartaz-missao-respeito.png').catch(() => toast('Não foi possível salvar a imagem neste navegador. Use "Imprimir".')));
-    if (mode === 'campaign') pdfButton($('.pdf', actions), p);
+    pdfButton($('.pdf', actions), p, mode);
     finishBtn.addEventListener('click', () => { if (!finishBtn.disabled) { SFX.play('ok'); onFinish(p); } });
     ctx.root.appendChild(wrap);
     render();
@@ -1021,5 +1291,5 @@
     step1();
   }
 
-  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard, svgToPNG };
+  window.ACT = { classify, scene, traffic, fixit, memory, match, puzzle, order, story, bios, whoami, fillblank, sentences, mural, poster, campaign, posterSVG, printPoster, bioCard, svgToPNG, svgToPDF };
 })();

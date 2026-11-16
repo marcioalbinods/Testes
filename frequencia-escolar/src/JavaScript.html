@@ -1,0 +1,1564 @@
+<script>
+/* ==========================================================================
+   FREQUÊNCIA ESCOLAR — Interface (navegador)
+   Toda leitura/gravação passa pelo servidor (google.script.run). O navegador
+   nunca acessa a planilha diretamente.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var C = CONTEXTO;
+  var PERFIL_GESTAO = C.usuario.perfil === 'ADMIN' || C.usuario.perfil === 'GESTOR';
+  var EH_ADMIN = C.usuario.perfil === 'ADMIN';
+  var SIT = ['PRESENTE', 'AUSENTE', 'ATRASADO', 'JUSTIFICADA'];
+  var ROT = { PRESENTE: 'Presente', AUSENTE: 'Ausente', ATRASADO: 'Atrasado', JUSTIFICADA: 'Justificada', NAO_REGISTRADO: 'Não registrado' };
+  var ROT_LONGO = { PRESENTE: 'Presente', AUSENTE: 'Ausente', ATRASADO: 'Atrasado', JUSTIFICADA: 'Falta justificada', NAO_REGISTRADO: 'Não registrado' };
+  var COR = { PRESENTE: '#16a34a', AUSENTE: '#dc2626', ATRASADO: '#facc15', JUSTIFICADA: '#7dd3fc', NAO_REGISTRADO: '#cbd5e1' };
+
+  var S = { view: '', turmaId: '', estudantesCache: {} };
+  var Ch = null; // estado da tela de chamada
+
+  // ------------------------------------------------------------------ Ícones (SVG inline)
+  var ICONES = {
+    painel: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+    chamada: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+    historico: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    relatorios: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',
+    estudantes: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    mais: '<path d="M3 12h18M3 6h18M3 18h18"/>',
+    PRESENTE: '<path d="M20 6 9 17l-5-5"/>',
+    AUSENTE: '<path d="M18 6 6 18M6 6l12 12"/>',
+    ATRASADO: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    JUSTIFICADA: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/>',
+    alerta: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    salvar: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+    cadeado: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    abrir: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+    baixar: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+    mais1: '<path d="M12 5v14M5 12h14"/>',
+    editar: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    limpar: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+    todos: '<path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>',
+    transferir: '<path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/>',
+    fechar: '<path d="M18 6 6 18M6 6l12 12"/>',
+    finalizar: '<circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/>',
+    vazio: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    atualizar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>'
+  };
+  function ic(nome) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONES[nome] || '') + '</svg>'; }
+
+  // ------------------------------------------------------------------ Utilidades
+  function $(sel, raiz) { return (raiz || document).querySelector(sel); }
+  function $$(sel, raiz) { return Array.prototype.slice.call((raiz || document).querySelectorAll(sel)); }
+  function h(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function dataBr(iso) { if (!iso) return ''; var p = String(iso).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+  function dataHoraBr(s) { if (!s) return ''; var p = String(s).split(' '); return dataBr(p[0]) + (p[1] ? ' às ' + p[1].slice(0, 5) : ''); }
+  function pct(v) { return v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(1).replace('.', ',') + '%'; }
+  function hojeSP() {
+    try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
+    catch (e) { return C.hoje; }
+  }
+  function somarDias(iso, n) {
+    var p = iso.split('-'); var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n));
+    return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+  }
+  function diaSemana(iso) { var p = iso.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay(); }
+  function dataExtenso(iso) {
+    var p = iso.split('-');
+    try { return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { return dataBr(iso); }
+  }
+  function nomePeriodo(p) { return p === 'DIARIO' ? 'Chamada diária' : p; }
+  function idReq() { return 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function turmaAtual() { return C.turmas.filter(function (t) { return t.id === S.turmaId; })[0] || null; }
+  var ls = {
+    get: function (k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) { /* ignorar */ } }
+  };
+
+  // ------------------------------------------------------------------ Comunicação com o servidor
+  /**
+   * Chama uma função do servidor e devolve uma Promise.
+   * Repete automaticamente em falhas de comunicação e quando o servidor está ocupado.
+   * O resultado só é considerado salvo quando o servidor confirma (ok: true).
+   */
+  function servidor(fn, args, opts) {
+    opts = opts || {};
+    var maxTentativas = opts.tentativas === undefined ? 2 : opts.tentativas;
+    return new Promise(function (resolve, reject) {
+      if (navigator.onLine === false && opts.exigeConexao) {
+        reject({ codigo: 'SEM_CONEXAO', erro: 'Sem conexão com a internet.', rede: true });
+        return;
+      }
+      var n = 0;
+      function tentar() {
+        n++;
+        var r = google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res) { reject({ codigo: 'ERRO_INTERNO', erro: 'Resposta vazia do servidor.' }); return; }
+            if (res.ok) { resolve(res.data); return; }
+            if (res.codigo === 'OCUPADO' && n <= maxTentativas) { novaTentativa(); return; }
+            reject(res);
+          })
+          .withFailureHandler(function (err) {
+            if (n <= maxTentativas) { novaTentativa(); return; }
+            var off = navigator.onLine === false;
+            reject({ codigo: off ? 'SEM_CONEXAO' : 'FALHA_COMUNICACAO', rede: true,
+              erro: off ? 'Sem conexão com a internet.' : 'Não foi possível comunicar com o servidor' + (err && err.message ? ' (' + err.message + ')' : '') + '.' });
+          });
+        r[fn].apply(r, args || []);
+      }
+      function novaTentativa() {
+        if (opts.aoTentarNovamente) opts.aoTentarNovamente(n, maxTentativas);
+        setTimeout(tentar, Math.min(1500 * Math.pow(2, n - 1), 8000));
+      }
+      tentar();
+    });
+  }
+
+  // ------------------------------------------------------------------ Toasts e modais
+  function toast(msg, tipo, ms) {
+    var el = document.createElement('div');
+    el.className = 'toast ' + (tipo || '');
+    el.innerHTML = (tipo === 'ok' ? ic('PRESENTE') : tipo === 'erro' ? ic('alerta') : ic('info')) + '<span>' + h(msg) + '</span>';
+    var caixa = $('#toasts');
+    while (caixa.children.length >= 3) caixa.removeChild(caixa.firstChild); // no máximo 3 avisos visíveis
+    caixa.appendChild(el);
+    setTimeout(function () { el.remove(); }, ms || (tipo === 'erro' ? 6500 : 3200));
+  }
+  function erroMsg(e) { return (e && (e.erro || e.message)) || 'Erro inesperado.'; }
+
+  /**
+   * Abre um modal. acoes: [{ rotulo, classe, valor }]. Retorna Promise com o valor da ação
+   * escolhida (ou null ao fechar). Se acao.validar devolver false, o modal permanece aberto.
+   */
+  function modal(opts) {
+    return new Promise(function (resolve) {
+      var fundo = document.createElement('div');
+      fundo.className = 'modal-fundo';
+      fundo.innerHTML = '<div class="modal ' + (opts.largo ? 'largo' : '') + '" role="dialog" aria-modal="true" aria-label="' + h(opts.titulo) + '">' +
+        '<div class="modal-cab"><h3>' + h(opts.titulo) + '</h3><button class="btn-fechar" data-fechar aria-label="Fechar">' + ic('fechar') + '</button></div>' +
+        '<div class="modal-corpo">' + (opts.corpo || '') + '</div>' +
+        ((opts.acoes || []).length ? '<div class="modal-rodape">' + opts.acoes.map(function (a, i) {
+          return '<button class="btn ' + (a.classe || '') + '" data-acao-modal="' + i + '">' + (a.icone ? ic(a.icone) : '') + h(a.rotulo) + '</button>';
+        }).join('') + '</div>' : '') + '</div>';
+      $('#modais').appendChild(fundo);
+      var anterior = document.activeElement;
+      function fechar(v) {
+        fundo.remove();
+        document.removeEventListener('keydown', esc);
+        if (anterior && anterior.focus) try { anterior.focus(); } catch (e) { /* ignorar */ }
+        resolve(v);
+      }
+      function esc(ev) { if (ev.key === 'Escape' && !opts.semFecharEsc) fechar(null); }
+      document.addEventListener('keydown', esc);
+      fundo.addEventListener('click', function (ev) {
+        if (ev.target === fundo && !opts.semFecharFora) { fechar(null); return; }
+        if (ev.target.closest('[data-fechar]')) { fechar(null); return; }
+        var b = ev.target.closest('[data-acao-modal]');
+        if (b) {
+          var a = opts.acoes[Number(b.getAttribute('data-acao-modal'))];
+          if (a.validar && a.validar(fundo) === false) return;
+          fechar(a.valor !== undefined ? a.valor : true);
+        }
+      });
+      if (opts.aoAbrir) opts.aoAbrir(fundo, fechar);
+      var foco = $('[autofocus]', fundo) || $('.modal-rodape .btn-primario, .modal-rodape .btn-sucesso', fundo);
+      if (foco) setTimeout(function () { foco.focus(); }, 30);
+    });
+  }
+  function confirmar(titulo, texto, rotuloOk, classeOk) {
+    return modal({ titulo: titulo, corpo: '<p style="margin:0">' + texto + '</p>',
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: rotuloOk || 'Confirmar', classe: classeOk || 'btn-primario', valor: true }] })
+      .then(function (v) { return v === true; });
+  }
+  function alertar(titulo, texto) {
+    return modal({ titulo: titulo, corpo: '<p style="margin:0">' + texto + '</p>', acoes: [{ rotulo: 'Entendi', classe: 'btn-primario', valor: true }] });
+  }
+  /** Pede um texto (ex.: motivo). minimo = tamanho mínimo obrigatório. */
+  function pedirTexto(titulo, rotulo, ajuda, minimo, rotuloOk) {
+    var valor = null;
+    return modal({
+      titulo: titulo,
+      corpo: '<div class="campo"><label for="pt-txt">' + h(rotulo) + '</label><textarea id="pt-txt" maxlength="500" autofocus></textarea>' +
+        (ajuda ? '<div class="ajuda">' + h(ajuda) + '</div>' : '') + '<div class="ajuda" id="pt-erro" style="color:#b91c1c"></div></div>',
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: rotuloOk || 'Confirmar', classe: 'btn-primario', valor: true, validar: function (f) {
+        var v = $('#pt-txt', f).value.trim();
+        if (v.length < (minimo || 0)) { $('#pt-erro', f).textContent = 'Informe pelo menos ' + minimo + ' caracteres.'; return false; }
+        valor = v; return true;
+      } }]
+    }).then(function (ok) { return ok === true ? valor : null; });
+  }
+  function carregandoHtml(txt) { return '<div class="carregando"><div class="spinner"></div>' + h(txt || 'Carregando...') + '</div>'; }
+  function vazioHtml(txt) { return '<div class="vazio">' + ic('vazio') + '<div>' + h(txt) + '</div></div>'; }
+  function erroHtml(e, tentar) {
+    return '<div class="aviso aviso-erro">' + ic('alerta') + '<div><strong>' + h(erroMsg(e)) + '</strong>' +
+      (tentar ? '<div class="acoes"><button class="btn btn-sm" data-acao="recarregar-view">' + ic('atualizar') + 'Tentar novamente</button></div>' : '') + '</div></div>';
+  }
+
+  /** Download de arquivo recebido em base64 (PDF, Excel, CSV). */
+  function baixarArquivo(arq) {
+    var bin = atob(arq.base64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var blob = new Blob([bytes], { type: arq.mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = arq.nome; a.rel = 'noopener';
+    document.body.appendChild(a);
+    try { a.click(); } catch (e) { window.open(url, '_blank'); }
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 60000);
+  }
+
+  // ------------------------------------------------------------------ Gráficos (SVG simples)
+  function graficoBarras(serie, limite) {
+    if (!serie.length) return vazioHtml('Ainda não há chamadas finalizadas para exibir no gráfico.');
+    var W = 640, H = 230, ml = 34, mr = 8, mt = 16, mb = 34;
+    var w = W - ml - mr, hh = H - mt - mb, n = serie.length;
+    var bw = Math.min(38, w / n * 0.66), passo = w / n;
+    var y = function (v) { return mt + hh - (v / 100) * hh; };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Frequência por dia">';
+    [0, 25, 50, 75, 100].forEach(function (g) {
+      s += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="#e2e8f0"/>' +
+        '<text x="' + (ml - 6) + '" y="' + (y(g) + 4) + '" text-anchor="end" font-size="11" fill="#64748b">' + g + '%</text>';
+    });
+    var cada = Math.ceil(n / 10);
+    serie.forEach(function (p, i) {
+      var v = p.frequencia === null ? 0 : p.frequencia;
+      var x = ml + i * passo + (passo - bw) / 2;
+      var cor = v >= limite ? '#16a34a' : '#dc2626';
+      var rotulo = p.rotulo || dataBr(p.data).slice(0, 5);
+      s += '<rect x="' + x + '" y="' + y(v) + '" width="' + bw + '" height="' + Math.max(0, mt + hh - y(v)) + '" rx="4" fill="' + cor + '"><title>' +
+        h(p.rotulo || dataBr(p.data)) + ': ' + pct(p.frequencia) + ' (P ' + p.presentes + ', AT ' + p.atrasados + ', A ' + p.ausentes + ', J ' + p.justificados + ')</title></rect>';
+      if (n <= 12) s += '<text x="' + (x + bw / 2) + '" y="' + (y(v) - 4) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#334155">' + Math.round(v) + '%</text>';
+      if (i % cada === 0) s += '<text x="' + (x + bw / 2) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="11" fill="#64748b">' + h(rotulo) + '</text>';
+    });
+    s += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + y(limite) + '" y2="' + y(limite) + '" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5 4"/>' +
+      '<text x="' + (W - mr) + '" y="' + (y(limite) - 5) + '" text-anchor="end" font-size="11" font-weight="700" fill="#1d4ed8">meta ' + limite + '%</text></svg>';
+    return '<div class="grafico">' + s + '</div>';
+  }
+  function graficoRosca(partes, centro, sub) {
+    var total = partes.reduce(function (a, p) { return a + p.v; }, 0);
+    var R = 52, CIRC = 2 * Math.PI * R, acc = 0;
+    var s = '<svg viewBox="0 0 140 140" role="img" aria-label="Distribuição"><circle cx="70" cy="70" r="' + R + '" fill="none" stroke="#f1f5f9" stroke-width="20"/>';
+    if (total > 0) partes.forEach(function (p) {
+      if (!p.v) return;
+      var len = p.v / total * CIRC;
+      s += '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + p.cor + '" stroke-width="20" stroke-dasharray="' + len + ' ' + (CIRC - len) +
+        '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 70 70)"><title>' + h(p.rotulo) + ': ' + p.v + '</title></circle>';
+      acc += len;
+    });
+    s += '<text x="70" y="70" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">' + h(centro) + '</text>' +
+      '<text x="70" y="88" text-anchor="middle" font-size="10" fill="#64748b">' + h(sub) + '</text></svg>';
+    var leg = '<div class="legenda" style="flex-direction:column;gap:6px">' + partes.map(function (p) {
+      return '<span><i style="background:' + p.cor + '"></i>' + h(p.rotulo) + ': <strong>' + p.v + '</strong>' +
+        (total ? ' (' + Math.round(p.v / total * 100) + '%)' : '') + '</span>';
+    }).join('') + '</div>';
+    return '<div class="donut-wrap">' + s + leg + '</div>';
+  }
+  function partesDistribuicao(P, T, A, J) {
+    return [{ v: P, cor: COR.PRESENTE, rotulo: 'Presenças' }, { v: T, cor: '#eab308', rotulo: 'Atrasos' },
+      { v: A, cor: COR.AUSENTE, rotulo: 'Ausências' }, { v: J, cor: '#38bdf8', rotulo: 'Faltas justificadas' }];
+  }
+
+  // ------------------------------------------------------------------ Navegação
+  var VIEWS = [
+    { id: 'painel', rotulo: 'Painel', icone: 'painel' },
+    { id: 'chamada', rotulo: 'Fazer chamada', curto: 'Chamada', icone: 'chamada', destaque: true },
+    { id: 'historico', rotulo: 'Histórico', icone: 'historico' },
+    { id: 'relatorios', rotulo: 'Relatórios', icone: 'relatorios' },
+    { id: 'estudantes', rotulo: 'Estudantes', icone: 'estudantes', gestao: true },
+    { id: 'admin', rotulo: 'Administração', icone: 'admin', gestao: true }
+  ].filter(function (v) { return !v.gestao || PERFIL_GESTAO; });
+
+  function montarNavegacao() {
+    $('#nav-lateral').innerHTML = VIEWS.map(function (v) {
+      return '<button class="nav-item ' + (v.destaque ? 'destaque' : '') + '" data-nav="' + v.id + '">' + ic(v.icone) + h(v.rotulo) + '</button>';
+    }).join('');
+    var inferior = VIEWS.filter(function (v) { return !v.gestao; });
+    $('#nav-inferior').innerHTML = inferior.map(function (v) {
+      return '<button data-nav="' + v.id + '">' + ic(v.icone) + '<span>' + h(v.curto || v.rotulo) + '</span></button>';
+    }).join('') + (PERFIL_GESTAO ? '<button data-nav="mais">' + ic('mais') + '<span>Mais</span></button>' : '');
+    $('#rodape-lateral').innerHTML = 'Versão ' + h(C.versao) + '<br>Conectado como ' + h(C.usuario.email);
+    var ini = (C.usuario.nome || '?').split(' ').filter(String);
+    $('#usuario-chip').innerHTML = '<span class="avatar">' + h((ini[0] || '?')[0] + (ini.length > 1 ? ini[ini.length - 1][0] : '')) + '</span><span class="nome">' + h(C.usuario.nome) + '</span>';
+    $('#usuario-chip').title = C.usuario.nome + ' — ' + C.usuario.email + ' (' + C.usuario.perfil + ')';
+    $('#topo-escola').textContent = C.escola;
+    preencherSeletorTurma();
+  }
+  function preencherSeletorTurma() {
+    var sel = $('#sel-turma-global');
+    var ativas = C.turmas.filter(function (t) { return t.ativa; });
+    var inativas = C.turmas.filter(function (t) { return !t.ativa; });
+    if (!C.turmas.length) { sel.innerHTML = '<option value="">Sem turmas</option>'; return; }
+    sel.innerHTML = ativas.map(function (t) { return '<option value="' + h(t.id) + '">' + h(t.nome) + '</option>'; }).join('') +
+      (inativas.length ? '<optgroup label="Inativas">' + inativas.map(function (t) { return '<option value="' + h(t.id) + '">' + h(t.nome) + '</option>'; }).join('') + '</optgroup>' : '');
+    if (!turmaAtual()) {
+      var salva = ls.get('fe:turma');
+      var pref = [salva, C.turmaPilotoId].filter(function (id) { return C.turmas.some(function (t) { return t.id === id; }); })[0];
+      S.turmaId = pref || (ativas[0] || C.turmas[0]).id;
+    }
+    sel.value = S.turmaId;
+  }
+
+  function permitirSaida() {
+    if (!Ch || !Ch.alterado) return Promise.resolve(true);
+    if (navigator.onLine !== false && Ch.editavel) {
+      return salvarChamada({}).then(function () { return !Ch || !Ch.alterado; }).then(function (ok) {
+        if (ok) return true;
+        return confirmar('Marcações não salvas', 'Não foi possível salvar algumas marcações no servidor. Elas ficam guardadas temporariamente neste aparelho. Deseja sair mesmo assim?', 'Sair');
+      });
+    }
+    return confirmar('Marcações não salvas', 'Há marcações que ainda NÃO foram salvas no servidor. Elas ficam guardadas temporariamente neste aparelho e poderão ser recuperadas ao reabrir esta chamada. Deseja sair mesmo assim?', 'Sair');
+  }
+
+  function navegar(view, forcar) {
+    if (view === 'mais') { abrirMenuMais(); return; }
+    var alvo = VIEWS.filter(function (v) { return v.id === view; })[0] ? view : 'painel';
+    if (alvo === S.view && !forcar) return;
+    var sair = S.view === 'chamada' && alvo !== 'chamada' ? permitirSaida() : Promise.resolve(true);
+    sair.then(function (ok) {
+      if (!ok) return;
+      if (S.view === 'chamada' && alvo !== 'chamada') { pararChamada(); Ch = null; }
+      S.view = alvo;
+      $$('[data-nav]').forEach(function (b) { b.classList.toggle('ativo', b.getAttribute('data-nav') === alvo || (alvo === 'estudantes' || alvo === 'admin') && b.getAttribute('data-nav') === 'mais'); });
+      window.scrollTo(0, 0);
+      renderizarView();
+    });
+  }
+  function renderizarView() {
+    var fn = { painel: vPainel, chamada: vChamada, historico: vHistorico, relatorios: vRelatorios, estudantes: vEstudantes, admin: vAdmin }[S.view];
+    if (!S.turmaId && S.view !== 'admin') {
+      $('#conteudo').innerHTML = '<div class="aviso aviso-atencao">' + ic('alerta') + '<div>Nenhuma turma disponível para o seu usuário. Solicite à equipe gestora a atribuição de uma turma.</div></div>';
+      return;
+    }
+    fn();
+  }
+  function abrirMenuMais() {
+    modal({ titulo: 'Mais opções', corpo: '<div class="grade" style="gap:8px">' + VIEWS.filter(function (v) { return v.gestao; }).map(function (v) {
+      return '<button class="btn btn-grande" style="justify-content:flex-start" data-ir="' + v.id + '">' + ic(v.icone) + h(v.rotulo) + '</button>';
+    }).join('') + '</div>', aoAbrir: function (f, fechar) {
+      f.addEventListener('click', function (ev) { var b = ev.target.closest('[data-ir]'); if (b) { fechar(null); navegar(b.getAttribute('data-ir')); } });
+    } });
+  }
+  function atualizarContexto() {
+    return servidor('apiContexto', []).then(function (ctx) {
+      C.turmas = ctx.turmas; C.escola = ctx.escola; C.periodos = ctx.periodos; C.limite = ctx.limite; C.turmaPilotoId = ctx.turmaPilotoId;
+      $('#topo-escola').textContent = C.escola;
+      preencherSeletorTurma();
+    });
+  }
+  function cabecalho(titulo, sub, direita) {
+    return '<div class="cabecalho-pagina"><div><h1>' + h(titulo) + '</h1>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>' +
+      (direita ? '<div class="linha-acoes">' + direita + '</div>' : '') + '</div>';
+  }
+
+  // ================================================================== PAINEL
+  function vPainel() {
+    var t = turmaAtual();
+    var el = $('#conteudo');
+    el.innerHTML = carregandoHtml('Carregando painel...');
+    var turmaPedida = S.turmaId;
+    servidor('apiPainel', [S.turmaId]).then(function (d) {
+      if (S.view !== 'painel' || turmaPedida !== S.turmaId) return;
+      var T = d.totais;
+      var hoje = d.chamadaHoje[0];
+      var cta = hoje ? (hoje.status === 'FINALIZADA' ? 'Ver chamada de hoje' : 'Continuar chamada de hoje') : 'Fazer chamada';
+      var html = '<div class="card boas-vindas"><div><div class="escola">' + h(C.escola) + '</div>' +
+        '<div class="ola">Olá, ' + h(C.usuario.nome) + '</div>' +
+        '<div class="info">' + h(d.turma.nome) + ' · ' + h(dataExtenso(d.hoje)) + (hoje ? ' · Chamada de hoje: <strong>' + (hoje.status === 'FINALIZADA' ? 'finalizada' : 'em rascunho') + '</strong>' : '') + '</div></div>' +
+        '<button class="btn btn-grande" data-nav="chamada">' + ic('chamada') + h(cta) + '</button></div>';
+      if (d.rascunhos.length) {
+        html += '<div class="aviso aviso-atencao" style="margin-top:14px">' + ic('alerta') + '<div><strong>' + d.rascunhos.length + ' chamada(s) em rascunho</strong> (não entram nas estatísticas até serem finalizadas): ' +
+          d.rascunhos.slice(0, 6).map(function (r) { return '<button class="btn-link" data-abrir-chamada="' + h(r.data) + '|' + h(r.periodo) + '">' + dataBr(r.data) + (r.periodo !== 'DIARIO' ? ' (' + h(r.periodo) + ')' : '') + '</button>'; }).join(', ') + '</div></div>';
+      }
+      html += '<h2 class="secao">Resumo da turma</h2><div class="grade grade-kpi">' +
+        kpi('Estudantes cadastrados', d.estudantesAtivos, 'ativos na turma', '') +
+        kpi('Chamadas realizadas', d.chamadasRealizadas, 'finalizadas', '') +
+        kpi('Frequência geral', pct(T.frequencia), T.base ? T.comparecimentos + ' de ' + T.base + ' registros' : 'sem registros ainda', T.frequencia !== null && T.frequencia < d.limite ? 'vermelho' : 'verde') +
+        kpi('Ausências', T.A, 'faltas registradas', 'vermelho') +
+        kpi('Atrasos', T.T, 'registros de atraso', 'amarelo') +
+        kpi('Faltas justificadas', T.J, 'identificadas à parte', 'just') + '</div>';
+      html += '<div class="grade grade-2" style="margin-top:14px">' +
+        '<div class="card card-corpo"><div class="card-titulo">' + ic('relatorios') + 'Frequência por dia (últimas chamadas)</div>' + graficoBarras(d.serie, d.limite) + '</div>' +
+        '<div class="card card-corpo"><div class="card-titulo">' + ic('painel') + 'Distribuição dos registros</div>' + graficoRosca(partesDistribuicao(T.P, T.T, T.A, T.J), pct(T.frequencia), 'frequência') + '</div></div>';
+      html += '<h2 class="secao">ACOMPANHAMENTO DA FREQUÊNCIA</h2><div class="card card-corpo">';
+      if (!T.base) {
+        html += vazioHtml('Os indicadores aparecerão após a primeira chamada finalizada.');
+      } else if (!d.alertas.length) {
+        html += '<div class="aviso aviso-ok" style="margin:0">' + ic('PRESENTE') + '<div>Nenhum estudante está abaixo de ' + h(d.limite) + '% de frequência.</div></div>';
+      } else {
+        html += '<p style="margin:0 0 8px;color:#475569">' + d.alertas.length + ' estudante(s) com frequência inferior a <strong>' + h(d.limite) + '%</strong>:</p><ul class="lista-alerta">' +
+          d.alertas.map(function (a) {
+            return '<li><span class="n">' + h(a.numero) + '</span><div class="nome"><button class="btn-link" data-ficha="' + h(a.id) + '">' + h(a.nome) + '</button>' +
+              '<div class="barra-pct"><span style="width:' + Math.max(2, a.frequencia) + '%"></span></div></div>' +
+              '<div style="text-align:right"><span class="etiqueta et-alerta">' + pct(a.frequencia) + '</span><div style="font-size:12px;color:#64748b;margin-top:3px">' +
+              a.ausencias + ' aus. · ' + a.justificadas + ' just. · ' + a.atrasos + ' atr.</div></div></li>';
+          }).join('') + '</ul>';
+      }
+      html += '<p style="font-size:12px;color:#64748b;margin:12px 0 0">' + ic('info').replace('class="ic"', 'class="ic" style="width:14px;height:14px;vertical-align:-2px"') + ' ' + h(d.regras) + '</p></div>';
+      el.innerHTML = html;
+    }).catch(function (e) { if (S.view === 'painel') el.innerHTML = erroHtml(e, true); });
+  }
+  function kpi(rotulo, valor, det, cor) {
+    return '<div class="card kpi ' + (cor || '') + '"><div class="rotulo">' + h(rotulo) + '</div><div class="valor">' + h(valor) + '</div><div class="det">' + h(det) + '</div></div>';
+  }
+
+  // ================================================================== CHAMADA
+  function chaveLocal(turmaId, data, periodo) { return 'fe:pend:' + turmaId + '|' + data + '|' + periodo; }
+
+  function vChamada(dataInicial, periodoInicial) {
+    var hoje = hojeSP();
+    var t = turmaAtual();
+    var data = dataInicial || (Ch && Ch.turmaId === S.turmaId ? Ch.data : hoje);
+    if (data > hoje) data = hoje;
+    var periodos = C.periodos || ['DIARIO'];
+    var periodo = periodoInicial || (Ch && Ch.turmaId === S.turmaId ? Ch.periodo : periodos[0]);
+    var el = $('#conteudo');
+    el.innerHTML = cabecalho('Fazer chamada', h(t ? t.nome : '') + ' · Professor(a): ' + h(C.usuario.nome)) +
+      '<div class="card card-corpo"><div class="chamada-topo">' +
+      '<div class="campo"><label for="ch-turma">Turma</label><select id="ch-turma">' + C.turmas.map(function (x) { return '<option value="' + h(x.id) + '"' + (x.id === S.turmaId ? ' selected' : '') + '>' + h(x.nome) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="campo"><label for="ch-data">Data</label><input type="date" id="ch-data" value="' + h(data) + '" max="' + h(hoje) + '"' + (t && t.dataInicio ? ' min="' + h(t.dataInicio) + '"' : '') + '></div>' +
+      (periodos.length > 1 || (periodo && periodos.indexOf(periodo) < 0) ? '<div class="campo"><label for="ch-periodo">Aula / período</label><select id="ch-periodo">' +
+        periodos.concat(periodos.indexOf(periodo) < 0 ? [periodo] : []).map(function (p) { return '<option value="' + h(p) + '"' + (p === periodo ? ' selected' : '') + '>' + h(nomePeriodo(p)) + '</option>'; }).join('') + '</select></div>' : '') +
+      '<div class="campo"><label>Professor(a)</label><input type="text" value="' + h(C.usuario.nome) + '" readonly tabindex="-1"></div>' +
+      '</div><div class="faixa-status" id="ch-faixa"></div></div>' +
+      '<div id="ch-avisos" style="margin-top:14px"></div><div id="ch-corpo">' + carregandoHtml('Carregando estudantes...') + '</div>';
+    carregarChamada(S.turmaId, data, periodo);
+  }
+
+  function carregarChamada(turmaId, data, periodo) {
+    pararChamada();
+    var pedido = turmaId + '|' + data + '|' + periodo;
+    S.pedidoChamada = pedido;
+    $('#ch-corpo').innerHTML = carregandoHtml('Carregando estudantes...');
+    $('#ch-avisos').innerHTML = '';
+    $('#ch-faixa').innerHTML = '';
+    servidor('apiCarregarChamada', [{ turmaId: turmaId, data: data, periodo: periodo }]).then(function (estado) {
+      if (S.view !== 'chamada' || S.pedidoChamada !== pedido) return;
+      iniciarEstadoChamada(estado);
+      renderChamada();
+      verificarPendenciaLocal();
+    }).catch(function (e) {
+      if (S.view !== 'chamada' || S.pedidoChamada !== pedido) return;
+      $('#ch-corpo').innerHTML = erroHtml(e, true);
+    });
+  }
+
+  function iniciarEstadoChamada(estado) {
+    Ch = {
+      turmaId: estado.turma.id, turmaNome: estado.turma.nome, data: estado.data, periodo: estado.periodo,
+      chamada: estado.chamada, versao: estado.chamada ? estado.chamada.versao : 0,
+      estudantes: estado.estudantes, permissoes: estado.permissoes,
+      sit: {}, obs: {}, servidorSit: {}, servidorObs: {},
+      seq: 0, alterado: false, salvando: null, salvarDepois: false, timer: null, status: 'inicial'
+    };
+    estado.estudantes.forEach(function (e) {
+      Ch.sit[e.id] = Ch.servidorSit[e.id] = e.situacao;
+      Ch.obs[e.id] = Ch.servidorObs[e.id] = e.observacao || '';
+    });
+    Ch.editavel = Ch.permissoes.editar && !(Ch.chamada && Ch.chamada.status === 'FINALIZADA');
+  }
+
+  function pararChamada() {
+    if (Ch && Ch.timer) { clearTimeout(Ch.timer); Ch.timer = null; }
+  }
+
+  function renderChamada() {
+    var c = Ch.chamada;
+    var statusTxt = !c ? '<span class="etiqueta et-NAO_REGISTRADO">Nova chamada</span>' :
+      '<span class="etiqueta et-' + c.status + '">' + (c.status === 'FINALIZADA' ? 'Finalizada' : 'Rascunho') + '</span>';
+    var info = c ? (c.status === 'FINALIZADA' ? 'Finalizada em ' + dataHoraBr(c.finalizadoEm) + ' por ' + h(c.finalizadoPor) : 'Última gravação: ' + dataHoraBr(c.atualizadoEm) + ' por ' + h(c.atualizadoPor)) : 'Ainda não salva no servidor.';
+    $('#ch-faixa').innerHTML = '<div class="linha-acoes">' + statusTxt + '<span style="font-size:13px;color:#64748b">' + info + '</span></div>' +
+      '<span style="font-size:13px;color:#475569;font-weight:600">' + h(dataExtenso(Ch.data)) + '</span>';
+
+    var avisos = '';
+    var dow = diaSemana(Ch.data);
+    if (dow === 0 || dow === 6) avisos += '<div class="aviso aviso-atencao">' + ic('alerta') + '<div>A data selecionada é ' + (dow === 0 ? 'domingo' : 'sábado') + '. Confirme se é um dia letivo antes de registrar.</div></div>';
+    if (!Ch.permissoes.editar) avisos += '<div class="aviso aviso-info">' + ic('cadeado') + '<div>' + h(Ch.permissoes.motivo || 'Somente consulta.') + '</div></div>';
+    if (c && c.status === 'FINALIZADA') {
+      avisos += '<div class="aviso aviso-ok">' + ic('finalizar') + '<div><strong>Chamada finalizada.</strong> Os registros estão salvos no servidor.' +
+        (Ch.permissoes.editar && Ch.permissoes.reabrir ? '<div class="acoes"><button class="btn btn-sm" data-acao="reabrir">' + ic('abrir') + 'Reabrir para correção</button></div>' : '') + '</div></div>';
+    }
+    if (!Ch.estudantes.length) {
+      $('#ch-avisos').innerHTML = avisos;
+      $('#ch-corpo').innerHTML = '<div class="card">' + vazioHtml('Não há estudantes matriculados nesta turma para a data selecionada.') + '</div>';
+      return;
+    }
+    $('#ch-avisos').innerHTML = avisos + '<div id="ch-restaurar"></div>';
+    var dis = Ch.editavel ? '' : ' disabled';
+    var linhas = Ch.estudantes.map(function (e) {
+      return '<div class="lc-linha s-' + Ch.sit[e.id] + (e.inativo ? ' inativo' : '') + '" data-est="' + h(e.id) + '">' +
+        '<div class="lc-num">' + h(e.numero) + '</div>' +
+        '<div class="lc-nome"><button class="btn-link" data-ficha="' + h(e.id) + '">' + h(e.nome) + '</button>' +
+        '<span class="sit-texto">' + h(ROT_LONGO[Ch.sit[e.id]]) + (e.inativo ? ' · não matriculado(a) atualmente' : '') + '</span></div>' +
+        '<div class="lc-botoes">' + SIT.map(function (s) {
+          var sel = Ch.sit[e.id] === s;
+          return '<button class="bsit b-' + s + (sel ? ' sel' : '') + '" data-sit="' + s + '" aria-pressed="' + sel + '" aria-label="' + h(ROT_LONGO[s] + ' — ' + e.nome) + '"' + dis + '>' + ic(s) + '<span>' + ROT[s] + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="lc-obs' + (Ch.obs[e.id] ? ' tem' : '') + '"><input type="text" maxlength="200" data-obs="' + h(e.id) + '" placeholder="Observação (opcional) — ex.: atestado médico" value="' + h(Ch.obs[e.id]) + '"' + dis + '></div>' +
+        '</div>';
+    }).join('');
+    $('#ch-corpo').innerHTML =
+      (Ch.editavel ? '<div class="linha-acoes acoes-lista">' +
+        '<button class="btn" data-acao="todos-presentes">' + ic('todos') + 'Marcar todos como presentes</button>' +
+        '<button class="btn btn-perigo" data-acao="limpar">' + ic('limpar') + 'Limpar seleção</button></div>' : '') +
+      '<div class="contadores" id="ch-contadores"></div>' +
+      '<div class="lista-chamada" role="table" aria-label="Lista de chamada"><div class="lc-cabecalho" role="row"><span>Nº</span><span>Estudante</span><span>Presente</span><span>Ausente</span><span>Atrasado</span><span>Justificada</span></div>' + linhas + '</div>' +
+      (Ch.editavel ? '<div class="barra-acoes">' +
+        '<span class="status-salvamento" id="ch-status" role="status" aria-live="polite"><span class="ponto"></span><span class="txt"></span></span><span class="espaco"></span>' +
+        '<button class="btn btn-primario" data-acao="salvar">' + ic('salvar') + 'Salvar chamada</button>' +
+        '<button class="btn btn-sucesso" data-acao="finalizar">' + ic('finalizar') + 'Finalizar chamada</button></div>' : '');
+    atualizarContadores();
+    definirStatus(Ch.alterado ? 'pendente' : (c ? 'salvo-inicial' : 'inicial'));
+  }
+
+  function contagem() {
+    var r = { total: Ch.estudantes.length, PRESENTE: 0, AUSENTE: 0, ATRASADO: 0, JUSTIFICADA: 0, NAO_REGISTRADO: 0 };
+    Ch.estudantes.forEach(function (e) { r[Ch.sit[e.id]]++; });
+    return r;
+  }
+  function atualizarContadores() {
+    var el = $('#ch-contadores');
+    if (!el) return;
+    var k = contagem();
+    el.innerHTML = [['', 'Total', 'Total', k.total], ['c-P', 'Presentes', 'Pres.', k.PRESENTE], ['c-A', 'Ausentes', 'Aus.', k.AUSENTE], ['c-T', 'Atrasados', 'Atr.', k.ATRASADO],
+      ['c-J', 'Justificados', 'Just.', k.JUSTIFICADA], ['c-N' + (k.NAO_REGISTRADO ? ' pendente' : ''), 'Não registrados', 'Falta', k.NAO_REGISTRADO]]
+      .map(function (x) {
+        return '<div class="contador ' + x[0] + '" title="' + x[1] + '"><div class="v">' + x[3] + '</div><div class="r"><span class="longo">' + x[1] + '</span><span class="curto">' + x[2] + '</span></div></div>';
+      }).join('');
+  }
+  function atualizarLinha(id) {
+    var linha = $('.lc-linha[data-est="' + id + '"]');
+    if (!linha) return;
+    var s = Ch.sit[id];
+    linha.className = 'lc-linha s-' + s + (linha.classList.contains('inativo') ? ' inativo' : '');
+    $$('.bsit', linha).forEach(function (b) {
+      var sel = b.getAttribute('data-sit') === s;
+      b.classList.toggle('sel', sel);
+      b.setAttribute('aria-pressed', sel);
+    });
+    var txt = $('.sit-texto', linha);
+    var est = Ch.estudantes.filter(function (e) { return e.id === id; })[0];
+    if (txt) txt.textContent = ROT_LONGO[s] + (est && est.inativo ? ' · não matriculado(a) atualmente' : '');
+    var obs = $('.lc-obs', linha);
+    if (obs) obs.classList.toggle('tem', !!Ch.obs[id]);
+  }
+
+  /** Estado de salvamento exibido ao professor. Nunca indica "salvo" sem confirmação do servidor. */
+  function definirStatus(tipo, extra) {
+    if (Ch) Ch.status = tipo;
+    var el = $('#ch-status');
+    if (!el) return;
+    var mapa = {
+      'inicial': ['', 'Nenhuma alteração'],
+      'salvo-inicial': ['salvo', 'Dados carregados do servidor'],
+      'pendente': ['pendente', 'Alterações ainda não salvas'],
+      'salvando': ['salvando', 'Salvando...'],
+      'tentando': ['salvando', 'Tentando novamente' + (extra ? ' (' + extra + ')' : '') + '...'],
+      'salvo': ['salvo', 'Salvo com sucesso' + (extra ? ' às ' + extra : '')],
+      'erro': ['erro', 'Erro ao salvar' + (extra ? ': ' + extra : '')],
+      'offline': ['offline', 'Sem conexão — guardado só neste aparelho']
+    };
+    var m = mapa[tipo] || mapa.inicial;
+    el.className = 'status-salvamento ' + m[0];
+    $('.txt', el).textContent = m[1];
+  }
+
+  function guardarLocal() {
+    // Guarda as marcações e também a "base" (o que o servidor tinha), para reaplicar depois
+    // somente o que foi alterado NESTE aparelho, sem apagar alterações de outras pessoas.
+    ls.set(chaveLocal(Ch.turmaId, Ch.data, Ch.periodo), {
+      sit: Ch.sit, obs: Ch.obs, baseSit: Ch.servidorSit, baseObs: Ch.servidorObs,
+      versao: Ch.versao, chamadaId: Ch.chamada ? Ch.chamada.id : '', quando: new Date().toISOString()
+    });
+  }
+  function limparLocal() { ls.del(chaveLocal(Ch.turmaId, Ch.data, Ch.periodo)); }
+
+  /** Se há marcações deste aparelho que não chegaram ao servidor, oferece restaurá-las. */
+  function verificarPendenciaLocal() {
+    var p = ls.get(chaveLocal(Ch.turmaId, Ch.data, Ch.periodo));
+    if (!p) return;
+    if (!Ch.editavel) { return; }
+    var alteradosLocal = alteracoesLocais(p);
+    var diferencas = Ch.estudantes.filter(function (e) {
+      return alteradosLocal[e.id] && (p.sit[e.id] !== Ch.servidorSit[e.id] || (p.obs[e.id] || '') !== (Ch.servidorObs[e.id] || ''));
+    }).length;
+    if (!diferencas) { limparLocal(); return; }
+    var quando = '';
+    try { quando = new Date(p.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { quando = ''; }
+    var conflito = Number(p.versao) !== Number(Ch.versao);
+    $('#ch-restaurar').innerHTML = '<div class="aviso aviso-atencao">' + ic('alerta') + '<div><strong>Há ' + diferencas + ' marcação(ões) feitas neste aparelho' + (quando ? ' (' + h(quando) + ')' : '') +
+      ' que NÃO foram salvas no servidor.</strong>' + (conflito ? ' Atenção: a chamada foi alterada no servidor depois disso; ao restaurar, as marcações deste aparelho substituirão as do servidor para esses estudantes.' : '') +
+      '<div class="acoes"><button class="btn btn-sm btn-primario" data-acao="restaurar">Restaurar e salvar</button><button class="btn btn-sm" data-acao="descartar">Descartar</button></div></div></div>';
+  }
+
+  /** Estudantes cuja marcação local difere da base do servidor no momento em que foi feita. */
+  function alteracoesLocais(p) {
+    var r = {};
+    Object.keys(p.sit || {}).forEach(function (id) {
+      var base = p.baseSit ? p.baseSit[id] : undefined;
+      var baseObs = p.baseObs ? (p.baseObs[id] || '') : '';
+      if (base === undefined || p.sit[id] !== base || (p.obs[id] || '') !== baseObs) r[id] = true;
+    });
+    return r;
+  }
+  function marcarAlterado() {
+    Ch.seq++;
+    Ch.alterado = true;
+    guardarLocal();
+    atualizarContadores();
+    definirStatus(navigator.onLine === false ? 'offline' : 'pendente');
+    if (Ch.timer) clearTimeout(Ch.timer);
+    Ch.timer = setTimeout(function () { Ch.timer = null; salvarChamada({ auto: true }); }, 4000);
+  }
+
+  /**
+   * Envia a chamada ao servidor. Só uma gravação por vez; alterações feitas durante
+   * o envio disparam nova gravação ao término. O mesmo requestId é reutilizado nas
+   * novas tentativas automáticas (o servidor não duplica).
+   */
+  function salvarChamada(opts) {
+    opts = opts || {};
+    if (!Ch || !Ch.editavel) return Promise.resolve(false);
+    if (Ch.salvando) {
+      if (!opts.finalizar) { Ch.salvarDepois = true; return Ch.salvando; }
+      return Ch.salvando.then(function () { return salvarChamada(opts); });
+    }
+    if (Ch.timer) { clearTimeout(Ch.timer); Ch.timer = null; }
+    if (!Ch.alterado && !opts.finalizar && !opts.forcar) { if (!opts.auto) definirStatus(Ch.chamada ? 'salvo' : 'inicial'); return Promise.resolve(true); }
+    if (navigator.onLine === false) { definirStatus('offline'); if (!opts.auto) toast('Sem conexão. As marcações estão guardadas neste aparelho e serão enviadas quando a internet voltar.', 'erro'); return Promise.resolve(false); }
+    var estado = Ch;
+    var seq = Ch.seq;
+    var payload = {
+      turmaId: Ch.turmaId, data: Ch.data, periodo: Ch.periodo, chamadaId: Ch.chamada ? Ch.chamada.id : '', versao: Ch.versao,
+      requestId: idReq(), finalizar: !!opts.finalizar,
+      registros: Ch.estudantes.map(function (e) { return { estudanteId: e.id, situacao: Ch.sit[e.id], observacao: Ch.obs[e.id] || '' }; })
+    };
+    definirStatus('salvando');
+    var botoes = $$('[data-acao="salvar"],[data-acao="finalizar"]');
+    if (opts.finalizar) botoes.forEach(function (b) { b.disabled = true; });
+    Ch.salvando = servidor('apiSalvarChamada', [payload], {
+      tentativas: 3, exigeConexao: true,
+      aoTentarNovamente: function (n, max) { if (Ch === estado) definirStatus('tentando', n + '/' + max); }
+    }).then(function (novo) {
+      if (Ch !== estado) return true;
+      aplicarRespostaServidor(novo, seq);
+      var hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (opts.finalizar) {
+        toast('Chamada finalizada e salva com sucesso.', 'ok');
+        renderChamada();
+        definirStatus('salvo', hora);
+      } else {
+        definirStatus(Ch.alterado ? 'pendente' : 'salvo', hora);
+        if (!opts.auto) toast('Chamada salva com sucesso.', 'ok');
+        if (novo.chamada) renderFaixaSomente();
+      }
+      return true;
+    }).catch(function (e) {
+      if (Ch !== estado) return false;
+      tratarErroSalvar(e, opts);
+      return false;
+    }).then(function (r) {
+      if (Ch === estado) {
+        Ch.salvando = null;
+        botoes.forEach(function (b) { b.disabled = false; });
+        if (Ch.salvarDepois) { Ch.salvarDepois = false; if (Ch.alterado) salvarChamada({ auto: true }); }
+      }
+      return r;
+    });
+    return Ch.salvando;
+  }
+
+  function renderFaixaSomente() {
+    var c = Ch.chamada;
+    if (!c || !$('#ch-faixa')) return;
+    var span = $('#ch-faixa .linha-acoes');
+    if (span) span.innerHTML = '<span class="etiqueta et-' + c.status + '">' + (c.status === 'FINALIZADA' ? 'Finalizada' : 'Rascunho') + '</span>' +
+      '<span style="font-size:13px;color:#64748b">Última gravação: ' + dataHoraBr(c.atualizadoEm) + ' por ' + h(c.atualizadoPor) + '</span>';
+  }
+
+  /** Aplica a resposta confirmada do servidor, preservando alterações feitas durante o envio. */
+  function aplicarRespostaServidor(novo, seqEnviado) {
+    Ch.chamada = novo.chamada;
+    Ch.versao = novo.chamada ? novo.chamada.versao : 0;
+    Ch.permissoes = novo.permissoes;
+    var porId = {};
+    Ch.estudantes.forEach(function (e) { porId[e.id] = e; });
+    novo.estudantes.forEach(function (e) {
+      Ch.servidorSit[e.id] = e.situacao;
+      Ch.servidorObs[e.id] = e.observacao || '';
+      if (!porId[e.id]) { Ch.estudantes.push(e); Ch.sit[e.id] = e.situacao; Ch.obs[e.id] = e.observacao || ''; }
+    });
+    if (Ch.seq === seqEnviado) {
+      Ch.alterado = false;
+      limparLocal();
+    } else {
+      guardarLocal();
+    }
+    Ch.editavel = Ch.permissoes.editar && !(Ch.chamada && Ch.chamada.status === 'FINALIZADA');
+  }
+
+  function tratarErroSalvar(e, opts) {
+    if (e.rede) {
+      definirStatus(navigator.onLine === false ? 'offline' : 'erro', navigator.onLine === false ? '' : 'falha de comunicação');
+      if (!opts.auto) toast('Não foi possível salvar: ' + erroMsg(e) + ' As marcações continuam guardadas neste aparelho.', 'erro');
+      return;
+    }
+    if (e.codigo === 'CONFLITO' && e.dados) {
+      definirStatus('erro', 'conflito');
+      modal({
+        titulo: 'Chamada alterada por outra pessoa',
+        corpo: '<p style="margin-top:0">' + h(e.erro) + '</p><p>O que deseja fazer?</p><ul><li><strong>Manter minhas marcações:</strong> suas marcações substituem as do servidor.</li><li><strong>Carregar versão do servidor:</strong> descarta as marcações feitas neste aparelho.</li></ul>',
+        semFecharFora: true,
+        acoes: [{ rotulo: 'Carregar versão do servidor', valor: 'servidor' }, { rotulo: 'Manter minhas marcações', classe: 'btn-primario', valor: 'manter' }]
+      }).then(function (op) {
+        if (op === 'manter') {
+          // Reaplica somente o que ESTE usuário alterou; o restante fica como a outra pessoa salvou.
+          var minhas = alteracoesLocais({ sit: Ch.sit, obs: Ch.obs, baseSit: Ch.servidorSit, baseObs: Ch.servidorObs });
+          var minhasSit = Ch.sit, minhasObs = Ch.obs;
+          iniciarEstadoChamada(e.dados);
+          if (!Ch.editavel) { renderChamada(); toast('A chamada foi finalizada por outra pessoa e não pode ser alterada sem reabertura.', 'erro'); return; }
+          Ch.estudantes.forEach(function (x) { if (minhas[x.id]) { Ch.sit[x.id] = minhasSit[x.id]; Ch.obs[x.id] = minhasObs[x.id] || ''; } });
+          renderChamada();
+          marcarAlterado();
+          salvarChamada({});
+        } else if (op === 'servidor') {
+          limparLocal();
+          iniciarEstadoChamada(e.dados);
+          renderChamada();
+        }
+      });
+      return;
+    }
+    if (e.codigo === 'FINALIZADA') {
+      definirStatus('erro', 'chamada já finalizada');
+      alertar('Chamada já finalizada', h(e.erro)).then(function () { carregarChamada(Ch.turmaId, Ch.data, Ch.periodo); });
+      return;
+    }
+    definirStatus('erro', '');
+    if (!opts.auto || e.codigo !== 'OCUPADO') toast(erroMsg(e), 'erro');
+  }
+
+  function finalizarChamada() {
+    var k = contagem();
+    if (k.NAO_REGISTRADO > 0) {
+      var faltam = Ch.estudantes.filter(function (e) { return Ch.sit[e.id] === 'NAO_REGISTRADO'; });
+      modal({
+        titulo: 'Ainda há estudantes sem registro',
+        corpo: '<p style="margin-top:0">Para finalizar, todos os estudantes precisam ter uma situação registrada. Faltam <strong>' + faltam.length + '</strong>:</p><ul>' +
+          faltam.slice(0, 12).map(function (e) { return '<li>' + h(e.numero) + ' — ' + h(e.nome) + '</li>'; }).join('') + (faltam.length > 12 ? '<li>...</li>' : '') + '</ul>' +
+          '<p>Você pode salvar como rascunho e finalizar depois.</p>',
+        acoes: [{ rotulo: 'Voltar', valor: false }, { rotulo: 'Salvar como rascunho', classe: 'btn-primario', valor: 'rascunho' }]
+      }).then(function (v) {
+        if (v === 'rascunho') salvarChamada({ forcar: true });
+        var primeiro = faltam[0] && $('.lc-linha[data-est="' + faltam[0].id + '"]');
+        if (primeiro && v !== 'rascunho') primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      return;
+    }
+    confirmar('Finalizar chamada?',
+      '<strong>' + h(Ch.turmaNome) + ' — ' + dataBr(Ch.data) + (Ch.periodo !== 'DIARIO' ? ' (' + h(Ch.periodo) + ')' : '') + '</strong><br><br>' +
+      'Presentes: <strong>' + k.PRESENTE + '</strong> · Ausentes: <strong>' + k.AUSENTE + '</strong> · Atrasados: <strong>' + k.ATRASADO + '</strong> · Justificados: <strong>' + k.JUSTIFICADA + '</strong>' +
+      '<br><br>Depois de finalizada, alterações só poderão ser feitas por reabertura ou correção, com registro na auditoria.', 'Finalizar chamada', 'btn-sucesso')
+      .then(function (ok) { if (ok) salvarChamada({ finalizar: true }); });
+  }
+
+  function reabrirChamada() {
+    pedirTexto('Reabrir chamada para correção', 'Motivo da reabertura (obrigatório)', 'O motivo ficará registrado na auditoria.', 5, 'Reabrir').then(function (motivo) {
+      if (!motivo) return;
+      servidor('apiReabrirChamada', [{ chamadaId: Ch.chamada.id, versao: Ch.versao, motivo: motivo, requestId: idReq() }], { exigeConexao: true }).then(function (estado) {
+        iniciarEstadoChamada(estado);
+        renderChamada();
+        toast('Chamada reaberta para correção.', 'ok');
+      }).catch(function (e) { toast(erroMsg(e), 'erro'); if (e.codigo === 'CONFLITO') carregarChamada(Ch.turmaId, Ch.data, Ch.periodo); });
+    });
+  }
+
+  function trocarChamada(turmaId, data, periodo) {
+    if (S.pedidoChamada === turmaId + '|' + data + '|' + periodo) return; // já carregada/carregando
+    permitirSaida().then(function (ok) {
+      if (!ok) {
+        $('#ch-data').value = Ch.data;
+        if ($('#ch-turma')) $('#ch-turma').value = Ch.turmaId;
+        if ($('#ch-periodo')) $('#ch-periodo').value = Ch.periodo;
+        return;
+      }
+      if (turmaId !== S.turmaId) { S.turmaId = turmaId; ls.set('fe:turma', turmaId); $('#sel-turma-global').value = turmaId; vChamada(data, periodo); return; }
+      carregarChamada(turmaId, data, periodo);
+    });
+  }
+
+  // Eventos da tela de chamada
+  function eventoChamada(ev) {
+    if (!Ch) return false;
+    var b = ev.target.closest('.bsit');
+    if (b && !b.disabled) {
+      if (!Ch.editavel) return true;
+      var id = b.closest('.lc-linha').getAttribute('data-est');
+      var s = b.getAttribute('data-sit');
+      if (Ch.sit[id] !== s) {
+        Ch.sit[id] = s;
+        if (s !== 'JUSTIFICADA' && s !== 'ATRASADO') Ch.obs[id] = '';
+        atualizarLinha(id);
+        marcarAlterado();
+      }
+      return true;
+    }
+    var a = ev.target.closest('[data-acao]');
+    if (!a) return false;
+    var acao = a.getAttribute('data-acao');
+    if (acao === 'todos-presentes') {
+      var n = 0;
+      Ch.estudantes.forEach(function (e) { if (Ch.sit[e.id] === 'NAO_REGISTRADO') { Ch.sit[e.id] = 'PRESENTE'; atualizarLinha(e.id); n++; } });
+      if (n) { marcarAlterado(); toast(n + ' estudante(s) sem registro marcado(s) como presente(s). Ajuste as exceções.', 'ok'); }
+      else toast('Todos os estudantes já têm uma situação registrada.');
+      return true;
+    }
+    if (acao === 'limpar') {
+      confirmar('Limpar seleção?', 'Todas as marcações desta chamada voltarão para "Não registrado". Esta ação será salva no servidor como rascunho.', 'Limpar seleção', 'btn-perigo-cheio').then(function (ok) {
+        if (!ok) return;
+        Ch.estudantes.forEach(function (e) { Ch.sit[e.id] = 'NAO_REGISTRADO'; Ch.obs[e.id] = ''; atualizarLinha(e.id); });
+        $$('[data-obs]').forEach(function (i) { i.value = ''; });
+        marcarAlterado();
+      });
+      return true;
+    }
+    if (acao === 'salvar') { salvarChamada({ forcar: !Ch.chamada }); return true; }
+    if (acao === 'finalizar') { finalizarChamada(); return true; }
+    if (acao === 'reabrir') { reabrirChamada(); return true; }
+    if (acao === 'restaurar') {
+      var p = ls.get(chaveLocal(Ch.turmaId, Ch.data, Ch.periodo));
+      if (p) {
+        var alterados = alteracoesLocais(p);
+        Ch.estudantes.forEach(function (e) {
+          if (alterados[e.id] && p.sit[e.id]) { Ch.sit[e.id] = p.sit[e.id]; Ch.obs[e.id] = p.obs[e.id] || ''; }
+        });
+      }
+      renderChamada();
+      marcarAlterado();
+      salvarChamada({});
+      return true;
+    }
+    if (acao === 'descartar') {
+      confirmar('Descartar marcações?', 'As marcações guardadas neste aparelho serão descartadas. Os dados do servidor permanecem.', 'Descartar', 'btn-perigo-cheio').then(function (ok) {
+        if (ok) { limparLocal(); $('#ch-restaurar').innerHTML = ''; }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // ================================================================== HISTÓRICO
+  function opcoesEstudantes(turmaId, selecionado) {
+    return carregarEstudantesTurma(turmaId).then(function (lista) {
+      return '<option value="">Todos</option>' + lista.map(function (e) {
+        return '<option value="' + h(e.id) + '"' + (e.id === selecionado ? ' selected' : '') + '>' + h(e.numero) + ' — ' + h(e.nome) + (e.situacao !== 'ATIVO' ? ' (inativo)' : '') + '</option>';
+      }).join('');
+    });
+  }
+  function carregarEstudantesTurma(turmaId) {
+    if (S.estudantesCache[turmaId]) return Promise.resolve(S.estudantesCache[turmaId]);
+    return servidor('apiListarEstudantes', [turmaId, true]).then(function (l) { S.estudantesCache[turmaId] = l; return l; });
+  }
+
+  function vHistorico() {
+    var t = turmaAtual();
+    var hoje = hojeSP();
+    var f = S.filtroHist && S.filtroHist.turmaId === S.turmaId ? S.filtroHist : { turmaId: S.turmaId, inicio: somarDias(hoje, -30) < (t.dataInicio || '') ? t.dataInicio : somarDias(hoje, -30), fim: hoje, estudanteId: '', situacao: '', status: '', pagina: 1 };
+    S.filtroHist = f;
+    $('#conteudo').innerHTML = cabecalho('Histórico de frequência', h(t.nome) + ' · consulte chamadas e corrija registros') +
+      '<div class="card card-corpo"><div class="filtros">' +
+      '<div class="campo"><label for="hf-ini">De</label><input type="date" id="hf-ini" value="' + h(f.inicio) + '"></div>' +
+      '<div class="campo"><label for="hf-fim">Até</label><input type="date" id="hf-fim" value="' + h(f.fim) + '" max="' + h(hoje) + '"></div>' +
+      '<div class="campo"><label for="hf-est">Estudante</label><select id="hf-est"><option value="">Carregando...</option></select></div>' +
+      '<div class="campo"><label for="hf-sit">Situação</label><select id="hf-sit"><option value="">Todas</option>' +
+      SIT.concat(['NAO_REGISTRADO']).map(function (s) { return '<option value="' + s + '"' + (f.situacao === s ? ' selected' : '') + '>' + ROT_LONGO[s] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="campo"><label for="hf-status">Status da chamada</label><select id="hf-status"><option value="">Todos</option><option value="FINALIZADA"' + (f.status === 'FINALIZADA' ? ' selected' : '') + '>Finalizada</option><option value="RASCUNHO"' + (f.status === 'RASCUNHO' ? ' selected' : '') + '>Rascunho</option></select></div>' +
+      '<div class="campo"><button class="btn btn-primario" data-acao="hist-buscar">' + ic('vazio') + 'Consultar</button></div>' +
+      '</div></div><div id="hist-res" style="margin-top:14px"></div>';
+    opcoesEstudantes(S.turmaId, f.estudanteId).then(function (op) { if ($('#hf-est')) $('#hf-est').innerHTML = op; }).catch(function () { if ($('#hf-est')) $('#hf-est').innerHTML = '<option value="">Todos</option>'; });
+    buscarHistorico();
+  }
+  function buscarHistorico() {
+    var f = S.filtroHist;
+    var el = $('#hist-res');
+    el.innerHTML = '<div class="card">' + carregandoHtml('Consultando...') + '</div>';
+    servidor('apiListarHistorico', [f]).then(function (r) {
+      if (S.view !== 'historico' || !$('#hist-res')) return;
+      var html = '<div class="card"><div class="tabela-wrap">';
+      if (!r.itens.length) html += vazioHtml('Nenhum resultado para os filtros escolhidos.');
+      else if (r.modo === 'CHAMADAS') {
+        html += '<table class="tabela"><thead><tr><th>Data</th><th>Período</th><th>Status</th><th class="num">Pres.</th><th class="num">Atr.</th><th class="num">Aus.</th><th class="num">Just.</th><th class="num">Não reg.</th><th class="num">Frequência</th><th>Responsável</th></tr></thead><tbody>' +
+          r.itens.map(function (c) {
+            return '<tr class="clicavel" data-detalhe="' + h(c.id) + '"><td><strong>' + dataBr(c.data) + '</strong></td><td>' + h(nomePeriodo(c.periodo)) + '</td>' +
+              '<td><span class="etiqueta et-' + c.status + '">' + (c.status === 'FINALIZADA' ? 'Finalizada' : 'Rascunho') + '</span></td>' +
+              '<td class="num">' + c.presentes + '</td><td class="num">' + c.atrasados + '</td><td class="num">' + c.ausentes + '</td><td class="num">' + c.justificados + '</td><td class="num">' + c.naoRegistrados + '</td>' +
+              '<td class="num ' + (c.frequencia !== null && c.frequencia < C.limite ? 'baixo' : '') + '">' + pct(c.frequencia) + '</td><td>' + h(c.professorNome) + '</td></tr>';
+          }).join('') + '</tbody></table>';
+      } else {
+        html += '<table class="tabela"><thead><tr><th>Data</th><th>Período</th><th>Nº</th><th>Estudante</th><th>Situação</th><th>Observação</th><th>Chamada</th></tr></thead><tbody>' +
+          r.itens.map(function (x) {
+            return '<tr class="clicavel" data-detalhe="' + h(x.chamadaId) + '"><td><strong>' + dataBr(x.data) + '</strong></td><td>' + h(nomePeriodo(x.periodo)) + '</td><td>' + h(x.numero) + '</td><td>' + h(x.nome) + '</td>' +
+              '<td><span class="etiqueta et-' + x.situacao + '">' + ROT_LONGO[x.situacao] + '</span></td><td>' + h(x.observacao) + '</td>' +
+              '<td><span class="etiqueta et-' + x.statusChamada + '">' + (x.statusChamada === 'FINALIZADA' ? 'Finalizada' : 'Rascunho') + '</span></td></tr>';
+          }).join('') + '</tbody></table>';
+      }
+      html += '</div>' + paginacaoHtml(r, 'hist') + '</div>';
+      el.innerHTML = html;
+    }).catch(function (e) { if ($('#hist-res')) el.innerHTML = erroHtml(e, false); });
+  }
+  function paginacaoHtml(r, prefixo) {
+    if (r.paginas <= 1) return '<div class="paginacao">' + r.total + ' resultado(s)</div>';
+    return '<div class="paginacao">' + r.total + ' resultado(s) · página ' + r.pagina + ' de ' + r.paginas +
+      '<button class="btn btn-sm" data-pag="' + prefixo + '" data-p="' + (r.pagina - 1) + '"' + (r.pagina <= 1 ? ' disabled' : '') + '>Anterior</button>' +
+      '<button class="btn btn-sm" data-pag="' + prefixo + '" data-p="' + (r.pagina + 1) + '"' + (r.pagina >= r.paginas ? ' disabled' : '') + '>Próxima</button></div>';
+  }
+
+  /** Detalhe de uma chamada (histórico): lista, correções, reabertura e auditoria. */
+  function abrirDetalheChamada(chamadaId) {
+    var fecharModal = null;
+    modal({ titulo: 'Detalhe da chamada', largo: true, corpo: '<div id="dc-corpo">' + carregandoHtml() + '</div>', aoAbrir: function (f, fechar) {
+      fecharModal = fechar;
+      f.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-dc]');
+        if (!b) return;
+        var acao = b.getAttribute('data-dc');
+        if (acao === 'corrigir') corrigirRegistro(S.detalhe, b.getAttribute('data-id'));
+        if (acao === 'abrir') { fechar(null); var d = S.detalhe; abrirNaChamada(d.turma.id, d.data, d.periodo); }
+        if (acao === 'ficha') abrirFicha(b.getAttribute('data-id'));
+      });
+    } });
+    carregarDetalhe(chamadaId);
+  }
+  function carregarDetalhe(chamadaId) {
+    servidor('apiDetalheChamada', [chamadaId]).then(function (d) {
+      S.detalhe = d;
+      var el = $('#dc-corpo');
+      if (!el) return;
+      var c = d.chamada;
+      var podeCorrigir = d.permissoes.editar && (c.status !== 'FINALIZADA' || d.permissoes.reabrir);
+      var html = '<div class="linha-acoes" style="margin-bottom:12px"><strong>' + h(d.turma.nome) + ' — ' + dataBr(d.data) + ' · ' + h(nomePeriodo(d.periodo)) + '</strong>' +
+        '<span class="etiqueta et-' + c.status + '">' + (c.status === 'FINALIZADA' ? 'Finalizada' : 'Rascunho') + '</span></div>' +
+        '<p style="margin:0 0 12px;font-size:13px;color:#64748b">Criada por ' + h(c.professorNome) + ' em ' + dataHoraBr(c.criadoEm) + ' · Última alteração ' + dataHoraBr(c.atualizadoEm) + ' por ' + h(c.atualizadoPor) +
+        (c.finalizadoEm ? ' · Finalizada em ' + dataHoraBr(c.finalizadoEm) : '') + '</p>' +
+        (!d.permissoes.editar ? '<div class="aviso aviso-info">' + ic('cadeado') + '<div>' + h(d.permissoes.motivo) + '</div></div>' : '') +
+        '<div class="tabela-wrap"><table class="tabela"><thead><tr><th>Nº</th><th>Estudante</th><th>Situação</th><th>Observação</th>' + (podeCorrigir ? '<th></th>' : '') + '</tr></thead><tbody>' +
+        d.estudantes.map(function (e) {
+          return '<tr><td>' + h(e.numero) + '</td><td><button class="btn-link" data-dc="ficha" data-id="' + h(e.id) + '">' + h(e.nome) + '</button></td>' +
+            '<td><span class="etiqueta et-' + e.situacao + '">' + ROT_LONGO[e.situacao] + '</span></td><td>' + h(e.observacao) + '</td>' +
+            (podeCorrigir ? '<td style="text-align:right"><button class="btn btn-sm" data-dc="corrigir" data-id="' + h(e.id) + '">' + ic('editar') + 'Corrigir</button></td>' : '') + '</tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="linha-acoes" style="margin-top:14px"><button class="btn" data-dc="abrir">' + ic('chamada') + 'Abrir na tela de chamada</button></div>' +
+        '<h2 class="secao">Registro de alterações (auditoria)</h2>' +
+        (d.auditoria && d.auditoria.length ? '<div class="tabela-wrap"><table class="tabela"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Ação</th><th>Estudante</th><th>Anterior</th><th>Nova</th><th>Motivo</th></tr></thead><tbody>' +
+          d.auditoria.map(function (a) {
+            return '<tr><td>' + dataHoraBr(a.DATA_HORA) + '</td><td>' + h(a.USUARIO) + '</td><td>' + h(a.ACAO) + '</td><td>' + h(a.ESTUDANTE) + '</td><td>' + h(ROT_LONGO[a.VALOR_ANTERIOR] || a.VALOR_ANTERIOR) + '</td><td>' + h(ROT_LONGO[a.VALOR_NOVO] || a.VALOR_NOVO) + '</td><td>' + h(a.MOTIVO) + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p style="color:#64748b;font-size:14px">Sem eventos de chamada registrados.</p>') +
+        '<p style="font-size:12px;color:#64748b">As alterações individuais de situação aparecem na aba Auditoria (Administração).</p>';
+      el.innerHTML = html;
+    }).catch(function (e) { var el = $('#dc-corpo'); if (el) el.innerHTML = erroHtml(e, false); });
+  }
+  function corrigirRegistro(d, estudanteId) {
+    var e = d.estudantes.filter(function (x) { return x.id === estudanteId; })[0];
+    var finalizada = d.chamada.status === 'FINALIZADA';
+    var escolhida = e.situacao !== 'NAO_REGISTRADO' ? e.situacao : '';
+    modal({
+      titulo: 'Corrigir registro',
+      corpo: '<p style="margin-top:0"><strong>' + h(e.numero) + ' — ' + h(e.nome) + '</strong><br><span style="color:#64748b;font-size:13px">' + dataBr(d.data) + ' · ' + h(nomePeriodo(d.periodo)) +
+        ' · Situação atual: ' + ROT_LONGO[e.situacao] + '</span></p>' +
+        '<div class="lc-botoes" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">' + SIT.map(function (s) {
+          return '<button class="bsit b-' + s + (s === escolhida ? ' sel' : '') + '" data-escolha="' + s + '" style="min-height:52px">' + ic(s) + ROT_LONGO[s] + '</button>';
+        }).join('') + '</div>' +
+        '<div class="campo" style="margin-bottom:10px"><label for="cr-obs">Observação (opcional, para atraso ou justificada)</label><input type="text" id="cr-obs" maxlength="200" value="' + h(e.observacao) + '"></div>' +
+        '<div class="campo"><label for="cr-mot">Motivo da correção' + (finalizada ? ' (obrigatório)' : ' (opcional)') + '</label><textarea id="cr-mot" maxlength="500"></textarea><div class="ajuda" id="cr-erro" style="color:#b91c1c"></div></div>',
+      aoAbrir: function (f) {
+        f.addEventListener('click', function (ev) {
+          var b = ev.target.closest('[data-escolha]');
+          if (!b) return;
+          escolhida = b.getAttribute('data-escolha');
+          $$('[data-escolha]', f).forEach(function (x) { x.classList.toggle('sel', x === b); });
+        });
+      },
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Salvar correção', classe: 'btn-primario', valor: true, validar: function (f) {
+        var mot = $('#cr-mot', f).value.trim();
+        if (!escolhida) { $('#cr-erro', f).textContent = 'Escolha a nova situação.'; return false; }
+        if (finalizada && mot.length < 5) { $('#cr-erro', f).textContent = 'Informe o motivo (mínimo de 5 caracteres).'; return false; }
+        S.correcao = { situacao: escolhida, motivo: mot, observacao: $('#cr-obs', f).value.trim() };
+        return true;
+      } }]
+    }).then(function (ok) {
+      if (!ok) return;
+      var p = { chamadaId: d.chamada.id, versao: d.chamada.versao, estudanteId: estudanteId, situacao: S.correcao.situacao, motivo: S.correcao.motivo, observacao: S.correcao.observacao, requestId: idReq() };
+      servidor('apiCorrigirRegistro', [p], { exigeConexao: true }).then(function () {
+        toast('Correção salva e registrada na auditoria.', 'ok');
+        carregarDetalhe(d.chamada.id);
+        if (S.view === 'historico') buscarHistorico();
+      }).catch(function (e2) { toast(erroMsg(e2), 'erro'); if (e2.codigo === 'CONFLITO') carregarDetalhe(d.chamada.id); });
+    });
+  }
+  function abrirNaChamada(turmaId, data, periodo) {
+    S.turmaId = turmaId;
+    $('#sel-turma-global').value = turmaId;
+    if (S.view === 'chamada') { trocarChamada(turmaId, data, periodo); return; }
+    S.view = 'chamada';
+    $$('[data-nav]').forEach(function (b) { b.classList.toggle('ativo', b.getAttribute('data-nav') === 'chamada'); });
+    window.scrollTo(0, 0);
+    vChamada(data, periodo);
+  }
+
+  // ================================================================== RELATÓRIOS
+  var TIPOS = [
+    ['DIARIA', 'Frequência diária'], ['SEMANAL', 'Frequência semanal'], ['MENSAL', 'Frequência mensal'],
+    ['INDIVIDUAL', 'Frequência individual'], ['GERAL', 'Frequência geral da turma'],
+    ['MAIS_FALTAS', 'Estudantes com maior número de faltas'], ['ABAIXO_LIMITE', 'Estudantes abaixo de 90% (limite configurado)']
+  ];
+  function vRelatorios() {
+    var t = turmaAtual();
+    var hoje = hojeSP();
+    var f = S.filtroRel && S.filtroRel.turmaId === S.turmaId ? S.filtroRel : { turmaId: S.turmaId, tipo: 'GERAL', inicio: t.dataInicio || hoje, fim: hoje, estudanteId: '', limiteLinhas: 10 };
+    if (f.inicio > hoje) f.inicio = hoje;
+    S.filtroRel = f;
+    $('#conteudo').innerHTML = cabecalho('Relatórios e estatísticas', h(t.nome) + ' · exportação em PDF (A4), Excel e CSV') +
+      '<div class="card card-corpo"><div class="filtros">' +
+      '<div class="campo" style="grid-column:span 2"><label for="rf-tipo">Relatório</label><select id="rf-tipo">' + TIPOS.map(function (x) {
+        return '<option value="' + x[0] + '"' + (f.tipo === x[0] ? ' selected' : '') + '>' + h(x[0] === 'ABAIXO_LIMITE' ? 'Estudantes abaixo de ' + C.limite + '% de frequência' : x[1]) + '</option>';
+      }).join('') + '</select></div>' +
+      '<div class="campo"><label for="rf-ini">De</label><input type="date" id="rf-ini" value="' + h(f.inicio) + '"></div>' +
+      '<div class="campo"><label for="rf-fim">Até</label><input type="date" id="rf-fim" value="' + h(f.fim) + '"></div>' +
+      '<div class="campo" id="rf-est-campo"' + (f.tipo === 'INDIVIDUAL' ? '' : ' hidden') + '><label for="rf-est">Estudante</label><select id="rf-est"><option value="">Carregando...</option></select></div>' +
+      '<div class="campo" id="rf-qtd-campo"' + (f.tipo === 'MAIS_FALTAS' ? '' : ' hidden') + '><label for="rf-qtd">Quantidade</label><input type="number" id="rf-qtd" min="1" max="200" value="' + h(f.limiteLinhas) + '"></div>' +
+      '</div><div class="linha-acoes" style="margin-top:12px">' +
+      '<button class="btn btn-sm" data-periodo="hoje">Hoje</button><button class="btn btn-sm" data-periodo="semana">Esta semana</button>' +
+      '<button class="btn btn-sm" data-periodo="mes">Este mês</button><button class="btn btn-sm" data-periodo="mesant">Mês anterior</button>' +
+      '<button class="btn btn-sm" data-periodo="inicio">Desde o início</button><span style="flex:1"></span>' +
+      '<button class="btn btn-primario" data-acao="rel-gerar">' + ic('relatorios') + 'Gerar relatório</button></div></div>' +
+      '<div id="rel-res" style="margin-top:14px"></div>';
+    opcoesEstudantes(S.turmaId, f.estudanteId).then(function (op) {
+      if ($('#rf-est')) $('#rf-est').innerHTML = op.replace('<option value="">Todos</option>', '<option value="">Selecione...</option>');
+    }).catch(function () { /* exibido ao gerar */ });
+  }
+  function lerFiltroRel() {
+    var f = S.filtroRel;
+    f.tipo = $('#rf-tipo').value; f.inicio = $('#rf-ini').value; f.fim = $('#rf-fim').value;
+    f.estudanteId = $('#rf-est') ? $('#rf-est').value : ''; f.limiteLinhas = Number($('#rf-qtd').value) || 10;
+    return f;
+  }
+  function gerarRelatorio() {
+    var f = lerFiltroRel();
+    if (f.tipo === 'INDIVIDUAL' && !f.estudanteId) { toast('Selecione o estudante.', 'erro'); return; }
+    var el = $('#rel-res');
+    el.innerHTML = '<div class="card">' + carregandoHtml('Gerando relatório...') + '</div>';
+    servidor('apiRelatorio', [f]).then(function (rel) {
+      if (S.view !== 'relatorios') return;
+      S.relatorio = rel;
+      var html = '<div class="card card-corpo"><div class="faixa-status" style="margin-bottom:10px"><div><div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em">' + h(rel.meta.escola) + '</div>' +
+        '<div style="font-size:19px;font-weight:800">' + h(rel.titulo) + '</div>' +
+        '<div style="font-size:13px;color:#475569">Turma: <strong>' + h(rel.meta.turma) + '</strong> · Período: <strong>' + h(rel.meta.periodo) + '</strong> · Professor(a): ' + h(rel.meta.professor) + ' · Emitido em ' + h(rel.meta.emissao) + '</div></div>' +
+        '<div class="linha-acoes no-print"><button class="btn" data-exportar="PDF">' + ic('baixar') + 'PDF</button><button class="btn" data-exportar="XLSX">' + ic('baixar') + 'Excel</button><button class="btn" data-exportar="CSV">' + ic('baixar') + 'CSV</button></div></div>';
+      if (rel.aviso) html += '<div class="aviso aviso-atencao">' + ic('alerta') + '<div>' + h(rel.aviso) + '</div></div>';
+      if (rel.resumo.length) html += '<div class="mini-kpis">' + rel.resumo.map(function (r) { return '<div class="card kpi"><div class="rotulo">' + h(r.rotulo) + '</div><div class="valor">' + h(r.valor) + '</div></div>'; }).join('') + '</div>';
+      html += '<div class="tabela-wrap"><table class="tabela"><thead><tr>' + rel.colunas.map(function (c) { return '<th class="' + (c.tipo ? 'num' : '') + '">' + h(c.rotulo) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        (rel.linhas.length ? rel.linhas.map(function (l) {
+          return '<tr>' + rel.colunas.map(function (c) {
+            var v = l[c.chave];
+            if (c.tipo === 'pct') return '<td class="num ' + (v !== null && v < C.limite ? 'baixo' : '') + '">' + pct(v) + '</td>';
+            if (c.chave === 'nome' && l.id) return '<td><button class="btn-link" data-ficha="' + h(l.id) + '">' + h(v) + '</button>' + (l.ativo === false ? ' <span class="etiqueta et-INATIVO">inativo</span>' : '') + '</td>';
+            if (c.chave === 'situacaoRotulo') return '<td><span class="etiqueta et-' + h(l.situacao) + '">' + h(v) + '</span></td>';
+            return '<td class="' + (c.tipo ? 'num' : '') + '">' + h(v) + '</td>';
+          }).join('') + '</tr>';
+        }).join('') : '<tr><td colspan="' + rel.colunas.length + '">' + vazioHtml('Sem registros no período.') + '</td></tr>') + '</tbody></table></div>' +
+        '<p style="font-size:12px;color:#64748b;margin:12px 0 0">' + h(rel.meta.regras) + '</p></div>';
+      el.innerHTML = html;
+    }).catch(function (e) { if ($('#rel-res')) el.innerHTML = erroHtml(e, false); });
+  }
+  function exportar(formato, params, botao) {
+    var txt = botao ? botao.innerHTML : '';
+    if (botao) { botao.disabled = true; botao.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span>Gerando...'; }
+    toast('Gerando arquivo ' + (formato === 'XLSX' ? 'Excel' : formato) + '... isso pode levar alguns segundos.');
+    var p = {}; for (var k in params) p[k] = params[k];
+    p.formato = formato;
+    servidor('apiExportarRelatorio', [p], { tentativas: 1 }).then(function (arq) {
+      baixarArquivo(arq);
+      toast('Arquivo gerado: ' + arq.nome, 'ok');
+    }).catch(function (e) { toast(erroMsg(e), 'erro'); }).then(function () {
+      if (botao) { botao.disabled = false; botao.innerHTML = txt; }
+    });
+  }
+
+  // ================================================================== FICHA INDIVIDUAL
+  function abrirFicha(estudanteId) {
+    var st = { estudanteId: estudanteId, inicio: '', fim: hojeSP() };
+    modal({ titulo: 'Ficha individual do estudante', largo: true, corpo: '<div id="fi-corpo">' + carregandoHtml() + '</div>', aoAbrir: function (f) {
+      f.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-fi]');
+        if (!b) return;
+        if (b.getAttribute('data-fi') === 'aplicar') { st.inicio = $('#fi-ini', f).value; st.fim = $('#fi-fim', f).value; carregar(); }
+        if (b.getAttribute('data-fi') === 'pdf' && S.ficha) {
+          exportar('PDF', { tipo: 'INDIVIDUAL', turmaId: S.ficha.estudante.turmaId, estudanteId: estudanteId, inicio: st.inicio || '', fim: st.fim }, b);
+        }
+      });
+    } });
+    function carregar() {
+      var el = $('#fi-corpo');
+      if (!el) return;
+      el.innerHTML = carregandoHtml();
+      servidor('apiFichaEstudante', [st]).then(function (d) {
+        S.ficha = d;
+        var el2 = $('#fi-corpo');
+        if (!el2) return;
+        var e = d.estudante, r = d.resumo;
+        var html = '<div class="ficha-cab"><div class="lc-num">' + h(e.numero) + '</div><div><div class="nome">' + h(e.nome) + '</div>' +
+          '<div style="color:#64748b;font-size:13.5px">Turma: ' + h(e.turmaNome) + ' · Nº de chamada: ' + h(e.numero) + ' · <span class="etiqueta et-' + h(e.situacao) + '">' + h(e.situacao) + '</span>' +
+          (e.dataTransferencia ? ' · Transferido(a) em ' + dataBr(e.dataTransferencia) : '') + '</div></div></div>' +
+          '<div class="filtros" style="margin-bottom:14px"><div class="campo"><label for="fi-ini">De</label><input type="date" id="fi-ini" value="' + h(st.inicio) + '"></div>' +
+          '<div class="campo"><label for="fi-fim">Até</label><input type="date" id="fi-fim" value="' + h(st.fim) + '"></div>' +
+          '<div class="campo"><button class="btn" data-fi="aplicar">Aplicar período</button></div><div class="campo"><button class="btn" data-fi="pdf">' + ic('baixar') + 'PDF da ficha</button></div></div>' +
+          '<div class="mini-kpis">' + kpi('Registros', r.registros, '', '') + kpi('Presenças', r.presencas, '', 'verde') + kpi('Ausências', r.ausencias, '', 'vermelho') +
+          kpi('Atrasos', r.atrasos, '', 'amarelo') + kpi('Justificadas', r.justificadas, '', 'just') +
+          kpi('Frequência', pct(r.frequencia), '', r.frequencia !== null && r.frequencia < d.limite ? 'vermelho' : 'verde') + '</div>' +
+          (r.frequencia !== null && r.frequencia < d.limite ? '<div class="aviso aviso-erro">' + ic('alerta') + '<div>Frequência abaixo de ' + h(d.limite) + '%. Recomenda-se acompanhamento.</div></div>' : '') +
+          '<div class="grade grade-2"><div class="card card-corpo"><div class="card-titulo">Frequência por mês</div>' +
+          graficoBarras(d.porMes.map(function (m) { return { data: '', rotulo: m.mes.slice(0, 3) + '/' + m.mes.slice(-2), frequencia: m.frequencia, presentes: m.P, ausentes: m.A, atrasados: m.T, justificados: m.J }; }), d.limite) +
+          '<div class="legenda">' + d.porMes.map(function (m) { return '<span>' + h(m.mes) + ': <strong>' + pct(m.frequencia) + '</strong></span>'; }).join('') + '</div></div>' +
+          '<div class="card card-corpo"><div class="card-titulo">Distribuição</div>' + graficoRosca(partesDistribuicao(r.presencas, r.atrasos, r.ausencias, r.justificadas), pct(r.frequencia), 'frequência') + '</div></div>' +
+          '<h2 class="secao">Histórico cronológico</h2>' +
+          (d.historico.length ? '<div class="tabela-wrap"><table class="tabela"><thead><tr><th>Data</th><th>Período</th><th>Situação</th><th>Observação</th><th>Turma</th></tr></thead><tbody>' +
+            d.historico.slice().reverse().map(function (x) {
+              return '<tr><td>' + h(x.dataBr) + '</td><td>' + h(x.periodo) + '</td><td><span class="etiqueta et-' + x.situacao + '">' + h(x.situacaoRotulo) + '</span></td><td>' + h(x.observacao) + '</td><td>' + h(x.turma) + '</td></tr>';
+            }).join('') + '</tbody></table></div>' : vazioHtml('Sem registros em chamadas finalizadas no período.'));
+        el2.innerHTML = html;
+      }).catch(function (e) { var el3 = $('#fi-corpo'); if (el3) el3.innerHTML = erroHtml(e, false); });
+    }
+    carregar();
+  }
+
+  // ================================================================== ESTUDANTES (gestão)
+  function vEstudantes() {
+    var t = turmaAtual();
+    S.mostrarInativos = !!S.mostrarInativos;
+    $('#conteudo').innerHTML = cabecalho('Estudantes', h(t.nome) + ' · cadastro, edição, transferência e inativação',
+      '<label class="checks"><label><input type="checkbox" id="est-inativos"' + (S.mostrarInativos ? ' checked' : '') + '> Mostrar inativos</label></label>' +
+      '<button class="btn btn-primario" data-acao="est-novo">' + ic('mais1') + 'Adicionar estudante</button>') +
+      '<div class="card" id="est-lista">' + carregandoHtml() + '</div>';
+    delete S.estudantesCache[S.turmaId];
+    servidor('apiListarEstudantes', [S.turmaId, true]).then(function (lista) {
+      S.estudantesCache[S.turmaId] = lista;
+      renderListaEstudantes();
+    }).catch(function (e) { $('#est-lista').innerHTML = erroHtml(e, true); });
+  }
+  function renderListaEstudantes() {
+    var lista = (S.estudantesCache[S.turmaId] || []).filter(function (e) { return S.mostrarInativos || e.situacao === 'ATIVO'; });
+    var el = $('#est-lista');
+    if (!el) return;
+    if (!lista.length) { el.innerHTML = vazioHtml('Nenhum estudante cadastrado.'); return; }
+    el.innerHTML = '<div class="tabela-wrap"><table class="tabela"><thead><tr><th>Nº</th><th>Nome</th><th>Situação</th><th>Entrada</th><th>Saída</th><th style="text-align:right">Ações</th></tr></thead><tbody>' +
+      lista.map(function (e) {
+        var ativo = e.situacao === 'ATIVO';
+        return '<tr><td><strong>' + h(e.numero) + '</strong></td><td><button class="btn-link" data-ficha="' + h(e.id) + '">' + h(e.nome) + '</button>' + (e.observacao ? '<div style="font-size:12px;color:#64748b">' + h(e.observacao) + '</div>' : '') + '</td>' +
+          '<td><span class="etiqueta et-' + h(e.situacao) + '">' + h(ativo ? 'Ativo' : 'Inativo') + '</span></td><td>' + dataBr(e.dataEntrada) + '</td><td>' + dataBr(e.dataSaida) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap">' + (ativo ?
+            '<button class="btn btn-sm" data-est-acao="editar" data-id="' + h(e.id) + '">' + ic('editar') + 'Editar</button> ' +
+            '<button class="btn btn-sm" data-est-acao="transferir" data-id="' + h(e.id) + '">' + ic('transferir') + 'Transferir</button> ' +
+            '<button class="btn btn-sm btn-perigo" data-est-acao="inativar" data-id="' + h(e.id) + '">Inativar</button>' :
+            '<button class="btn btn-sm" data-est-acao="reativar" data-id="' + h(e.id) + '">Reativar</button>') + '</td></tr>';
+      }).join('') + '</tbody></table></div><div class="paginacao">' + lista.length + ' estudante(s)</div>';
+  }
+  function formEstudante(e) {
+    var novo = !e;
+    var hoje = hojeSP();
+    var t = turmaAtual();
+    var dados = null;
+    return modal({
+      titulo: novo ? 'Adicionar estudante' : 'Editar estudante',
+      corpo: '<div class="grade" style="gap:12px">' +
+        '<div class="campo"><label for="fe-nome">Nome completo</label><input type="text" id="fe-nome" maxlength="150" value="' + h(e ? e.nome : '') + '" autofocus></div>' +
+        '<div class="form-grade"><div class="campo"><label for="fe-num">Número de chamada</label><input type="number" id="fe-num" min="1" max="999" value="' + h(e ? e.numero : '') + '" placeholder="' + (novo ? 'Automático' : '') + '"></div>' +
+        (novo ? '<div class="campo"><label for="fe-ent">Data de entrada na turma</label><input type="date" id="fe-ent" value="' + h(hoje < (t.dataInicio || '') ? t.dataInicio : hoje) + '"></div>' : '') + '</div>' +
+        '<div class="campo"><label for="fe-obs">Observação (opcional)</label><input type="text" id="fe-obs" maxlength="300" value="' + h(e ? e.observacao : '') + '"></div>' +
+        '<div class="ajuda" id="fe-erro" style="color:#b91c1c"></div></div>',
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Salvar', classe: 'btn-primario', valor: true, validar: function (f) {
+        var nome = $('#fe-nome', f).value.trim();
+        if (nome.length < 3) { $('#fe-erro', f).textContent = 'Informe o nome completo.'; return false; }
+        dados = { id: e ? e.id : '', turmaId: S.turmaId, nome: nome, numero: $('#fe-num', f).value, observacao: $('#fe-obs', f).value, dataEntrada: $('#fe-ent', f) ? $('#fe-ent', f).value : '' };
+        if (!novo && !dados.numero) { $('#fe-erro', f).textContent = 'Informe o número de chamada.'; return false; }
+        return true;
+      } }]
+    }).then(function (ok) {
+      if (!ok) return;
+      enviarEstudante(dados);
+    });
+  }
+  function enviarEstudante(dados) {
+    servidor('apiSalvarEstudante', [dados], { exigeConexao: true }).then(function () {
+      toast('Estudante salvo.', 'ok');
+      atualizarContexto();
+      vEstudantes();
+    }).catch(function (err) {
+      if (err.codigo === 'HOMONIMO') {
+        confirmar('Possível cadastro duplicado', h(err.erro) + '<br><br>Deseja cadastrar mesmo assim?', 'Cadastrar mesmo assim').then(function (ok) {
+          if (ok) { dados.confirmarHomonimo = true; enviarEstudante(dados); }
+        });
+        return;
+      }
+      toast(erroMsg(err), 'erro');
+    });
+  }
+  function acaoEstudante(acao, id) {
+    var e = (S.estudantesCache[S.turmaId] || []).filter(function (x) { return x.id === id; })[0];
+    if (!e) return;
+    if (acao === 'editar') { formEstudante(e); return; }
+    if (acao === 'inativar') {
+      var motivo = '', data = hojeSP();
+      modal({ titulo: 'Inativar estudante', corpo: '<p style="margin-top:0"><strong>' + h(e.numero) + ' — ' + h(e.nome) + '</strong></p><p style="color:#475569;font-size:14px">O estudante deixa de aparecer nas próximas chamadas. Todo o histórico de frequência é preservado.</p>' +
+        '<div class="form-grade"><div class="campo"><label for="in-data">Data de saída</label><input type="date" id="in-data" value="' + h(data) + '"></div></div>' +
+        '<div class="campo" style="margin-top:10px"><label for="in-mot">Motivo (obrigatório)</label><textarea id="in-mot" maxlength="300"></textarea><div class="ajuda" id="in-erro" style="color:#b91c1c"></div></div>',
+        acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Inativar', classe: 'btn-perigo-cheio', valor: true, validar: function (f) {
+          motivo = $('#in-mot', f).value.trim(); data = $('#in-data', f).value;
+          if (motivo.length < 3) { $('#in-erro', f).textContent = 'Informe o motivo.'; return false; }
+          return true;
+        } }] }).then(function (ok) {
+        if (!ok) return;
+        servidor('apiAlterarStatusEstudante', [id, false, motivo, data], { exigeConexao: true }).then(function () { toast('Estudante inativado. Histórico preservado.', 'ok'); vEstudantes(); }).catch(function (x) { toast(erroMsg(x), 'erro'); });
+      });
+      return;
+    }
+    if (acao === 'reativar') {
+      confirmar('Reativar estudante', 'Reativar <strong>' + h(e.nome) + '</strong>? Se o número ' + h(e.numero) + ' estiver ocupado, será atribuído o próximo número livre.', 'Reativar').then(function (ok) {
+        if (!ok) return;
+        servidor('apiAlterarStatusEstudante', [id, true, '', ''], { exigeConexao: true }).then(function () { toast('Estudante reativado.', 'ok'); vEstudantes(); }).catch(function (x) { toast(erroMsg(x), 'erro'); });
+      });
+      return;
+    }
+    if (acao === 'transferir') {
+      var destinos = C.turmas.filter(function (t) { return t.ativa && t.id !== S.turmaId; });
+      if (!destinos.length) { alertar('Transferência', 'Não há outra turma ativa cadastrada. Cadastre a turma de destino em Administração > Turmas.'); return; }
+      var par = {};
+      modal({ titulo: 'Transferir estudante', corpo: '<p style="margin-top:0"><strong>' + h(e.numero) + ' — ' + h(e.nome) + '</strong></p>' +
+        '<div class="form-grade"><div class="campo"><label for="tr-turma">Turma de destino</label><select id="tr-turma">' + destinos.map(function (t) { return '<option value="' + h(t.id) + '">' + h(t.nome) + '</option>'; }).join('') + '</select></div>' +
+        '<div class="campo"><label for="tr-data">Data da transferência</label><input type="date" id="tr-data" value="' + h(hojeSP()) + '"></div></div>' +
+        '<div class="campo" style="margin-top:10px"><label for="tr-mot">Motivo (opcional)</label><input type="text" id="tr-mot" maxlength="300"></div>' +
+        '<p style="font-size:13px;color:#64748b">Os registros de frequência anteriores permanecem vinculados à turma de origem.</p>',
+        acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Transferir', classe: 'btn-primario', valor: true, validar: function (f) {
+          par = { turma: $('#tr-turma', f).value, data: $('#tr-data', f).value, motivo: $('#tr-mot', f).value }; return true;
+        } }] }).then(function (ok) {
+        if (!ok) return;
+        servidor('apiTransferirEstudante', [id, par.turma, par.data, par.motivo], { exigeConexao: true }).then(function () {
+          toast('Estudante transferido.', 'ok'); S.estudantesCache = {}; atualizarContexto(); vEstudantes();
+        }).catch(function (x) { toast(erroMsg(x), 'erro'); });
+      });
+    }
+  }
+
+  // ================================================================== ADMINISTRAÇÃO
+  function vAdmin() {
+    var abas = EH_ADMIN ? [['turmas', 'Turmas'], ['usuarios', 'Usuários'], ['config', 'Configurações'], ['backup', 'Backup e dados'], ['auditoria', 'Auditoria']]
+      : [['usuarios', 'Usuários'], ['auditoria', 'Auditoria']];
+    if (!S.abaAdmin || !abas.some(function (a) { return a[0] === S.abaAdmin; })) S.abaAdmin = abas[0][0];
+    $('#conteudo').innerHTML = cabecalho('Administração', EH_ADMIN ? 'Turmas, usuários, regras de cálculo, backup e auditoria' : 'Consulta de usuários e auditoria') +
+      '<div class="abas">' + abas.map(function (a) { return '<button class="aba ' + (a[0] === S.abaAdmin ? 'ativa' : '') + '" data-aba="' + a[0] + '">' + h(a[1]) + '</button>'; }).join('') + '</div>' +
+      '<div id="admin-corpo">' + carregandoHtml() + '</div>';
+    ({ turmas: aTurmas, usuarios: aUsuarios, config: aConfig, backup: aBackup, auditoria: aAuditoria })[S.abaAdmin]();
+  }
+  function aTurmas() {
+    servidor('apiListarTurmas', [true]).then(function (lista) {
+      S.listaTurmas = lista;
+      $('#admin-corpo').innerHTML = '<div class="linha-acoes" style="margin-bottom:12px"><button class="btn btn-primario" data-adm="turma-nova">' + ic('mais1') + 'Nova turma</button></div>' +
+        '<div class="card"><div class="tabela-wrap"><table class="tabela"><thead><tr><th>Turma</th><th>Ano/série</th><th>Turno</th><th>Ano letivo</th><th>Início</th><th class="num">Estudantes</th><th>Situação</th><th></th></tr></thead><tbody>' +
+        lista.map(function (t) {
+          return '<tr><td><strong>' + h(t.nome) + '</strong>' + (t.id === C.turmaPilotoId ? ' <span class="etiqueta et-ATIVO">piloto</span>' : '') + '</td><td>' + h(t.anoSerie) + '</td><td>' + h(t.turno) + '</td><td>' + h(t.anoLetivo) + '</td><td>' + dataBr(t.dataInicio) + '</td><td class="num">' + t.estudantesAtivos + '</td>' +
+            '<td><span class="etiqueta et-' + (t.ativa ? 'ATIVO' : 'INATIVO') + '">' + (t.ativa ? 'Ativa' : 'Inativa') + '</span></td>' +
+            '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-adm="turma-editar" data-id="' + h(t.id) + '">' + ic('editar') + 'Editar</button> ' +
+            '<button class="btn btn-sm ' + (t.ativa ? 'btn-perigo' : '') + '" data-adm="turma-status" data-id="' + h(t.id) + '">' + (t.ativa ? 'Inativar' : 'Reativar') + '</button></td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    }).catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });
+  }
+  function formTurma(t) {
+    var dados = null;
+    modal({ titulo: t ? 'Editar turma' : 'Nova turma', corpo: '<div class="form-grade">' +
+      '<div class="campo"><label for="ft-nome">Nome da turma</label><input type="text" id="ft-nome" maxlength="80" value="' + h(t ? t.nome : '') + '" autofocus></div>' +
+      '<div class="campo"><label for="ft-serie">Ano/série</label><input type="text" id="ft-serie" maxlength="40" value="' + h(t ? t.anoSerie : '') + '" placeholder="ex.: 5º ano"></div>' +
+      '<div class="campo"><label for="ft-turno">Turno</label><select id="ft-turno">' + ['', 'Matutino', 'Vespertino', 'Noturno', 'Integral'].map(function (x) { return '<option' + (t && t.turno === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></div>' +
+      '<div class="campo"><label for="ft-ano">Ano letivo</label><input type="text" id="ft-ano" maxlength="10" value="' + h(t ? t.anoLetivo : hojeSP().slice(0, 4)) + '"></div>' +
+      '<div class="campo"><label for="ft-ini">Data de início</label><input type="date" id="ft-ini" value="' + h(t ? t.dataInicio : hojeSP()) + '"></div>' +
+      '</div><div class="ajuda" id="ft-erro" style="color:#b91c1c;margin-top:8px"></div>',
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Salvar', classe: 'btn-primario', valor: true, validar: function (f) {
+        dados = { id: t ? t.id : '', nome: $('#ft-nome', f).value, anoSerie: $('#ft-serie', f).value, turno: $('#ft-turno', f).value, anoLetivo: $('#ft-ano', f).value, dataInicio: $('#ft-ini', f).value };
+        if (dados.nome.trim().length < 2 || !dados.dataInicio) { $('#ft-erro', f).textContent = 'Informe nome e data de início.'; return false; }
+        return true;
+      } }] }).then(function (ok) {
+      if (!ok) return;
+      servidor('apiSalvarTurma', [dados], { exigeConexao: true }).then(function () { toast('Turma salva.', 'ok'); atualizarContexto(); aTurmas(); }).catch(function (e) { toast(erroMsg(e), 'erro'); });
+    });
+  }
+  function aUsuarios() {
+    servidor('apiListarProfessores', []).then(function (lista) {
+      S.listaUsuarios = lista;
+      var nomes = {};
+      C.turmas.forEach(function (t) { nomes[t.id] = t.nome; });
+      $('#admin-corpo').innerHTML = (EH_ADMIN ? '<div class="linha-acoes" style="margin-bottom:12px"><button class="btn btn-primario" data-adm="usuario-novo">' + ic('mais1') + 'Cadastrar usuário</button></div>' : '') +
+        '<div class="aviso aviso-info">' + ic('info') + '<div>O acesso é feito com a <strong>conta Google</strong> do e-mail cadastrado. Não há senhas no sistema. <strong>ADMIN</strong>: tudo · <strong>GESTOR</strong>: todas as turmas, correções e relatórios · <strong>PROFESSOR</strong>: somente as turmas atribuídas.</div></div>' +
+        '<div class="card"><div class="tabela-wrap"><table class="tabela"><thead><tr><th>Nome</th><th>E-mail (conta Google)</th><th>Perfil</th><th>Turmas</th><th>Situação</th>' + (EH_ADMIN ? '<th></th>' : '') + '</tr></thead><tbody>' +
+        lista.map(function (u) {
+          var turmas = u.turmas.split(/[;,]/).filter(String).map(function (id) { return id === '*' ? 'Todas' : (nomes[id] || id); }).join(', ');
+          return '<tr><td><strong>' + h(u.nome) + '</strong></td><td>' + h(u.email) + '</td><td>' + h(u.perfil) + '</td><td>' + h(u.perfil === 'PROFESSOR' ? turmas : 'Todas') + '</td>' +
+            '<td><span class="etiqueta et-' + (u.ativo ? 'ATIVO' : 'INATIVO') + '">' + (u.ativo ? 'Ativo' : 'Desativado') + '</span></td>' +
+            (EH_ADMIN ? '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-adm="usuario-editar" data-id="' + h(u.id) + '">' + ic('editar') + 'Editar</button> ' +
+              '<button class="btn btn-sm ' + (u.ativo ? 'btn-perigo' : '') + '" data-adm="usuario-status" data-id="' + h(u.id) + '">' + (u.ativo ? 'Desativar' : 'Reativar') + '</button></td>' : '') + '</tr>';
+        }).join('') + '</tbody></table></div></div>';
+    }).catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });
+  }
+  function formUsuario(u) {
+    var dados = null;
+    var selecionadas = u ? u.turmas.split(/[;,]/).filter(String) : [];
+    modal({ titulo: u ? 'Editar usuário' : 'Cadastrar usuário', corpo: '<div class="form-grade">' +
+      '<div class="campo"><label for="fu-nome">Nome</label><input type="text" id="fu-nome" maxlength="150" value="' + h(u ? u.nome : '') + '" autofocus></div>' +
+      '<div class="campo"><label for="fu-email">E-mail da conta Google</label><input type="email" id="fu-email" maxlength="200" value="' + h(u ? u.email : '') + '"></div>' +
+      '<div class="campo"><label for="fu-perfil">Perfil</label><select id="fu-perfil">' + ['PROFESSOR', 'GESTOR', 'ADMIN'].map(function (p) { return '<option' + (u && u.perfil === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="campo" style="margin-top:12px"><label>Turmas do professor</label><div class="checks">' + C.turmas.map(function (t) {
+        return '<label><input type="checkbox" class="fu-turma" value="' + h(t.id) + '"' + (selecionadas.indexOf(t.id) >= 0 ? ' checked' : '') + '>' + h(t.nome) + '</label>';
+      }).join('') + '</div><div class="ajuda">Gestores e administradores acessam todas as turmas.</div></div>' +
+      '<div class="ajuda" id="fu-erro" style="color:#b91c1c;margin-top:8px"></div>',
+      acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Salvar', classe: 'btn-primario', valor: true, validar: function (f) {
+        var perfil = $('#fu-perfil', f).value;
+        var turmas = $$('.fu-turma', f).filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+        dados = { id: u ? u.id : '', nome: $('#fu-nome', f).value, email: $('#fu-email', f).value, perfil: perfil, turmas: perfil === 'PROFESSOR' ? turmas : ['*'] };
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim())) { $('#fu-erro', f).textContent = 'E-mail inválido.'; return false; }
+        if (perfil === 'PROFESSOR' && !turmas.length) { $('#fu-erro', f).textContent = 'Selecione ao menos uma turma.'; return false; }
+        return true;
+      } }] }).then(function (ok) {
+      if (!ok) return;
+      servidor('apiSalvarProfessor', [dados], { exigeConexao: true }).then(function () { toast('Usuário salvo.', 'ok'); aUsuarios(); }).catch(function (e) { toast(erroMsg(e), 'erro'); });
+    });
+  }
+  function aConfig() {
+    servidor('apiObterConfiguracoes', []).then(function (d) {
+      var v = {};
+      d.itens.forEach(function (i) { v[i.chave] = i; });
+      function sn(chave, rotulo) {
+        return '<div class="campo"><label for="cf-' + chave + '">' + h(rotulo) + '</label><select id="cf-' + chave + '" data-cfg="' + chave + '"><option value="SIM"' + (v[chave] && v[chave].valor === 'SIM' ? ' selected' : '') + '>SIM</option><option value="NAO"' + (v[chave] && v[chave].valor !== 'SIM' ? ' selected' : '') + '>NÃO</option></select><div class="ajuda">' + h(v[chave] ? v[chave].descricao : '') + '</div></div>';
+      }
+      function tx(chave, rotulo, tipo) {
+        return '<div class="campo"><label for="cf-' + chave + '">' + h(rotulo) + '</label><input type="' + (tipo || 'text') + '" id="cf-' + chave + '" data-cfg="' + chave + '" value="' + h(v[chave] ? v[chave].valor : '') + '"><div class="ajuda">' + h(v[chave] ? v[chave].descricao : '') + '</div></div>';
+      }
+      $('#admin-corpo').innerHTML = '<div class="card card-corpo"><div class="card-titulo">Identificação</div><div class="form-grade">' + tx('NOME_ESCOLA', 'Nome da escola') + tx('ICONE_URL', 'Ícone (URL https, opcional)') + '</div>' +
+        '<div class="card-titulo" style="margin-top:20px">Regras de cálculo da frequência</div><div class="form-grade">' + tx('LIMITE_FREQUENCIA', 'Limite mínimo de frequência (%)', 'number') +
+        sn('ATRASO_CONTA_COMPARECIMENTO', 'Atraso conta como comparecimento?') + sn('JUSTIFICADA_CONTA_COMPARECIMENTO', 'Falta justificada conta como comparecimento?') +
+        sn('JUSTIFICADA_EXCLUIR_DO_CALCULO', 'Excluir faltas justificadas da base de cálculo?') + sn('CONTAR_RASCUNHOS', 'Contar chamadas em rascunho nas estatísticas?') + '</div>' +
+        '<div class="card-titulo" style="margin-top:20px">Chamada e permissões</div><div class="form-grade">' + tx('PERIODOS', 'Aulas/períodos (separados por ;)') +
+        tx('DIAS_EDICAO_PROFESSOR', 'Prazo de edição do professor (dias)', 'number') + sn('PROFESSOR_PODE_REABRIR', 'Professor pode reabrir chamadas?') + '</div>' +
+        (EH_ADMIN ? '<div class="linha-acoes" style="margin-top:18px"><button class="btn btn-primario" data-adm="config-salvar">' + ic('salvar') + 'Salvar configurações</button></div>' : '') +
+        '<p style="font-size:12px;color:#64748b">Versão do sistema: ' + h(d.versao) + '. Todas as alterações ficam registradas na auditoria.</p></div>';
+    }).catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });
+  }
+  function aBackup() {
+    $('#admin-corpo').innerHTML = '<div class="grade grade-2"><div class="card card-corpo"><div class="card-titulo">' + ic('salvar') + 'Backups da planilha</div><div id="bk-info">' + carregandoHtml() + '</div></div>' +
+      '<div class="card card-corpo"><div class="card-titulo">' + ic('baixar') + 'Exportação e verificação</div>' +
+      '<p style="margin-top:0;color:#475569;font-size:14px">Exporta uma cópia completa de todas as abas (configurações, usuários, turmas, estudantes, chamadas, frequências e auditoria) em Excel.</p>' +
+      '<div class="linha-acoes"><button class="btn" data-adm="exportar-dados">' + ic('baixar') + 'Exportar todos os dados (.xlsx)</button><button class="btn" data-adm="verificar">' + ic('PRESENTE') + 'Verificar sistema</button></div>' +
+      '<div id="diag" style="margin-top:12px"></div></div></div>';
+    carregarBackups();
+  }
+  function carregarBackups() {
+    servidor('apiListarBackups', []).then(function (d) {
+      var el = $('#bk-info');
+      if (!el) return;
+      el.innerHTML = '<p style="margin-top:0;font-size:14px;color:#475569">Backup diário automático: <strong>' + (d.backupDiarioAtivo ? 'ATIVO' : 'NÃO INSTALADO') + '</strong>' +
+        (d.backupDiarioAtivo ? '' : ' — execute <code>instalarBackupDiario</code> no editor do Apps Script.') + '<br>Último backup: <strong>' + h(d.ultimo ? dataHoraBr(d.ultimo.split(' | ')[0]) : 'nenhum') + '</strong></p>' +
+        '<div class="linha-acoes" style="margin-bottom:12px"><button class="btn btn-primario" data-adm="backup-agora">' + ic('salvar') + 'Fazer backup agora</button><a class="btn" href="' + h(d.pastaUrl) + '" target="_blank" rel="noopener">Abrir pasta de backups</a></div>' +
+        (d.backups.length ? '<div class="tabela-wrap" style="max-height:300px;overflow:auto"><table class="tabela"><thead><tr><th>Backup</th><th>Criado em</th></tr></thead><tbody>' +
+          d.backups.map(function (b) { return '<tr><td><a href="' + h(b.url) + '" target="_blank" rel="noopener">' + h(b.nome) + '</a></td><td>' + dataHoraBr(b.criadoEm) + '</td></tr>'; }).join('') + '</tbody></table></div>' : vazioHtml('Nenhum backup criado ainda.')) +
+        '<p style="font-size:12px;color:#64748b">Backups nunca são apagados automaticamente. Para restaurar, veja o manual (README).</p>';
+    }).catch(function (e) { var el = $('#bk-info'); if (el) el.innerHTML = erroHtml(e, false); });
+  }
+  function aAuditoria() {
+    var hoje = hojeSP();
+    S.filtroAud = S.filtroAud || { inicio: somarDias(hoje, -30), fim: hoje, acao: '', turmaId: '', pagina: 1 };
+    var f = S.filtroAud;
+    var acoes = ['', 'CRIACAO_CHAMADA', 'FINALIZACAO_CHAMADA', 'REABERTURA_CHAMADA', 'ALTERACAO_SITUACAO', 'CORRECAO_REGISTRO', 'CADASTRO_ESTUDANTE', 'EDICAO_NOME_ESTUDANTE', 'EDICAO_NUMERO_ESTUDANTE',
+      'INATIVACAO_ESTUDANTE', 'REATIVACAO_ESTUDANTE', 'TRANSFERENCIA_ESTUDANTE', 'CRIACAO_TURMA', 'EDICAO_TURMA', 'INATIVACAO_TURMA', 'CADASTRO_USUARIO', 'EDICAO_USUARIO',
+      'DESATIVACAO_USUARIO', 'ALTERACAO_CONFIGURACAO', 'EXPORTACAO_RELATORIO', 'EXPORTACAO_DADOS', 'BACKUP', 'INSTALACAO'];
+    $('#admin-corpo').innerHTML = '<div class="card card-corpo"><div class="filtros">' +
+      '<div class="campo"><label for="au-ini">De</label><input type="date" id="au-ini" value="' + h(f.inicio) + '"></div>' +
+      '<div class="campo"><label for="au-fim">Até</label><input type="date" id="au-fim" value="' + h(f.fim) + '"></div>' +
+      '<div class="campo"><label for="au-acao">Ação</label><select id="au-acao">' + acoes.map(function (a) { return '<option value="' + a + '"' + (f.acao === a ? ' selected' : '') + '>' + (a || 'Todas') + '</option>'; }).join('') + '</select></div>' +
+      '<div class="campo"><label for="au-turma">Turma</label><select id="au-turma"><option value="">Todas</option>' + C.turmas.map(function (t) { return '<option value="' + h(t.id) + '"' + (f.turmaId === t.id ? ' selected' : '') + '>' + h(t.nome) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="campo"><button class="btn btn-primario" data-adm="aud-buscar">Consultar</button></div></div></div><div class="card" id="aud-res" style="margin-top:14px">' + carregandoHtml() + '</div>';
+    buscarAuditoria();
+  }
+  function buscarAuditoria() {
+    servidor('apiListarAuditoria', [S.filtroAud]).then(function (r) {
+      var el = $('#aud-res');
+      if (!el) return;
+      el.innerHTML = (r.itens.length ? '<div class="tabela-wrap"><table class="tabela"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Ação</th><th>Turma</th><th>Estudante</th><th>Anterior</th><th>Novo</th><th>Motivo</th><th>Detalhes</th></tr></thead><tbody>' +
+        r.itens.map(function (a) {
+          return '<tr><td style="white-space:nowrap">' + dataHoraBr(a.DATA_HORA) + '</td><td>' + h(a.USUARIO) + '</td><td><strong>' + h(a.ACAO) + '</strong></td><td>' + h(a.TURMA_NOME) + '</td><td>' + h(a.ESTUDANTE) + '</td>' +
+            '<td>' + h(ROT_LONGO[a.VALOR_ANTERIOR] || a.VALOR_ANTERIOR) + '</td><td>' + h(ROT_LONGO[a.VALOR_NOVO] || a.VALOR_NOVO) + '</td><td>' + h(a.MOTIVO) + '</td><td style="font-size:12.5px;color:#64748b;max-width:280px">' + h(a.DETALHES) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' : vazioHtml('Nenhum evento encontrado.')) + paginacaoHtml(r, 'aud');
+    }).catch(function (e) { var el = $('#aud-res'); if (el) el.innerHTML = erroHtml(e, false); });
+  }
+  function eventoAdmin(b) {
+    var acao = b.getAttribute('data-adm'), id = b.getAttribute('data-id');
+    if (acao === 'turma-nova') formTurma(null);
+    else if (acao === 'turma-editar') formTurma(S.listaTurmas.filter(function (t) { return t.id === id; })[0]);
+    else if (acao === 'turma-status') {
+      var t = S.listaTurmas.filter(function (x) { return x.id === id; })[0];
+      var acaoTxt = t.ativa ? 'Inativar' : 'Reativar';
+      confirmar(acaoTxt + ' turma', acaoTxt + ' a turma <strong>' + h(t.nome) + '</strong>? ' + (t.ativa ? 'A turma fica somente para consulta; nenhum dado é apagado.' : ''), acaoTxt, t.ativa ? 'btn-perigo-cheio' : 'btn-primario').then(function (ok) {
+        if (!ok) return;
+        servidor('apiAlterarStatusTurma', [id, !t.ativa, ''], { exigeConexao: true }).then(function () { toast('Turma atualizada.', 'ok'); atualizarContexto(); aTurmas(); }).catch(function (e) { toast(erroMsg(e), 'erro'); });
+      });
+    } else if (acao === 'usuario-novo') formUsuario(null);
+    else if (acao === 'usuario-editar') formUsuario(S.listaUsuarios.filter(function (u) { return u.id === id; })[0]);
+    else if (acao === 'usuario-status') {
+      var u = S.listaUsuarios.filter(function (x) { return x.id === id; })[0];
+      confirmar(u.ativo ? 'Desativar acesso' : 'Reativar acesso', (u.ativo ? 'Desativar' : 'Reativar') + ' o acesso de <strong>' + h(u.nome) + '</strong> (' + h(u.email) + ')?', u.ativo ? 'Desativar' : 'Reativar', u.ativo ? 'btn-perigo-cheio' : 'btn-primario').then(function (ok) {
+        if (!ok) return;
+        servidor('apiAlterarStatusProfessor', [id, !u.ativo], { exigeConexao: true }).then(function () { toast('Usuário atualizado.', 'ok'); aUsuarios(); }).catch(function (e) { toast(erroMsg(e), 'erro'); });
+      });
+    } else if (acao === 'config-salvar') {
+      var valores = {};
+      $$('[data-cfg]').forEach(function (i) { valores[i.getAttribute('data-cfg')] = i.value; });
+      b.disabled = true;
+      servidor('apiSalvarConfiguracoes', [valores], { exigeConexao: true }).then(function (r) {
+        toast(r.alteradas ? r.alteradas + ' configuração(ões) alterada(s).' : 'Nenhuma alteração.', 'ok');
+        return atualizarContexto();
+      }).catch(function (e) { toast(erroMsg(e), 'erro'); }).then(function () { b.disabled = false; });
+    } else if (acao === 'backup-agora') {
+      b.disabled = true;
+      toast('Criando backup...');
+      servidor('apiExecutarBackup', [], { tentativas: 0 }).then(function (r) { toast('Backup criado: ' + r.nome, 'ok'); carregarBackups(); })
+        .catch(function (e) { toast(erroMsg(e), 'erro'); }).then(function () { b.disabled = false; });
+    } else if (acao === 'exportar-dados') {
+      b.disabled = true;
+      toast('Gerando exportação completa...');
+      servidor('apiExportarDados', [], { tentativas: 0 }).then(function (arq) { baixarArquivo(arq); toast('Exportação concluída.', 'ok'); })
+        .catch(function (e) { toast(erroMsg(e), 'erro'); }).then(function () { b.disabled = false; });
+    } else if (acao === 'verificar') {
+      $('#diag').innerHTML = carregandoHtml('Verificando...');
+      servidor('apiVerificarSistema', []).then(function (d) {
+        $('#diag').innerHTML = '<div class="aviso ' + (d.ok ? 'aviso-ok' : 'aviso-atencao') + '">' + ic(d.ok ? 'PRESENTE' : 'alerta') + '<div><strong>' + (d.ok ? 'Nenhuma inconsistência encontrada.' : 'Foram encontradas inconsistências.') + '</strong></div></div>' +
+          '<ul class="diag">' + d.mensagens.map(function (m) { return '<li class="' + (m.ok ? 'okk' : 'nok') + '">' + (m.ok ? '✔ ' : '✖ ') + h(m.texto) + '</li>'; }).join('') + '</ul>';
+      }).catch(function (e) { $('#diag').innerHTML = erroHtml(e, false); });
+    } else if (acao === 'aud-buscar') {
+      S.filtroAud = { inicio: $('#au-ini').value, fim: $('#au-fim').value, acao: $('#au-acao').value, turmaId: $('#au-turma').value, pagina: 1 };
+      $('#aud-res').innerHTML = carregandoHtml();
+      buscarAuditoria();
+    }
+  }
+
+  // ================================================================== Eventos globais
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.closest('.modal-fundo')) return; // modais tratam os próprios eventos
+    var nav = t.closest('[data-nav]');
+    if (nav) { navegar(nav.getAttribute('data-nav')); return; }
+    if (S.view === 'chamada' && eventoChamada(ev)) return;
+    var fi = t.closest('[data-ficha]');
+    if (fi) { abrirFicha(fi.getAttribute('data-ficha')); return; }
+    var ac = t.closest('[data-abrir-chamada]');
+    if (ac) { var p = ac.getAttribute('data-abrir-chamada').split('|'); abrirNaChamada(S.turmaId, p[0], p[1]); return; }
+    var det = t.closest('[data-detalhe]');
+    if (det) { abrirDetalheChamada(det.getAttribute('data-detalhe')); return; }
+    var pag = t.closest('[data-pag]');
+    if (pag && !pag.disabled) {
+      var n = Number(pag.getAttribute('data-p'));
+      if (pag.getAttribute('data-pag') === 'hist') { S.filtroHist.pagina = n; buscarHistorico(); }
+      else { S.filtroAud.pagina = n; $('#aud-res').innerHTML = carregandoHtml(); buscarAuditoria(); }
+      return;
+    }
+    var a = t.closest('[data-acao]');
+    if (a) {
+      var acao = a.getAttribute('data-acao');
+      if (acao === 'recarregar-view') { renderizarView(); return; }
+      if (acao === 'hist-buscar') {
+        S.filtroHist = { turmaId: S.turmaId, inicio: $('#hf-ini').value, fim: $('#hf-fim').value, estudanteId: $('#hf-est').value, situacao: $('#hf-sit').value, status: $('#hf-status').value, pagina: 1 };
+        buscarHistorico(); return;
+      }
+      if (acao === 'rel-gerar') { gerarRelatorio(); return; }
+      if (acao === 'est-novo') { formEstudante(null); return; }
+    }
+    var per = t.closest('[data-periodo]');
+    if (per) {
+      var hoje = hojeSP(), tipo = per.getAttribute('data-periodo'), ini = hoje, fim = hoje;
+      var turma = turmaAtual();
+      if (tipo === 'semana') { var d = diaSemana(hoje); ini = somarDias(hoje, d === 0 ? -6 : 1 - d); }
+      if (tipo === 'mes') ini = hoje.slice(0, 8) + '01';
+      if (tipo === 'mesant') { var u = somarDias(hoje.slice(0, 8) + '01', -1); ini = u.slice(0, 8) + '01'; fim = u; }
+      if (tipo === 'inicio') ini = turma.dataInicio || ini;
+      $('#rf-ini').value = ini; $('#rf-fim').value = fim;
+      return;
+    }
+    var ex = t.closest('[data-exportar]');
+    if (ex) { exportar(ex.getAttribute('data-exportar'), lerFiltroRel(), ex); return; }
+    var ea = t.closest('[data-est-acao]');
+    if (ea) { acaoEstudante(ea.getAttribute('data-est-acao'), ea.getAttribute('data-id')); return; }
+    var adm = t.closest('[data-adm]');
+    if (adm) { eventoAdmin(adm); return; }
+    var aba = t.closest('[data-aba]');
+    if (aba) { S.abaAdmin = aba.getAttribute('data-aba'); vAdmin(); }
+  });
+
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.id === 'sel-turma-global') {
+      var nova = t.value;
+      var antes = S.turmaId;
+      var trocar = function () { S.turmaId = nova; ls.set('fe:turma', nova); if (S.view === 'chamada') { Ch = null; vChamada(); } else renderizarView(); };
+      if (S.view === 'chamada') permitirSaida().then(function (ok) { if (ok) trocar(); else t.value = antes; });
+      else trocar();
+      return;
+    }
+    if (t.id === 'ch-turma' || t.id === 'ch-data' || t.id === 'ch-periodo') {
+      var data = $('#ch-data').value;
+      if (!data) { $('#ch-data').value = Ch ? Ch.data : hojeSP(); return; }
+      if (data > hojeSP()) { toast('Não é possível registrar chamada para data futura.', 'erro'); $('#ch-data').value = Ch ? Ch.data : hojeSP(); return; }
+      trocarChamada($('#ch-turma').value, data, $('#ch-periodo') ? $('#ch-periodo').value : (C.periodos || ['DIARIO'])[0]);
+      return;
+    }
+    if (t.id === 'rf-tipo') {
+      $('#rf-est-campo').hidden = t.value !== 'INDIVIDUAL';
+      $('#rf-qtd-campo').hidden = t.value !== 'MAIS_FALTAS';
+      return;
+    }
+    if (t.id === 'est-inativos') { S.mostrarInativos = t.checked; renderListaEstudantes(); }
+  });
+
+  // Observação da chamada (atraso/justificada)
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (!Ch || !t.hasAttribute('data-obs')) return;
+    var id = t.getAttribute('data-obs');
+    Ch.obs[id] = t.value.slice(0, 200);
+    marcarAlterado();
+  });
+
+  // Conexão: avisa o professor e reenvia ao voltar a internet.
+  function atualizarConexao() {
+    document.body.classList.toggle('offline', navigator.onLine === false);
+    if (navigator.onLine === false) { if (Ch && Ch.alterado) definirStatus('offline'); }
+    else if (Ch && Ch.alterado && S.view === 'chamada') { toast('Conexão restabelecida. Enviando marcações...'); salvarChamada({ auto: true }); }
+  }
+  window.addEventListener('online', atualizarConexao);
+  window.addEventListener('offline', atualizarConexao);
+  window.addEventListener('beforeunload', function (ev) {
+    if (Ch && Ch.alterado) { ev.preventDefault(); ev.returnValue = ''; return ''; }
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && Ch && Ch.alterado && navigator.onLine !== false) salvarChamada({ auto: true });
+  });
+
+  // ------------------------------------------------------------------ Início
+  montarNavegacao();
+  atualizarConexao();
+  navegar('painel', true);
+  window.__FE = { estado: function () { return { S: S, Ch: Ch }; } }; // diagnóstico
+})();
+</script>

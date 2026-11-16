@@ -297,7 +297,13 @@ function criarAmbiente(opcoes) {
   }
   function saidaHtml(conteudo) {
     const o = { _c: conteudo, _titulo: '', _meta: {}, getContent() { return o._c; }, setTitle(t) { o._titulo = t; return o; },
-      addMetaTag(n, v) { o._meta[n] = v; return o; }, setXFrameOptionsMode() { return o; }, setFaviconUrl(u) { o._favicon = u; return o; } };
+      addMetaTag(n, v) {
+        // Somente as metatags permitidas pelo Apps Script (HtmlOutput.addMetaTag).
+        if (['apple-mobile-web-app-capable', 'google-site-verification', 'mobile-web-app-capable', 'viewport'].indexOf(n) < 0) {
+          throw new Error('A metatag especificada não é permitida neste contexto: ' + n);
+        }
+        o._meta[n] = v; return o;
+      }, setXFrameOptionsMode() { return o; }, setFaviconUrl(u) { o._favicon = u; return o; } };
     return o;
   }
   const HtmlService = {

@@ -110,7 +110,6 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .addMetaTag('apple-mobile-web-app-capable', 'yes')
     .addMetaTag('mobile-web-app-capable', 'yes')
-    .addMetaTag('apple-mobile-web-app-title', 'Frequência')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
   var icone = '';
   try { icone = config_().ICONE_URL || ''; } catch (x) { icone = ''; }

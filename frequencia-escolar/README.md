@@ -195,7 +195,7 @@ Clique em **Implantar → Gerenciar implantações** → lápis (editar) → **V
 - **Android (Chrome):** menu **⋮** → **Adicionar à tela inicial** → **Adicionar**.
 - **iPad (Safari):** botão **Compartilhar** (quadrado com seta) → **Adicionar à Tela de Início** → **Adicionar**.
 
-**Limitações reais (Google Apps Script):** o app roda dentro de uma página do Google, então **não é um PWA instalável** e **não funciona offline por completo**. O atalho abre o navegador no link do sistema. O nome sugerido para o atalho é "Frequência". O **ícone do atalho** costuma ser genérico ou uma miniatura da página, porque o Apps Script não permite definir o `apple-touch-icon`. Opcionalmente, o ADMIN pode informar em **Configurações → Ícone** o endereço `https://` público de uma imagem PNG. Ela passa a ser usada como ícone da aba do navegador (favicon).
+**Limitações reais (Google Apps Script):** o app roda dentro de uma página do Google, então **não é um PWA instalável** e **não funciona offline por completo**. O atalho abre o navegador no link do sistema. Ao criar o atalho, o navegador pergunta o nome: digite "Frequência". O **ícone do atalho** costuma ser genérico ou uma miniatura da página, porque o Apps Script não permite definir o `apple-touch-icon`. Opcionalmente, o ADMIN pode informar em **Configurações → Ícone** o endereço `https://` público de uma imagem PNG. Ela passa a ser usada como ícone da aba do navegador (favicon).
 
 ---
 

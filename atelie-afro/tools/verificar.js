@@ -30,12 +30,12 @@ const check = (nome, cond, info) => { (cond ? ok : falhas).push(nome + (info ? '
     });
     return out;
   });
-  check('1. Existem exatamente 50 desenhos', info.total === 50, info.total);
-  check('2. Cinco coleções com 10 desenhos cada', [1, 2, 3, 4, 5].every((c) => info.porCol[c] === 10), JSON.stringify(info.porCol));
+  check('1. Existem exatamente 100 desenhos', info.total === 100, info.total);
+  check('2. Dez coleções com 10 desenhos cada', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((c) => info.porCol[c] === 10), JSON.stringify(info.porCol));
   const minReg = Math.min(...info.regioes.map((r) => r[1]));
   check('3. Todos os desenhos têm regiões coloríveis', minReg >= 20, 'mínimo de regiões: ' + minReg + ', total: ' + info.regioes.reduce((a, r) => a + r[1], 0));
   check('3b. Todas as regiões são caminhos fechados', info.semFechar === 0, info.semFechar + ' abertas');
-  check('14. Os 50 desenhos são diferentes', info.dup === 0);
+  check('14. Os 100 desenhos são diferentes', info.dup === 0);
   check('15a. Sem imagens/links externos nos desenhos', info.hrefs === 0);
 
   // abre cada desenho no painel de pintura e confere que tocar pinta só a região tocada
@@ -133,7 +133,7 @@ const check = (nome, cond, info) => { (cond ? ok : falhas).push(nome + (info ? '
     for (const tela of ['', 'galeria', 'pintar/c2-05']) {
       await p.evaluate((t) => { location.hash = t; }, tela);
       await p.waitForTimeout(150);
-      const rola = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth || Array.from(document.querySelectorAll('.tela.ativa *')).some((e) => { const r = e.getBoundingClientRect(); return r.width && r.right > window.innerWidth + 1 && !e.closest('#papel') && getComputedStyle(e).position !== 'fixed'; }));
+      const rola = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth || Array.from(document.querySelectorAll('.tela.ativa *')).some((e) => { const r = e.getBoundingClientRect(); return r.width && r.right > window.innerWidth + 1 && !e.closest('svg') && getComputedStyle(e).position !== 'fixed'; }));
       check(`11. Sem rolagem horizontal ${w}x${h} ${tela || 'início'}`, !rola);
     }
     const tam = await p.evaluate(() => Math.min(...Array.from(document.querySelectorAll('.ferr, .cor')).map((e) => e.getBoundingClientRect().width)));

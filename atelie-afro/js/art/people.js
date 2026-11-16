@@ -66,9 +66,11 @@
     const w = 12 * sc * (o.eyeW || 1), h = 7.5 * sc * (o.eyeH || 1);
     let s = '';
     const brow = (cx, side) => {
-      const by = ey - 17 * sc - (o.browUp || 0) * sc;
+      const by = ey - 19 * sc - (o.browUp || 0) * sc;
       const tilt = (o.browTilt || 0) * sc * side;
-      return L(`M${f(cx - 11 * sc)},${f(by + 3 * sc + tilt)}Q${f(cx)},${f(by - 4 * sc)} ${f(cx + 11 * sc)},${f(by + 2 * sc - tilt)}`, A.sw() * 1.5);
+      if (A.sw() > 3.6) return L(`M${f(cx - 11 * sc)},${f(by + 3 * sc + tilt * side)}Q${f(cx)},${f(by - 4 * sc)} ${f(cx + 11 * sc)},${f(by + 2 * sc - tilt * side)}`, A.sw() * 0.95);
+      const a = [cx - side * 11 * sc, by + 2.5 * sc + tilt], b = [cx + side * 1 * sc, by - 3 * sc], c = [cx + side * 12 * sc, by + 2 * sc - tilt];
+      return A.ribbon(side > 0 ? [a, b, c] : [c, b, a].map((p) => p), 4.6 * sc, 2 * sc, 'hair', true, true);
     };
     [-1, 1].forEach((side) => {
       const cx = side * ex;
@@ -85,7 +87,10 @@
         s += A.dot(cx + lookX, ey - 0.6 * sc + lookY, 2.6 * sc);
         s += A.W(A.dCirc(cx + lookX + 1.7 * sc, ey - 2.4 * sc + lookY, 1.3 * sc));
         s += L(`M${f(cx - w - 1 * sc)},${f(ey + 0.5 * sc)}Q${f(cx)},${f(ey - h * 1.95)} ${f(cx + w + 1 * sc)},${f(ey + 0.5 * sc)}`, A.sw() * 1.3);
-        if (o.lashes) s += L(`M${f(cx + side * (w + 0.5 * sc))},${f(ey - 0.5 * sc)}l${f(side * 5 * sc)},${f(-4.5 * sc)}M${f(cx + side * (w - 4 * sc))},${f(ey - h * 1.05)}l${f(side * 4 * sc)},${f(-5 * sc)}`, A.sw() * 0.85);
+        if (o.lashes) s += L(`M${f(cx + side * (w + 0.5 * sc))},${f(ey - 0.5 * sc)}l${f(side * 5 * sc)},${f(-4.5 * sc)}M${f(cx + side * (w - 4 * sc))},${f(ey - h * 1.05)}l${f(side * 4 * sc)},${f(-5 * sc)}M${f(cx + side * (w - 9 * sc))},${f(ey - h * 1.3)}l${f(side * 2.5 * sc)},${f(-5 * sc)}`, A.sw() * 0.85);
+        // pálpebra e linha de baixo (só quando o rosto é grande)
+        if (A.sw() <= 3.6) s += A.Lt(`M${f(cx - w * 0.75)},${f(ey - h * 1.55)}Q${f(cx)},${f(ey - h * 2.45)} ${f(cx + w * 0.8)},${f(ey - h * 1.5)}`, 0.42);
+        if (A.sw() <= 3.6) s += A.Lt(`M${f(cx - w * 0.45)},${f(ey + h * 1.05)}Q${f(cx)},${f(ey + h * 1.35)} ${f(cx + w * 0.45)},${f(ey + h * 1.05)}`, 0.35);
       }
       if (o.brows !== false) s += brow(cx, side);
     });
@@ -171,14 +176,14 @@
     const hl = P.hairlinePts(rx, ry, { yT: ry * 0.05, yC: -ry * 0.52, scallop: -3, waves: 6 });
     const cy = -ry * 0.32, arx = rx * 1.78 * sz, ary = ry * 1.42 * sz;
     const d = A.cloudD(0, cy, arx, ary, 22, 0.32, 0.2);
-    const tex = texCurls(P.scatter(0, cy, arx * 0.85, ary * 0.85, 16, 11, (x, y) => !(Math.abs(x) < rx * 1.05 && y > -ry * 0.75)), 6 * rx / 50);
+    const tex = texCurls(P.scatter(0, cy, arx * 0.88, ary * 0.88, 34, 11, (x, y) => !(Math.abs(x) < rx * 1.05 && y > -ry * 0.75)), 6 * rx / 50);
     return { over: R(d, 'hair') + tex, hl, hideEars: true };
   };
   // crespo curto
   H.short = (o, rx, ry) => {
     const hl = P.hairlinePts(rx, ry, { yT: -ry * 0.12, yC: -ry * 0.62, pow: 2.6 });
     const pts = ellUpper(0, -ry * 0.12, rx * 1.07, ry * 0.98, -ry * 0.02, 18, 0.035, 72);
-    const tex = texCurls(P.scatter(0, -ry * 0.72, rx * 0.8, ry * 0.25, 8, 3), 4.5 * rx / 50);
+    const tex = texCurls(P.scatter(0, -ry * 0.72, rx * 0.85, ry * 0.3, 16, 3), 4 * rx / 50);
     let design = '';
     if (o.design) design = A.Lt(`M${f(-rx * 0.95)},${f(-ry * 0.35)}Q${f(-rx * 0.7)},${f(-ry * 0.62)} ${f(-rx * 0.35)},${f(-ry * 0.78)}`, 0.8);
     return { over: R(A.smoothD(pts, true, 0.12), 'hair') + tex + design, hl };
@@ -189,7 +194,7 @@
     const top = -ry * 2.05, w = rx * 1.1;
     const pts = [[-w * 0.98, -ry * 0.02], [-w * 1.04, -ry * 0.7], [-w * 1.1, -ry * 1.4], [-w * 0.9, top + 8], [-w * 0.3, top - 4], [w * 0.3, top - 4], [w * 0.9, top + 8], [w * 1.1, -ry * 1.4], [w * 1.04, -ry * 0.7], [w * 0.98, -ry * 0.02]];
     let d = A.smoothD(pts, true, 0.16);
-    const tex = texCurls(P.scatter(0, -ry * 1.3, rx * 0.85, ry * 0.6, 12, 5), 5.5 * rx / 50);
+    const tex = texCurls(P.scatter(0, -ry * 1.3, rx * 0.9, ry * 0.65, 22, 5), 5 * rx / 50);
     // laterais raspadinhas
     const fade = A.Lt(`M${f(-w * 0.98)},${f(-ry * 0.35)}Q${f(-w * 0.7)},${f(-ry * 0.25)} ${f(-w * 0.62)},${f(-ry * 0.1)}M${f(w * 0.98)},${f(-ry * 0.35)}Q${f(w * 0.7)},${f(-ry * 0.25)} ${f(w * 0.62)},${f(-ry * 0.1)}`, 0.7);
     return { over: R(d, 'hair') + tex + fade, hl };
@@ -419,7 +424,7 @@
   H.shortafro = (o, rx, ry) => {
     const hl = P.hairlinePts(rx, ry, { yT: ry * 0.0, yC: -ry * 0.55, pow: 2.2, scallop: -2.5, waves: 6 });
     const d = A.cloudD(0, -ry * 0.38, rx * 1.28, ry * 0.95, 20, 0.3, 0.1);
-    return { over: R(d, 'hair') + texCurls(P.scatter(0, -ry * 0.9, rx * 0.8, ry * 0.3, 8, 21), 4.5 * rx / 50), hl, hideEars: false };
+    return { over: R(d, 'hair') + texCurls(P.scatter(0, -ry * 0.9, rx * 0.95, ry * 0.4, 16, 21), 4.2 * rx / 50), hl, hideEars: false };
   };
   // coque alto (adultas)
   H.bun = (o, rx, ry) => {
@@ -534,12 +539,23 @@
     }
     s += eyesD(o, rx, ry) + noseD(o, rx, ry);
     if (!o.beard || o.beard === 'goatee' || true) s += mouthD(Object.assign({ mouthY: o.beard ? 0.7 : o.mouthY }, o, o.beard ? { mouthY: 0.72, mouthW: 0.85 } : {}), rx, ry);
+    // bochechas (sorriso)
+    if ((o.mouth === 'grin' || o.eyes === 'happy' || o.mouth === 'lips') && A.sw() <= 3.6) {
+      s += A.Lt(`M${f(-rx * 0.62)},${f(ry * 0.36)}q${f(rx * 0.07)},${f(ry * 0.07)} ${f(rx * 0.16)},${f(ry * 0.05)}M${f(rx * 0.62)},${f(ry * 0.36)}q${f(-rx * 0.07)},${f(ry * 0.07)} ${f(-rx * 0.16)},${f(ry * 0.05)}`, 0.45);
+    }
     // cabelo por cima (recortado no rosto)
     if (hs.over) {
       if (hs.hl) {
         const clip = A.clipHole(P.holeD(rx, ry, jaw, narrow, hs.hl));
         s += `<defs>${clip.def}</defs><g clip-path="url(#${clip.id})">${hs.over}</g>`;
         s += A.L(A.smoothD(hs.hl.pts.filter((p, i) => i % 2 === 0), false, 0.16));
+        // "baby hair" desenhado nas têmporas
+        if (o.edges) {
+          [0.16, 0.84].forEach((u) => {
+            const p = hs.hl.pts[Math.round(u * (hs.hl.pts.length - 1))], k = u < 0.5 ? 1 : -1, q = rx * 0.1;
+            s += A.Lt(`M${f(p[0])},${f(p[1])}q${f(k * q * 0.2)},${f(q * 0.9)} ${f(k * q)},${f(q * 0.7)}q${f(k * q * 0.6)},${f(-q * 0.2)} ${f(k * q * 0.2)},${f(-q * 0.6)}q${f(-k * q * 0.4)},${f(q * 0.1)} ${f(-k * q * 0.1)},${f(q * 0.45)}`, 0.5);
+          });
+        }
       } else s += hs.over;
     }
     if (hs.extra) s += hs.extra;
@@ -567,7 +583,54 @@
     return s;
   };
 
-  /* ================= BUSTO (retratos da coleção 1) ================= */
+  /* ================= ESTAMPAS DE ROUPA ================= */
+  const PRINTS = ['star', 'heart', 'stripes', 'dots', 'sun', 'flower', 'band', 'rainbow', 'diamond', 'pocket'];
+  let printSeq = 0;
+  P.print = (kind, cx, cy, sz, W) => {
+    const k = kind === 'auto' || !kind ? PRINTS[(printSeq++) % PRINTS.length] : kind;
+    let t = '';
+    if (k === 'star') t += A.star(cx, cy, sz, sz * 0.45, 5, 0, 'top2') + A.star(cx - sz * 1.4, cy + sz * 0.7, sz * 0.35, sz * 0.16, 5, 10, 'top2') + A.star(cx + sz * 1.4, cy - sz * 0.5, sz * 0.3, sz * 0.14, 5, -10, 'top2');
+    else if (k === 'heart') t += A.heart(cx, cy, sz * 0.95, 'top2') + A.heart(cx - sz * 1.35, cy - sz * 0.6, sz * 0.32, 'top2') + A.heart(cx + sz * 1.35, cy + sz * 0.5, sz * 0.32, 'top2');
+    else if (k === 'stripes') for (let i = -2; i <= 3; i++) t += A.rect(-W, cy + i * sz * 0.9, W * 2, sz * 0.42, 0, i % 2 ? 'top2' : 'acc3');
+    else if (k === 'dots') for (let i = -4; i <= 4; i++) for (let j = -3; j <= 4; j++) t += A.circ(i * sz * 0.8 + (j % 2) * sz * 0.4, cy + j * sz * 0.75, sz * 0.17, 'top2');
+    else if (k === 'sun') { for (let i = 0; i < 10; i++) t += A.R(A.petalD(cx, cy, sz * 1.15, sz * 0.18, i * 36, sz * 0.62), 'top2'); t += A.circ(cx, cy, sz * 0.55, 'acc3'); }
+    else if (k === 'flower') t += A.flower(cx, cy, sz * 0.9, 6) + A.flower(cx - sz * 1.4, cy + sz * 0.9, sz * 0.45, 5) + A.flower(cx + sz * 1.3, cy - sz * 0.7, sz * 0.4, 5);
+    else if (k === 'band') { t += A.rect(-W, cy - sz * 0.55, W * 2, sz * 1.1, 0, 'top2'); for (let i = -6; i <= 6; i++) t += A.poly([[i * sz * 0.7, cy + sz * 0.45], [i * sz * 0.7 + sz * 0.35, cy - sz * 0.4], [i * sz * 0.7 + sz * 0.7, cy + sz * 0.45]], 'acc3'); }
+    else if (k === 'rainbow') { [1.2, 0.9, 0.6].forEach((r, i) => { t += A.R(`M${f(cx - sz * r)},${f(cy + sz * 0.5)}A${f(sz * r)},${f(sz * r)} 0 0,1 ${f(cx + sz * r)},${f(cy + sz * 0.5)}L${f(cx + sz * (r - 0.3))},${f(cy + sz * 0.5)}A${f(sz * (r - 0.3))},${f(sz * (r - 0.3))} 0 0,0 ${f(cx - sz * (r - 0.3))},${f(cy + sz * 0.5)}Z`, ['top2', 'acc3', 'acc'][i]); }); t += A.R(A.cloudD(cx - sz * 1.0, cy + sz * 0.55, sz * 0.38, sz * 0.2, 6, 0.4, 0), 'acc') + A.R(A.cloudD(cx + sz * 1.0, cy + sz * 0.55, sz * 0.38, sz * 0.2, 6, 0.4, 0), 'acc'); }
+    else if (k === 'diamond') { for (let i = -3; i <= 3; i++) t += A.poly(A.ngonPts(i * sz * 0.85, cy, sz * 0.38, 4, 0), i % 2 ? 'top2' : 'acc3'); t += A.Lt(`M${-W},${f(cy - sz * 0.55)}L${W},${f(cy - sz * 0.55)}M${-W},${f(cy + sz * 0.55)}L${W},${f(cy + sz * 0.55)}`, 0.6); }
+    else if (k === 'pocket') t += A.R(`M${f(cx - sz * 1.4)},${f(cy - sz * 0.6)}h${f(sz * 1.1)}v${f(sz * 0.9)}q0,${f(sz * 0.35)} ${f(-sz * 0.35)},${f(sz * 0.35)}h${f(-sz * 0.4)}q${f(-sz * 0.35)},0 ${f(-sz * 0.35)},${f(-sz * 0.35)}Z`, 'top2') + A.Lt(`M${f(cx - sz * 1.4)},${f(cy - sz * 0.35)}h${f(sz * 1.1)}`, 0.5) + A.star(cx + sz * 0.8, cy + sz * 0.2, sz * 0.55, sz * 0.25, 5, 0, 'acc3');
+    return t;
+  };
+  // punho fechado (segurando objetos)
+  P.fist = (x, y, r, k) => A.circ(x, y, r, k || 'skin') + A.Lt(`M${f(x - r * 0.55)},${f(y - r * 0.25)}q${f(r * 0.25)},${f(r * 0.2)} 0,${f(r * 0.45)}M${f(x - r * 0.1)},${f(y - r * 0.4)}q${f(r * 0.25)},${f(r * 0.25)} 0,${f(r * 0.55)}M${f(x + r * 0.35)},${f(y - r * 0.3)}q${f(r * 0.22)},${f(r * 0.2)} 0,${f(r * 0.45)}`, 0.45);
+  // mão aberta com polegar e dedos, orientada pelo antebraço
+  P.hand = (hd, el, side, r) => {
+    let dx = hd[0] - el[0], dy = hd[1] - el[1];
+    const l = Math.hypot(dx, dy) || 1;
+    dx /= l; dy /= l;
+    const px = -dy, py = dx;
+    const sg = (px * -side > 0) ? 1 : -1; // polegar para o lado do corpo
+    const c = [hd[0] + dx * r * 0.25, hd[1] + dy * r * 0.25];
+    const ang = Math.atan2(dy, dx) / D2R;
+    const tb = [c[0] + px * sg * r * 0.55, c[1] + py * sg * r * 0.55];
+    let t = A.R(A.petalD(tb[0] - dx * r * 0.2, tb[1] - dy * r * 0.2, r * 1.05, r * 0.36, ang + sg * 48), 'skin');
+    const pts = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const ax = Math.cos(a) * r * (Math.cos(a) > 0 ? 1.12 : 0.92), ay = Math.sin(a) * r * 0.86;
+      pts.push([c[0] + dx * ax + px * ay, c[1] + dy * ax + py * ay]);
+    }
+    t += A.R(A.smoothD(pts, true, 0.16), 'skin');
+    let fl = '';
+    [-0.42, 0, 0.42].forEach((o) => {
+      const a = [c[0] + dx * r * 0.45 + px * o * r, c[1] + dy * r * 0.45 + py * o * r];
+      const b = [c[0] + dx * r * 1.02 + px * o * r * 0.9, c[1] + dy * r * 1.02 + py * o * r * 0.9];
+      fl += `M${f(a[0])},${f(a[1])}L${f(b[0])},${f(b[1])}`;
+    });
+    return t + A.Lt(fl, 0.45);
+  };
+
+  /* ================= BUSTO (retratos) ================= */
   P.bust = (o) => {
     const rx = o.rx || 50, ry = o.ry || 56;
     const prev = A.colors;
@@ -575,21 +638,26 @@
     const nw = rx * 0.34, sy = ry * 1.35, sw = rx * (o.shoulder || 2.25), B = o.bottom || ry * 3.3;
     let s = '';
     s += A.rect(-nw, ry * 0.55, nw * 2, sy - ry * 0.45, 6, 'skin');
+    s += A.Lt(`M${f(-nw * 0.6)},${f(ry * 1.0)}q${f(nw * 0.6)},${f(ry * 0.12)} ${f(nw * 1.2)},0`, 0.4);
     const nl = o.neckline || 'round';
     const neckDepth = nl === 'v' ? ry * 0.55 : ry * 0.25;
     const shirt = `M${f(-sw)},${f(B)}L${f(-sw)},${f(sy + ry * 0.65)}C${f(-sw)},${f(sy + ry * 0.1)} ${f(-sw * 0.62)},${f(sy - ry * 0.05)} ${f(-nw - rx * 0.12)},${f(sy - ry * 0.12)}` +
       (nl === 'v' ? `L0,${f(sy + neckDepth)}L${f(nw + rx * 0.12)},${f(sy - ry * 0.12)}` : `Q0,${f(sy + neckDepth)} ${f(nw + rx * 0.12)},${f(sy - ry * 0.12)}`) +
       `C${f(sw * 0.62)},${f(sy - ry * 0.05)} ${f(sw)},${f(sy + ry * 0.1)} ${f(sw)},${f(sy + ry * 0.65)}L${f(sw)},${f(B)}Z`;
     s += R(shirt, 'top');
-    if (o.deco) {
-      const cl = A.uid();
-      s += `<defs><clipPath id="${cl}"><path d="${shirt}"/></clipPath></defs><g clip-path="url(#${cl})">${o.deco(rx, ry, sy, sw, B)}</g>`;
-    }
+    const cl = A.uid();
+    const inner = (o.deco ? o.deco(rx, ry, sy, sw, B) : P.print(o.print || 'auto', 0, sy + ry * 1.25, ry * 0.42, sw)) +
+      // costuras dos ombros e mangas
+      A.Lt(`M${f(-sw * 0.66)},${f(sy + ry * 0.02)}Q${f(-sw * 0.8)},${f(sy + ry * 0.6)} ${f(-sw * 0.78)},${f(B)}M${f(sw * 0.66)},${f(sy + ry * 0.02)}Q${f(sw * 0.8)},${f(sy + ry * 0.6)} ${f(sw * 0.78)},${f(B)}`, 0.55) +
+      A.Lt(`M${f(-sw * 0.55)},${f(sy + ry * 0.9)}q${f(rx * 0.08)},${f(ry * 0.2)} ${f(rx * 0.02)},${f(ry * 0.45)}M${f(sw * 0.55)},${f(sy + ry * 0.9)}q${f(-rx * 0.08)},${f(ry * 0.2)} ${f(-rx * 0.02)},${f(ry * 0.45)}`, 0.4);
+    s += `<defs><clipPath id="${cl}"><path d="${shirt}"/></clipPath></defs><g clip-path="url(#${cl})">${inner}</g>`;
     // gola
-    if (nl === 'round') s += A.ribbon([[-nw - rx * 0.12, sy - ry * 0.12], [0, sy + neckDepth - ry * 0.02], [nw + rx * 0.12, sy - ry * 0.12]].map((p, i) => [p[0], p[1] + (i === 1 ? 0 : 0)]), ry * 0.13, ry * 0.13, 'top2', true, true);
+    if (nl === 'round') s += A.ribbon([[-nw - rx * 0.12, sy - ry * 0.12], [0, sy + neckDepth - ry * 0.02], [nw + rx * 0.12, sy - ry * 0.12]], ry * 0.13, ry * 0.13, 'top2', true, true);
+    if (nl === 'v') s += A.ribbon([[-nw - rx * 0.12, sy - ry * 0.12], [0, sy + neckDepth], [nw + rx * 0.12, sy - ry * 0.12]], ry * 0.1, ry * 0.1, 'top2', true, true);
     if (nl === 'collar') {
       s += R(`M${f(-nw - rx * 0.1)},${f(sy - ry * 0.14)}L${f(-rx * 0.08)},${f(sy + ry * 0.3)}L${f(-rx * 0.62)},${f(sy + ry * 0.32)}Z`, 'top2');
       s += R(`M${f(nw + rx * 0.1)},${f(sy - ry * 0.14)}L${f(rx * 0.08)},${f(sy + ry * 0.3)}L${f(rx * 0.62)},${f(sy + ry * 0.32)}Z`, 'top2');
+      s += A.Lt(`M0,${f(sy + ry * 0.3)}L0,${f(B)}`, 0.5);
       for (let i = 0; i < 3; i++) s += A.circ(0, sy + ry * (0.45 + i * 0.32), rx * 0.06, 'acc');
     }
     if (o.necklace) {
@@ -605,13 +673,13 @@
   /* ================= CORPO INTEIRO ================= */
   // ângulos em graus: 0 = para baixo, 90 = para o lado de fora, 180 = para cima, negativo = cruzando o corpo
   const limbEnd = (x, y, len, deg, side) => [x + Math.sin(deg * D2R) * len * side, y + Math.cos(deg * D2R) * len];
+  const along = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   P.figure = (o) => {
     o = o || {};
     const prev = A.colors;
     if (o.paint) A.colors = o.paint;
     const adult = o.age === 'adult' || o.age === 'elder';
-    const rx = o.rx || (adult ? 42 : 46), ry = o.ry || (adult ? 52 : 52);
-    const K = adult ? 1 : 0.78; // proporção do corpo
+    const rx = o.rx || (adult ? 42 : 46), ry = o.ry || 52;
     const sy = ry * 0.98, sw = (adult ? 48 : 40) * (o.wide || 1), ww = (adult ? 38 : 33) * (o.wide || 1);
     const wy = sy + (adult ? 125 : 88);
     const hy = wy + (adult ? 10 : 8), hx = adult ? 18 : 15;
@@ -623,59 +691,85 @@
     const lower = o.lower || 'shorts';
     const sleeve = o.sleeve || 'short';
     let legsS = '', torsoS = '', armsS = '';
-    const hands = {};
-    const feet = {};
-    // pernas
+    const hands = {}, feet = {};
+    const legCloth = lower === 'pants' || o.pantsUnder;
+    const lw0 = adult ? 31 : 28, lw1 = adult ? 23 : 21;
+    // pernas e sapatos
     [['l', -1, ll], ['r', 1, rl]].forEach(([n, side, a]) => {
       const hip = [side * hx, hy];
       const knee = limbEnd(hip[0], hip[1], th, a[0], side);
       const foot = limbEnd(knee[0], knee[1], sh, a[1], side);
       feet[n] = foot;
-      const legCloth = lower === 'pants' || o.pantsUnder;
-      const lw0 = adult ? 31 : 28, lw1 = adult ? 23 : 21;
       legsS += R(A.ribbonD([hip, knee, foot], lw0, lw1, true, true), legCloth ? 'bottom' : 'skin');
-      if (o.socks && !legCloth) legsS += R(A.ribbonD([[foot[0] - (foot[0] - knee[0]) * 0.32, foot[1] - (foot[1] - knee[1]) * 0.32], foot], lw1 + 2, lw1 + 2, false, false), 'acc3');
-      // sapato (aponta para fora)
-      const d = side;
-      const fx = foot[0], fy = foot[1] + 2;
-      const shoe = o.barefoot
-        ? A.smoothD([[fx - d * 10, fy - 3], [fx + d * 6, fy - 4], [fx + d * 20, fy + 4], [fx + d * 17, fy + 11], [fx - d * 10, fy + 10]], true, 0.18)
-        : A.smoothD([[fx - d * 14, fy - 5], [fx + d * 6, fy - 8], [fx + d * 25, fy + 3], [fx + d * 22, fy + 15], [fx - d * 15, fy + 15]], true, 0.18);
-      legsS += R(shoe, o.barefoot ? 'skin' : 'shoe');
-      if (!o.barefoot) legsS += A.Lt(`M${f(fx - d * 13)},${f(fy + 10)}L${f(fx + d * 23)},${f(fy + 10)}`, 0.5);
+      if (legCloth) {
+        legsS += A.Lt(`M${f(knee[0] - 5)},${f(knee[1] - 4)}q5,5 10,0`, 0.5);
+        const c0 = along(foot, knee, 0.22);
+        legsS += R(A.ribbonD([c0, along(foot, knee, -0.02)], lw1 + 5, lw1 + 5, false, false), 'bottom2');
+      } else {
+        legsS += A.Lt(`M${f(knee[0] - 4)},${f(knee[1])}q4,3 8,0`, 0.45);
+        if (o.socks !== false && !o.barefoot) legsS += R(A.ribbonD([along(foot, knee, 0.3), foot], lw1 + 2, lw1 + 2, false, false), 'acc3');
+      }
+      const d = side, fx = foot[0], fy = foot[1] + 2;
+      if (o.barefoot) {
+        legsS += R(A.smoothD([[fx - d * 10, fy - 3], [fx + d * 6, fy - 4], [fx + d * 20, fy + 4], [fx + d * 17, fy + 11], [fx - d * 10, fy + 10]], true, 0.18), 'skin');
+        legsS += A.Lt(`M${f(fx + d * 13)},${f(fy + 3)}l0,5M${f(fx + d * 17)},${f(fy + 4)}l0,5`, 0.4);
+      } else {
+        // tênis: cabedal, sola, biqueira e cadarço
+        legsS += R(A.smoothD([[fx - d * 14, fy - 6], [fx + d * 4, fy - 9], [fx + d * 24, fy + 2], [fx + d * 24, fy + 11], [fx - d * 15, fy + 11]], true, 0.18), 'shoe');
+        legsS += R(A.ribbonD([[fx - d * 15, fy + 13], [fx + d * 25, fy + 13]], 7, 7, true, true), 'shoe2');
+        legsS += A.Lt(`M${f(fx + d * 12)},${f(fy - 3)}q${f(d * 7)},${f(4)} ${f(d * 10)},${f(12)}M${f(fx - d * 2)},${f(fy - 6)}l${f(d * 8)},${f(5)}M${f(fx + d * 3)},${f(fy - 8)}l${f(d * 2)},${f(8)}`, 0.5);
+      }
     });
     // roupa de baixo
     let lowerS = '';
+    const crotch = hy + (adult ? 30 : 22);
     if (lower === 'shorts' || lower === 'pants') {
-      lowerS += R(`M${f(-ww)},${f(wy - 6)}L${f(ww)},${f(wy - 6)}L${f(ww + 4)},${f(hy + (adult ? 30 : 22))}L${f(4)},${f(hy + (adult ? 30 : 22))}L0,${f(hy + 6)}L${f(-4)},${f(hy + (adult ? 30 : 22))}L${f(-ww - 4)},${f(hy + (adult ? 30 : 22))}Z`, 'bottom');
+      lowerS += R(`M${f(-ww)},${f(wy - 6)}L${f(ww)},${f(wy - 6)}L${f(ww + 4)},${f(crotch)}L${f(4)},${f(crotch)}L0,${f(hy + 6)}L${f(-4)},${f(crotch)}L${f(-ww - 4)},${f(crotch)}Z`, 'bottom');
+      lowerS += A.rect(-ww - 1, wy - 8, ww * 2 + 2, 12, 3, 'bottom2');
+      lowerS += A.Lt(`M${f(-ww + 8)},${f(wy - 7)}l0,11M${f(ww - 8)},${f(wy - 7)}l0,11M0,${f(wy + 4)}L0,${f(hy + 4)}M${f(-ww + 2)},${f(wy + 6)}q${f(ww * 0.4)},${f(4)} ${f(ww * 0.5)},${f(16)}M${f(ww - 2)},${f(wy + 6)}q${f(-ww * 0.4)},${f(4)} ${f(-ww * 0.5)},${f(16)}`, 0.45);
+      lowerS += A.circ(0, wy - 2, 3.2, 'acc');
       if (lower === 'shorts') {
         [-1, 1].forEach((side) => {
           const hip = [side * hx, hy];
           const a = side < 0 ? ll : rl;
           const k = limbEnd(hip[0], hip[1], th * 0.6, a[0], side);
-          lowerS = R(A.ribbonD([[hip[0], hip[1] - 6], k], adult ? 40 : 36, adult ? 38 : 34, false, true), 'bottom') + lowerS;
+          const k2 = limbEnd(hip[0], hip[1], th * 0.47, a[0], side);
+          lowerS = R(A.ribbonD([[hip[0], hip[1] - 6], k], adult ? 40 : 36, adult ? 38 : 34, false, true), 'bottom') + R(A.ribbonD([k2, k], adult ? 39 : 35, adult ? 38 : 34, false, false), 'bottom2') + lowerS;
         });
       }
     } else if (lower === 'skirt') {
       const sl = o.skirtLen || (adult ? 95 : 52);
-      lowerS += R(`M${f(-ww)},${f(wy - 6)}L${f(ww)},${f(wy - 6)}Q${f(ww + 14)},${f(wy + sl * 0.5)} ${f(ww + sl * 0.5)},${f(wy + sl)}Q0,${f(wy + sl + 10)} ${f(-ww - sl * 0.5)},${f(wy + sl)}Q${f(-ww - 14)},${f(wy + sl * 0.5)} ${f(-ww)},${f(wy - 6)}Z`, 'bottom');
+      const sk = `M${f(-ww)},${f(wy - 6)}L${f(ww)},${f(wy - 6)}Q${f(ww + 14)},${f(wy + sl * 0.5)} ${f(ww + sl * 0.5)},${f(wy + sl)}Q0,${f(wy + sl + 10)} ${f(-ww - sl * 0.5)},${f(wy + sl)}Q${f(-ww - 14)},${f(wy + sl * 0.5)} ${f(-ww)},${f(wy - 6)}Z`;
+      lowerS += R(sk, 'bottom');
+      const c2 = A.uid();
+      let skd = A.R(`M-300,${f(wy + sl - 10)}Q0,${f(wy + sl)} 300,${f(wy + sl - 10)}L300,${f(wy + sl + 40)}L-300,${f(wy + sl + 40)}Z`, 'bottom2');
+      for (let i = -3; i <= 3; i++) if (i) skd += A.Lt(`M${f(i * ww * 0.22)},${f(wy + 6)}L${f(i * ww * 0.36)},${f(wy + sl - 14)}`, 0.45);
+      for (let i = -4; i <= 4; i++) skd += A.circ(i * (ww + sl * 0.4) / 4.4, wy + sl * 0.55, 3.5, 'acc3');
+      lowerS += `<defs><clipPath id="${c2}"><path d="${sk}"/></clipPath></defs><g clip-path="url(#${c2})">${skd}</g>`;
+      lowerS += A.rect(-ww - 1, wy - 8, ww * 2 + 2, 11, 3, 'bottom2');
     }
     // tronco
     const nw = rx * 0.32;
+    const sl = o.skirtLen || (adult ? 110 : 62);
     const torso = (lower === 'dress')
-      ? (() => {
-        const sl = o.skirtLen || (adult ? 110 : 62);
-        return `M${f(-nw - 4)},${f(sy - 6)}Q${f(-sw + 6)},${f(sy - 4)} ${f(-sw)},${f(sy + 14)}L${f(-ww)},${f(wy - 8)}Q${f(-ww - 10)},${f(wy + sl * 0.5)} ${f(-ww - sl * 0.55)},${f(wy + sl)}Q0,${f(wy + sl + 12)} ${f(ww + sl * 0.55)},${f(wy + sl)}Q${f(ww + 10)},${f(wy + sl * 0.5)} ${f(ww)},${f(wy - 8)}L${f(sw)},${f(sy + 14)}Q${f(sw - 6)},${f(sy - 4)} ${f(nw + 4)},${f(sy - 6)}Q0,${f(sy + 14)} ${f(-nw - 4)},${f(sy - 6)}Z`;
-      })()
-      : `M${f(-nw - 4)},${f(sy - 6)}Q${f(-sw + 6)},${f(sy - 4)} ${f(-sw)},${f(sy + 14)}L${f(-ww - 2)},${f(wy + 4)}L${f(ww + 2)},${f(wy + 4)}L${f(sw)},${f(sy + 14)}Q${f(sw - 6)},${f(sy - 4)} ${f(nw + 4)},${f(sy - 6)}Q0,${f(sy + 14)} ${f(-nw - 4)},${f(sy - 6)}Z`;
+      ? `M${f(-nw - 4)},${f(sy - 6)}Q${f(-sw + 6)},${f(sy - 4)} ${f(-sw)},${f(sy + 14)}L${f(-ww)},${f(wy - 8)}Q${f(-ww - 10)},${f(wy + sl * 0.5)} ${f(-ww - sl * 0.55)},${f(wy + sl)}Q0,${f(wy + sl + 12)} ${f(ww + sl * 0.55)},${f(wy + sl)}Q${f(ww + 10)},${f(wy + sl * 0.5)} ${f(ww)},${f(wy - 8)}L${f(sw)},${f(sy + 14)}Q${f(sw - 6)},${f(sy - 4)} ${f(nw + 4)},${f(sy - 6)}Q0,${f(sy + 14)} ${f(-nw - 4)},${f(sy - 6)}Z`
+      : `M${f(-nw - 4)},${f(sy - 6)}Q${f(-sw + 6)},${f(sy - 4)} ${f(-sw)},${f(sy + 14)}L${f(-ww - 2)},${f(wy + 4)}Q0,${f(wy + 9)} ${f(ww + 2)},${f(wy + 4)}L${f(sw)},${f(sy + 14)}Q${f(sw - 6)},${f(sy - 4)} ${f(nw + 4)},${f(sy - 6)}Q0,${f(sy + 14)} ${f(-nw - 4)},${f(sy - 6)}Z`;
     torsoS += A.rect(-nw, ry * 0.6, nw * 2, sy - ry * 0.55, 5, 'skin');
     torsoS += R(torso, 'top');
-    if (o.topDeco) {
-      const cl = A.uid();
-      torsoS += `<defs><clipPath id="${cl}"><path d="${torso}"/></clipPath></defs><g clip-path="url(#${cl})">${o.topDeco({ sy, sw, ww, wy, nw, adult })}</g>`;
+    const cl = A.uid();
+    let td = o.topDeco ? o.topDeco({ sy, sw, ww, wy, nw, adult }) : P.print(o.print || 'auto', 0, sy + (wy - sy) * 0.45, adult ? 18 : 15, sw + 10);
+    if (lower === 'dress') {
+      td += A.R(`M-300,${f(wy + sl - 12)}Q0,${f(wy + sl + 2)} 300,${f(wy + sl - 12)}L300,${f(wy + sl + 40)}L-300,${f(wy + sl + 40)}Z`, 'top2');
+      for (let i = -3; i <= 3; i++) if (i) td += A.Lt(`M${f(i * ww * 0.25)},${f(wy + 8)}L${f(i * ww * 0.45)},${f(wy + sl - 16)}`, 0.45);
     }
-    if (o.belt) torsoS += A.rect(-ww - 2, wy - 8, ww * 2 + 4, 12, 3, 'acc');
-    // braços
+    td += A.Lt(`M${f(-sw + 6)},${f(sy + 30)}q6,10 4,22M${f(sw - 6)},${f(sy + 30)}q-6,10 -4,22`, 0.45);
+    if (lower !== 'dress') td += A.Lt(`M${f(-ww)},${f(wy - 4)}Q0,${f(wy + 1)} ${f(ww)},${f(wy - 4)}`, 0.4);
+    torsoS += `<defs><clipPath id="${cl}"><path d="${torso}"/></clipPath></defs><g clip-path="url(#${cl})">${td}</g>`;
+    // gola
+    torsoS += A.ribbon([[-nw - 4, sy - 6], [0, sy + 8], [nw + 4, sy - 6]], 6, 6, 'top2', true, true);
+    if (lower === 'dress') torsoS += A.ribbon([[-ww - 2, wy - 6], [0, wy - 2], [ww + 2, wy - 6]], 10, 10, 'acc2', true, true) + A.R(A.petalD(ww - 8, wy - 4, 22, 8, 30), 'acc2') + A.R(A.petalD(ww - 8, wy - 4, 22, 8, 150), 'acc2') + A.circ(ww - 8, wy - 4, 5, 'acc2');
+    if (o.belt) torsoS += A.rect(-ww - 2, wy - 8, ww * 2 + 4, 12, 3, 'acc') + A.rect(-7, wy - 10, 14, 16, 3, 'acc2');
+    // braços com manga, punho e mão
     [['l', -1, la], ['r', 1, ra]].forEach(([n, side, a]) => {
       const sh0 = [side * (sw - 11), sy + 16];
       const el = limbEnd(sh0[0], sh0[1], ua, a[0], side);
@@ -684,22 +778,24 @@
       const longS = sleeve === 'long';
       let arm = '';
       const aw0 = adult ? 25 : 22, aw1 = adult ? 19 : 17;
-      arm += R(A.ribbonD([sh0, el, hd], aw0, aw1, true, true), longS ? 'top' : 'skin');
+      const wrist = along(hd, el, 0.12);
+      arm += R(A.ribbonD([sh0, el, wrist], aw0, aw1, true, true), longS ? 'top' : 'skin');
       if (sleeve === 'short') {
-        const m = [sh0[0] + (el[0] - sh0[0]) * 0.55, sh0[1] + (el[1] - sh0[1]) * 0.55];
+        const m = along(sh0, el, 0.55), m2 = along(sh0, el, 0.42);
         arm += R(A.ribbonD([[sh0[0] - side * 2, sh0[1] - 4], m], aw0 + 9, aw0 + 7, false, true), 'top');
-      }
-      if (o.bracelet) {
-        const b1 = [hd[0] + (el[0] - hd[0]) * 0.2, hd[1] + (el[1] - hd[1]) * 0.2], b2 = [hd[0] + (el[0] - hd[0]) * 0.32, hd[1] + (el[1] - hd[1]) * 0.32];
-        arm += R(A.ribbonD([b1, b2], aw1 + 4, aw1 + 4, false, false), 'acc2');
-      }
-      arm += A.circ(hd[0], hd[1], adult ? 12.5 : 11.5, 'skin');
+        arm += R(A.ribbonD([m2, m], aw0 + 8, aw0 + 7, false, false), 'top2');
+      } else if (longS) {
+        arm += A.Lt(`M${f(el[0] - 6)},${f(el[1] - 3)}q6,6 12,0`, 0.45);
+        arm += R(A.ribbonD([along(wrist, el, 0.2), wrist], aw1 + 5, aw1 + 5, false, false), 'top2');
+      } else arm += A.Lt(`M${f(el[0] - 4)},${f(el[1])}q4,3 8,0`, 0.4);
+      if (o.bracelet) arm += R(A.ribbonD([along(hd, el, 0.2), along(hd, el, 0.3)], aw1 + 4, aw1 + 4, false, false), 'acc2');
+      arm += P.hand(hd, el, side, adult ? 11.5 : 10.5);
       armsS += arm;
     });
     if (o.cape) torsoS = o.cape + torsoS;
     const headS = P.head(o);
     let out = (o.behindBody || '') + legsS + lowerS + torsoS;
-    if (o.armsOver) out += headS + (o.armsBehindHead ? '' : '') + '';
+    if (o.armsOver) out += headS;
     else out += armsS + headS;
     A.colors = prev;
     return { svg: out, arms: o.armsOver ? armsS : '', hands, feet, sy, wy };

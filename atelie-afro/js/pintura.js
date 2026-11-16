@@ -260,7 +260,7 @@
       g.fillStyle = '#7B2FBE';
       g.font = 'bold 34px sans-serif';
       g.textAlign = 'center';
-      g.fillText('Ateliê Afro — 50 desenhos, infinitas cores!', 600, 1240);
+      g.fillText('Ateliê Afro — 100 desenhos, infinitas cores!', 600, 1240);
       const nome = 'atelie-afro-' + P.desenho.id + '.png';
       const baixar = (href) => {
         const a = document.createElement('a');

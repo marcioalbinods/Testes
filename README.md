@@ -146,9 +146,9 @@ Instalação, publicação, segurança, backup e manual completos em
 
 ---
 
-# 🎨 Ateliê Afro — 50 desenhos, infinitas cores! (pasta `atelie-afro/`)
+# 🎨 Ateliê Afro — 100 desenhos, infinitas cores! (pasta `atelie-afro/`)
 
-Aplicativo de colorir para o 2º ano (Novembro Negro): 50 desenhos originais em 5 coleções,
+Aplicativo de colorir para o 2º ano (Novembro Negro): 100 desenhos originais em 10 coleções,
 pintura por toque nos tablets, salvamento automático e funcionamento sem internet.
 Veja as instruções em [`atelie-afro/README.md`](atelie-afro/README.md).
 

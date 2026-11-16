@@ -72,7 +72,7 @@
 
   // 3. Pássaros entre flores
   AA.add(4, 3, 'Pássaros e flores', () => {
-    let s = O.sun(520, 80, 34, 12) + O.cloud(130, 80, 130);
+    let s = O.sunRich(520, 80, 34, 12) + O.cloudRich(130, 80, 130);
     s += R(A.ribbonD([[0, 330], [150, 300], [300, 330], [460, 290], [600, 300]], 22, 14, false, false));
     s += R(A.ribbonD([[220, 318], [260, 250], [320, 220]], 10, 6, true, false)) + R(A.ribbonD([[430, 300], [480, 380], [540, 420]], 10, 6, true, false));
     [[60, 290, 120, 250], [160, 330, 200, 380], [360, 330, 400, 380], [520, 290, 560, 240], [300, 230, 330, 180]].forEach(([a, b, c, d]) => { s += A.leaf(a, b, c, d, 16); });
@@ -85,8 +85,8 @@
 
   // 4. Elefante em composição artística
   AA.add(4, 4, 'Elefante enfeitado', () => {
-    let s = O.sun(300, 110, 60, 16);
-    s += O.ground(470) + O.grass(20, 470, 100) + O.grass(480, 470, 100);
+    let s = O.sunRich(300, 110, 60, 16);
+    s += O.cloudRich(110, 90, 120) + O.cloudRich(500, 90, 110) + O.ground(470) + O.meadow(480, 20, 580, 12, 91);
     s += O.palm(80, 470, 0.8) + O.bush(520, 460, 110);
     s += A.G(310, 340, 1, () => {
       let e = '';
@@ -127,8 +127,8 @@
 
   // 5. Girafa com padrões geométricos
   AA.add(4, 5, 'Girafa geométrica', () => {
-    let s = O.sun(90, 80, 38, 14) + O.cloud(250, 70, 130);
-    s += O.ground(500);
+    let s = O.sunRich(90, 80, 38, 14) + O.cloudRich(250, 70, 130);
+    s += O.ground(500) + O.meadow(510, 20, 580, 10, 93) + O.birdsV([[400, 60, 1], [440, 80, 0.8]]);
     // acácia
     s += R('M90,500L100,330L70,290L82,284L108,316L120,270L132,272L124,330L160,300L168,310L124,350L116,500Z');
     s += R('M10,300Q40,240 120,250Q200,240 230,290Q200,320 120,310Q40,325 10,300Z');
@@ -234,8 +234,8 @@
 
   // 9. Borboletas e flores
   AA.add(4, 9, 'Borboletas', () => {
-    let s = O.cloud(110, 70, 140) + O.cloud(480, 60, 120);
-    s += O.hills(500, 14);
+    let s = O.cloudRich(110, 70, 140) + O.cloudRich(480, 60, 120);
+    s += O.hills(500, 14) + O.meadow(540, 20, 580, 9, 95) + O.sunRich(300, 70, 30);
     s += O.flowerStem(80, 600, 170, 30) + O.flowerStem(210, 600, 120, 26, 5) + O.flowerStem(400, 600, 140, 28, 7) + O.flowerStem(530, 600, 190, 32);
     s += O.butterfly(170, 230, 1.6, -12) + O.butterfly(430, 200, 1.3, 15) + O.butterfly(310, 400, 1.0, 0);
     s += A.L('M120,330q20,-20 40,0t40,0M380,300q20,-20 40,0', 2);
@@ -244,7 +244,7 @@
 
   // 10. Grande composição artística
   AA.add(4, 10, 'Paisagem geométrica', () => {
-    let s = O.sun(300, 120, 50, 14);
+    let s = O.sunRich(300, 120, 50, 14);
     // montanhas com faixas
     const m1 = 'M-10,420L130,200L280,420Z', m2 = 'M200,420L380,170L560,420Z', m3 = 'M430,420L560,260L620,330L620,420Z';
     let mt = '';

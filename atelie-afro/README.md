@@ -1,4 +1,4 @@
-# 🎨 Ateliê Afro — 50 desenhos, infinitas cores!
+# 🎨 Ateliê Afro — 100 desenhos, infinitas cores!
 
 Aplicativo de colorir para o **2º ano do Ensino Fundamental** (7 e 8 anos), feito para as
 atividades do **Novembro Negro** nas aulas de Educação Digital.
@@ -8,12 +8,19 @@ protagonismo de pessoas negras. Não há jeito certo de pintar: a criança escol
 
 ## O que tem
 
-- **50 desenhos originais** em SVG vetorial, em 5 coleções de 10:
+- **100 desenhos originais** em SVG vetorial, em 10 coleções de 10, com cenários detalhados
+  (janelas com cortinas, papel de parede estampado, árvores, casas, tapetes, roupas com estampas,
+  golas, bolsos, sapatos com sola e cadarço, mãos com dedos):
   1. Nossos cabelos, nossa beleza
   2. Nossa gente, nossas histórias
   3. Cultura afro-brasileira
   4. Arte, estampas e natureza
   5. Sonhos, talentos e possibilidades
+  6. Brincadeiras de criança
+  7. Bichos do Brasil e da África
+  8. Mandalas e estampas
+  9. Reis, rainhas e heróis
+  10. Nosso dia a dia
 - **Pintura por toque**: escolha a cor e toque numa área fechada. Só aquela área é pintada, e os contornos pretos ficam sempre por cima.
 - **44 cores**, com 10 tons de pele do mais claro ao mais escuro (nenhum aparece como "o certo").
 - **Ferramentas**: pintar, borracha, desfazer, refazer, aumentar e diminuir (também com dois dedos), ajustar, limpar (com confirmação), salvar imagem (PNG), "Terminei!" e tela cheia.
@@ -52,7 +59,8 @@ atelie-afro/
 │   ├── art/core.js         formas vetoriais (regiões fechadas, curvas, fitas)
 │   ├── art/people.js       pessoas: rostos, 18 penteados afro, corpos e poses
 │   ├── art/props.js        objetos: instrumentos, natureza, escola, profissões
-│   ├── desenhos/           registro + as 5 coleções (colecao1.js … colecao5.js)
+│   ├── art/scenery.js      cenários: céu, chão, casas, interiores, molduras
+│   ├── desenhos/           registro + as 10 coleções (colecao1.js … colecao10.js)
 │   ├── paleta.js           as 44 cores
 │   ├── pintura.js          ferramenta de pintura, zoom, desfazer e salvar imagem
 │   ├── galeria.js          galeria e miniaturas
@@ -77,7 +85,7 @@ python3 -m http.server 8765
 node tools/verificar.js
 ```
 
-O script confere: 50 desenhos, 10 por coleção, regiões coloríveis e fechadas, toque pintando só a
+O script confere: 100 desenhos, 10 por coleção, regiões coloríveis e fechadas, toque pintando só a
 região certa em todos os desenhos, desfazer/refazer, borracha, limpar, salvamento automático,
 progresso após recarregar, estados na galeria, telas pequenas sem rolagem horizontal, botões
 funcionando e ausência de dependências externas.

@@ -280,7 +280,8 @@ function criarAmbiente(opcoes) {
       return b;
     }
   };
-  const raizSrc = path.join(__dirname, '..', 'src');
+  // FE_PACOTE=1 testa o pacote de instalação (instalacao/) em vez dos arquivos de src/.
+  const raizSrc = path.join(__dirname, '..', process.env.FE_PACOTE ? 'instalacao' : 'src');
   function processarTemplate(conteudo, vars, ctx) {
     let codigo = 'var __s="";with(__v){';
     const partes = conteudo.split(/(<\?!?=?[\s\S]*?\?>)/);

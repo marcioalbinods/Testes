@@ -53,7 +53,9 @@ Todos os arquivos que vão para o Google Apps Script estão em **`src/`**:
 | `JavaScript.html` | Toda a interatividade: telas, salvamento confiável, modo sem conexão e gráficos. |
 | `Mensagem.html` | Página de "acesso não autorizado" e "sistema não instalado". |
 
-Fora de `src/` (não vão para o Apps Script):
+Fora de `src/`:
+- `instalacao/`: pacote pronto com 6 arquivos (servidor num único `Code.gs`), gerado por `node ferramentas/gerar-pacote.js`. Os testes também validam esse pacote: `FE_PACOTE=1 node tests/backend.test.js`.
+- `ferramentas/`: gerador do pacote de instalação.
 - `tests/`: testes automatizados (simulador do Google Sheets + navegador real).
 - `docs/`: capturas de tela.
 
@@ -74,6 +76,9 @@ Fora de `src/` (não vão para o Apps Script):
 3. Volte para **Editor** (ícone `< >`), abra `appsscript.json`, apague o conteúdo e cole o de `src/appsscript.json`. Salve com **Ctrl+S** (no Mac, **Cmd+S**).
 
 ### 2.3 Adicionar os arquivos
+
+> **Caminho mais rápido:** a pasta [`instalacao/`](instalacao/LEIA-ME.md) tem o mesmo sistema em **6 arquivos**, com todo o código de servidor reunido num único `Code.gs`. Siga o [`instalacao/LEIA-ME.md`](instalacao/LEIA-ME.md). As instruções abaixo são para quem prefere os arquivos separados de `src/`.
+
 O projeto já vem com o arquivo `Código.gs`. **Renomeie-o para `Code`** (três pontinhos ao lado do nome → Renomear) e cole nele o conteúdo de `src/Code.gs`.
 
 Depois, para cada arquivo abaixo, clique no **+** ao lado de "Arquivos", escolha o tipo, digite o nome **sem a extensão** e cole o conteúdo correspondente:

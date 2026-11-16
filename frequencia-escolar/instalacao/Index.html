@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Frequência Escolar</title>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <!-- Logotipo reutilizável (símbolo SVG) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 64 64">
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="#1d4ed8"/>
+      <rect x="15" y="14" width="34" height="38" rx="5" fill="#fff"/>
+      <rect x="24" y="10" width="16" height="8" rx="3" fill="#bfdbfe"/>
+      <path d="M21 28l4 4 7-8" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="35" y="27" width="9" height="3.4" rx="1.7" fill="#94a3b8"/>
+      <path d="M21 41l4 4 7-8" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="35" y="40" width="9" height="3.4" rx="1.7" fill="#94a3b8"/>
+    </symbol>
+  </svg>
+
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="Menu principal">
+      <div class="marca">
+        <svg class="marca-logo" aria-hidden="true"><use href="#logo"></use></svg>
+        <div>
+          <div class="marca-nome">FREQUÊNCIA<br>ESCOLAR</div>
+          <div class="marca-sub">Controle de Frequência e Acompanhamento dos Estudantes</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav-lateral"></nav>
+      <div class="nav-rodape" id="rodape-lateral"></div>
+    </aside>
+
+    <div class="principal">
+      <header class="topbar">
+        <svg class="marca-logo so-mobile" aria-hidden="true"><use href="#logo"></use></svg>
+        <div class="topbar-titulo">
+          <div class="t1">FREQUÊNCIA ESCOLAR</div>
+          <div class="t2" id="topo-escola"></div>
+        </div>
+        <div class="sel-turma">
+          <label for="sel-turma-global" class="sr-only">Turma</label>
+          <select id="sel-turma-global" aria-label="Turma selecionada"></select>
+        </div>
+        <div class="usuario-chip" id="usuario-chip" title=""></div>
+      </header>
+      <div class="faixa-conexao" role="alert">Sem conexão com a internet. As marcações ficam guardadas temporariamente neste aparelho e ainda NÃO foram salvas no servidor.</div>
+      <main class="conteudo" id="conteudo" tabindex="-1"></main>
+    </div>
+
+    <nav class="bottomnav" id="nav-inferior" aria-label="Navegação"></nav>
+  </div>
+
+  <div id="modais"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script>
+    // Contexto inicial gerado pelo servidor (usuário autenticado e turmas permitidas). Não contém credenciais.
+    var CONTEXTO = <?!= contextoJson ?>;
+  </script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

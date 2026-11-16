@@ -117,7 +117,7 @@
     hudEl.innerHTML = '';
     hudEl.appendChild(h('div', { class: 'hud-left' },
       h('button', { class: 'hud-avatar', 'aria-label': 'Ver perfil e conquistas', onclick: openTrophies, html: person(st.player.avatar, { round: true }) }),
-      h('div', { class: 'hud-id' }, h('div', { class: 'hud-name' }, st.player.name), h('div', { class: 'hud-level' }, `Nível ${lv.num} · ${lv.title}`),
+      h('div', { class: 'hud-id' }, h('div', { class: 'hud-name' }, st.player.name), h('div', { class: 'hud-level' }, `Nível ${lv.num} · ${lv.title}`), cloudChip(),
         h('div', { class: 'xpbar', title: 'Experiência' }, h('div', { class: 'xpfill', style: { width: (lv.pct * 100) + '%' } }), h('span', { class: 'xptext' }, h('b', { class: 'xpnum' }, fmt(shownXp == null ? st.xp : shownXp)), ' XP', lv.max ? '' : ` / ${fmt(lv.to)}`)))));
     hudEl.appendChild(h('div', { class: 'hud-mid' },
       h('div', { class: 'hud-prog', title: 'Progresso geral' }, h('span', { class: 'hp-l' }, 'Progresso'), h('div', { class: 'progbar' }, h('div', { style: { width: (pr.pct * 100) + '%' } })), h('b', null, Math.round(pr.pct * 100) + '%')),
@@ -132,6 +132,12 @@
     hudEl.appendChild(right);
     if (shownXp != null && shownXp !== st.xp) animateXp();
   }
+  function cloudChip() {
+    if (!CLOUD.enabled() || !S().cloud) return null;
+    const c = CLOUD.status();
+    return h('button', { class: 'hud-cloud ' + c.cls, title: c.text, onclick: () => { if (S().cloud && S().cloud.expired) pinModal({ codigo: S().cloud.codigo, nome: S().player.name }); else UI.toast(esc(c.text) + (S().cloud ? ` · Turma ${CLOUD.label(S().cloud.turma)}` : ''), '', c.icon); } }, h('span', { html: icon(c.icon) }), ' ', c.text);
+  }
+  document.addEventListener('nexus-cloud', () => { const old = hudEl && hudEl.querySelector('.hud-cloud'); const n = cloudChip(); if (old && n) old.replaceWith(n); });
   function hbtn(ic, label, fn, cls) { return h('button', { class: 'hud-btn ' + (cls || ''), 'aria-label': label, title: label, onclick: fn, html: icon(ic) }); }
   function animateXp() {
     const target = S().xp, from = shownXp;
@@ -154,11 +160,12 @@
     UI.modal({
       title: 'Menu', icon: 'menu',
       el: h('div', { class: 'menu-list' },
-        h('p', { class: 'small muted' }, 'Seu progresso é salvo automaticamente neste dispositivo.'),
+        h('p', { class: 'small muted' }, S().cloud ? `Dupla da turma ${CLOUD.label(S().cloud.turma)}: o progresso é salvo neste aparelho e online.` : 'Seu progresso é salvo automaticamente neste dispositivo.'),
         h('button', { class: 'btn btn-ghost wide', onclick: () => { closeAll(); goHQ(); } }, h('span', { html: icon('map') }), ' Mapa de missões'),
         h('button', { class: 'btn btn-ghost wide', onclick: () => { closeAll(); replayIntro(); } }, h('span', { html: icon('play') }), ' Rever a abertura'),
         h('button', { class: 'btn btn-ghost wide', onclick: () => { closeAll(); go(renderTitle); setHud(false); } }, h('span', { html: icon('exit') }), ' Salvar e voltar à tela inicial'),
-        h('button', { class: 'btn btn-danger wide', onclick: async () => { closeAll(); if (await UI.confirm('Tem certeza? <b>Todo o progresso desta partida será apagado</b> (pontos, medalhas e missões).', 'Sim, reiniciar', true)) { E.reset(true); shownXp = null; setHud(false); go(renderTitle); UI.toast('Partida reiniciada.'); } } }, h('span', { html: icon('refresh') }), ' Reiniciar partida'))
+        S().cloud ? h('button', { class: 'btn btn-ghost wide', onclick: () => { closeAll(); sairDupla(); } }, h('span', { html: icon('users') }), ' Sair da dupla (trocar de dupla)') : null,
+        h('button', { class: 'btn btn-danger wide', onclick: async () => { closeAll(); if (await UI.confirm('Tem certeza? <b>Todo o progresso desta partida será apagado</b> (pontos, medalhas e missões).', 'Sim, reiniciar', true)) { E.reset(true, true); shownXp = null; setHud(false); go(renderTitle); UI.toast('Partida reiniciada.'); } } }, h('span', { html: icon('refresh') }), ' Reiniciar partida'))
     });
   }
   function closeAll() { overlayEl.querySelectorAll('.modal-wrap').forEach((w) => w.remove()); }
@@ -169,6 +176,7 @@
     const st = S();
     const cont = E.hasSave() && st.player;
     const lv = E.level();
+    const cloudOn = CLOUD.enabled();
     const logo = h('div', { class: 'title-core', html: nexusCore(st.graduated ? 'fixed' : 'glitch') });
     let press = null;
     logo.addEventListener('pointerdown', () => { press = setTimeout(openTeacher, 2000); });
@@ -179,11 +187,13 @@
       h('h1', { class: 'game-title' }, h('span', { class: 't1' }, 'TREINANDO UMA IA'), h('span', { class: 't2' }, 'SEM PRECONCEITOS')),
       h('p', { class: 'tagline' }, G.tagline),
       h('div', { class: 'title-actions' },
-        cont ? h('button', { class: 'btn btn-primary btn-xl', onclick: () => { sfx('whoosh'); AUDIO.unlock(); goHQ(); } }, h('span', { html: icon('play') }), ' Continuar', h('small', null, `${st.player.name} · Nível ${lv.num} · ${Math.round(E.progress().pct * 100)}%`)) : null,
-        h('button', { class: 'btn ' + (cont ? 'btn-ghost' : 'btn-primary btn-xl'), onclick: newGame }, h('span', { html: icon(cont ? 'refresh' : 'rocket') }), cont ? ' Nova partida' : ' Iniciar missão')),
+        cont ? h('button', { class: 'btn btn-primary btn-xl', onclick: () => { sfx('whoosh'); AUDIO.unlock(); goHQ(); } }, h('span', { html: icon('play') }), ' Continuar', h('small', null, `${st.player.name}${st.cloud ? ' · ' + CLOUD.label(st.cloud.turma) : ''} · Nível ${lv.num} · ${Math.round(E.progress().pct * 100)}%`)) : null,
+        cloudOn && cont && st.cloud ? h('button', { class: 'btn btn-ghost', onclick: sairDupla }, h('span', { html: icon('users') }), ' Outra dupla')
+          : cloudOn && !cont ? h('button', { class: 'btn btn-primary btn-xl', onclick: () => { AUDIO.unlock(); sfx('click'); go(renderTurmas); } }, h('span', { html: icon('rocket') }), ' Iniciar missão', h('small', null, 'Escolham a turma e a dupla'))
+          : h('button', { class: 'btn ' + (cont ? 'btn-ghost' : 'btn-primary btn-xl'), onclick: newGame }, h('span', { html: icon(cont ? 'refresh' : 'rocket') }), cont ? ' Nova partida' : ' Iniciar missão')),
       h('button', { id: 'title-sound', class: 'link-btn', onclick: toggleSfx }),
       !E.storageOK() ? h('p', { class: 'warn-box' }, 'Atenção: o salvamento automático não está disponível neste navegador (modo privado?). O jogo funciona, mas o progresso não será guardado.') : null,
-      h('div', { class: 'title-foot' }, h('span', null, 'Educação Digital · 8º ano'), h('span', null, 'Sem cadastro · Funciona offline · Dados salvos só neste dispositivo'),
+      h('div', { class: 'title-foot' }, h('span', null, 'Educação Digital · 8º ano'), h('span', null, cloudOn ? 'Sem e-mail · Progresso das duplas salvo online na planilha do professor' : 'Sem cadastro · Funciona offline · Dados salvos só neste dispositivo'),
         h('button', { class: 'teacher-dot', 'aria-label': 'Acesso do professor', title: 'Professor(a)', onclick: openTeacher }, 'π'))));
     updTitleSound();
   }
@@ -196,6 +206,69 @@
     }
     E.reset(true); shownXp = null;
     go(renderIntro);
+  }
+  let pendingTurma = null; // turma escolhida para uma dupla nova
+  function renderTurmas() {
+    setHud(false); pendingTurma = null;
+    screenEl.appendChild(h('section', { class: 'pick' },
+      h('button', { class: 'btn btn-ghost sm', onclick: () => go(renderTitle) }, h('span', { html: icon('arrowL') }), ' Voltar'),
+      h('div', { class: 'kicker' }, 'ACESSO · NEXUS LAB'), h('h2', null, 'Qual é a sua turma?'),
+      h('div', { class: 'turma-grid' }, CLOUD.turmas.map((t) => h('button', { class: 'turma-btn', onclick: () => { sfx('click'); go(renderDuplas, t); } }, CLOUD.label(t)))),
+      h('p', { class: 'small muted' }, h('span', { html: icon('shield') }), ' O progresso da dupla fica salvo na planilha do professor. Usem só um apelido, sem nomes completos.')));
+  }
+  function renderDuplas(turma) {
+    setHud(false);
+    const list = h('div', { class: 'dupla-grid' }, h('p', { class: 'muted' }, h('span', { class: 'spinner' }), ' Buscando as duplas da turma…'));
+    const novo = () => { sfx('click'); E.reset(true); shownXp = null; pendingTurma = turma; go(renderIntro); };
+    screenEl.appendChild(h('section', { class: 'pick' },
+      h('button', { class: 'btn btn-ghost sm', onclick: () => go(renderTurmas) }, h('span', { html: icon('arrowL') }), ' Turmas'),
+      h('div', { class: 'kicker' }, 'TURMA ' + CLOUD.label(turma)), h('h2', null, 'Toquem no nome da sua dupla'),
+      h('button', { class: 'btn btn-primary', onclick: novo }, h('span', { html: icon('plus') }), ' Dupla nova (primeira vez)'),
+      list));
+    CLOUD.turma(turma).then((duplas) => {
+      list.innerHTML = '';
+      if (!duplas.length) list.appendChild(h('p', { class: 'muted' }, 'Ainda não há duplas nesta turma. Toquem em “Dupla nova”.'));
+      duplas.forEach((d) => list.appendChild(h('button', { class: 'dupla-card', onclick: () => pinModal(d) },
+        h('b', null, d.nome), h('div', { class: 'progbar' }, h('div', { style: { width: d.progresso + '%' } })),
+        h('small', { class: 'muted' }, `${d.progresso}% · ${d.xp} XP · missões ${d.missoes || '0/6'}`))));
+    }, (e) => {
+      list.innerHTML = '';
+      list.appendChild(h('div', { class: 'warn-box' }, h('p', null, e.offline ? 'Não foi possível falar com o servidor (sem internet?).' : esc(e.message)),
+        h('button', { class: 'btn btn-ghost sm', onclick: () => go(renderDuplas, turma) }, h('span', { html: icon('refresh') }), ' Tentar de novo'), ' ',
+        h('button', { class: 'btn btn-ghost sm', onclick: () => { E.reset(true); pendingTurma = null; go(renderIntro); } }, 'Jogar só neste aparelho')));
+    });
+  }
+  /* Senha de 4 números com teclado na tela */
+  function pinModal(d) {
+    let pin = '';
+    const dots = h('div', { class: 'pin-dots' });
+    const msg = h('p', { class: 'small bad pin-msg' });
+    const draw = () => { dots.innerHTML = [0, 1, 2, 3].map((i) => `<span class="${i < pin.length ? 'on' : ''}"></span>`).join(''); };
+    const press = (k) => {
+      if (busy) return;
+      if (k === '⌫') pin = pin.slice(0, -1); else if (pin.length < 4) pin += k;
+      sfx('click'); msg.textContent = ''; draw();
+      if (pin.length === 4) send();
+    };
+    let busy = false;
+    function send() {
+      busy = true; msg.innerHTML = '<span class="spinner"></span> Entrando…'; msg.classList.remove('bad');
+      CLOUD.login(d.codigo, pin).then(() => {
+        mod.close(); shownXp = null; sfx('unlock');
+        UI.toast(`Bem-vindos de volta, <b>${esc(S().player ? S().player.name : d.nome)}</b>!`, '', 'users');
+        if (S().player) goHQ(); else go(renderCreate);
+      }, (e) => { busy = false; pin = ''; draw(); msg.classList.add('bad'); msg.textContent = e.offline ? 'Sem conexão com o servidor. Tentem de novo.' : e.message; sfx('error'); });
+    }
+    const pad = h('div', { class: 'pin-pad' }, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((k) => k ? h('button', { class: 'pin-key', onclick: () => press(k), 'aria-label': k === '⌫' ? 'Apagar' : k }, k) : h('span')));
+    const mod = UI.modal({ title: d.nome, icon: 'lock', cls: 'narrow', el: h('div', { class: 'pin-box' }, h('p', null, 'Digitem a senha de 4 números da dupla.'), dots, pad, msg), buttons: [{ label: 'Cancelar' }] });
+    draw();
+    mod.box.addEventListener('keydown', (e) => { if (/^\d$/.test(e.key)) press(e.key); else if (e.key === 'Backspace') press('⌫'); });
+  }
+  async function sairDupla() {
+    if (!(await UI.confirm('Sair desta dupla neste aparelho? O progresso continua salvo online: na próxima aula, escolham a turma e toquem no nome da dupla.', 'Sair da dupla'))) return;
+    if (CLOUD.needsSync()) { UI.toast('Salvando online…'); await CLOUD.flush(); }
+    if (CLOUD.needsSync() && !(await UI.confirm('<b>Atenção:</b> o progresso ainda não foi enviado (sem internet). Se sair agora, o que foi feito desde o último salvamento online será perdido. Sair mesmo assim?', 'Sair mesmo assim', true))) return;
+    E.reset(true); shownXp = null; closeAll(); setHud(false); go(renderTitle);
   }
   function replayIntro() { setHud(false); go(renderIntro, true); }
 
@@ -266,9 +339,13 @@
       badge.innerHTML = '';
       badge.appendChild(h('div', { class: 'idc-top' }, h('span', null, 'NEXUS LAB'), h('span', null, 'CREDENCIAL')));
       badge.appendChild(h('div', { class: 'idc-body' }, h('div', { class: 'idc-photo', html: person(spec()) }), h('div', null, h('div', { class: 'idc-name' }, nameIn.value.trim() || 'Seu apelido'), h('div', { class: 'idc-role' }, 'Especialista Júnior em IA'), h('div', { class: 'idc-code' }, 'ACESSO: NÍVEL 1'))));
-      startBtn.disabled = nameIn.value.trim().length < 2;
+      startBtn.disabled = nameIn.value.trim().length < 2 || (pendingTurma && (pinIn.value.length !== 4 || pin2In.value !== pinIn.value));
     }
     nameIn.addEventListener('input', upd);
+    const pinIn = h('input', { class: 'name-input pin-small', type: 'password', inputmode: 'numeric', maxlength: 4, autocomplete: 'off', 'aria-label': 'Senha de 4 números' });
+    const pin2In = h('input', { class: 'name-input pin-small', type: 'password', inputmode: 'numeric', maxlength: 4, autocomplete: 'off', 'aria-label': 'Repitam a senha' });
+    [pinIn, pin2In].forEach((x) => x.addEventListener('input', () => { x.value = x.value.replace(/\D/g, '').slice(0, 4); upd(); }));
+    const createMsg = h('p', { class: 'small bad' });
     nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !startBtn.disabled) start(); });
     function row(label, items) { return h('div', { class: 'av-row' }, h('div', { class: 'av-label' }, label), h('div', { class: 'av-opts' }, items)); }
     function swatch(color, on, fn, label) { return h('button', { class: 'swatch' + (on ? ' on' : ''), style: { background: color }, 'aria-label': label, title: label, onclick: (e) => { e.currentTarget.parentElement.querySelectorAll('.swatch').forEach((x) => x.classList.remove('on')); e.currentTarget.classList.add('on'); fn(); sfx('click'); upd(); } }); }
@@ -295,18 +372,39 @@
         h('div', { class: 'create-head' }, h('div', { class: 'kicker' }, 'RECRUTAMENTO · NEXUS LAB'), h('h2', null, 'Crie seu personagem'), h('p', { class: 'muted' }, 'Você vai integrar a equipe de especialistas que investiga e corrige a NEXUS AI.')),
         h('div', { class: 'create-grid' },
           h('div', { class: 'create-left' }, preview, badge,
+            pendingTurma ? h('div', { class: 'turma-chip' }, h('span', { html: icon('users') }), ' Turma ', h('b', null, CLOUD.label(pendingTurma))) : null,
             h('label', { class: 'field' }, h('span', null, 'Apelido do jogador ou da dupla'), nameIn),
+            pendingTurma ? h('div', { class: 'pin-fields' },
+              h('label', { class: 'field' }, h('span', null, 'Senha da dupla (4 números)'), pinIn),
+              h('label', { class: 'field' }, h('span', null, 'Repitam a senha'), pin2In)) : null,
+            pendingTurma ? h('p', { class: 'small muted' }, 'Guardem a senha! Ela é usada para continuar em outra aula, em qualquer aparelho.') : null,
+            createMsg,
             h('p', { class: 'small muted' }, h('span', { html: icon('shield') }), ' Use um apelido. Não escreva seu nome completo nem dados pessoais.'),
             h('div', { class: 'create-actions' }, h('button', { class: 'btn btn-ghost', onclick: randomize }, h('span', { html: icon('refresh') }), ' Aleatório'), startBtn)),
           buildOpts())));
       upd();
     }
-    function start() {
-      const n = nameIn.value.trim().replace(/\s+/g, ' ').slice(0, 24);
-      if (n.length < 2) return;
+    async function start() {
+      const n = nameIn.value.trim().replace(/\s+/g, ' ').replace(/[=+@<>]/g, '').slice(0, 24);
+      if (n.length < 2 || startBtn.disabled) return;
       const st = S();
       st.player = { name: n, avatar: spec().replace(/\s+/g, ' ').trim() };
       st.startedAt = st.startedAt || new Date().toISOString();
+      if (pendingTurma) {
+        st.cloud = { turma: pendingTurma, senha: pinIn.value };
+        E.save(true);
+        startBtn.disabled = true; createMsg.classList.remove('bad'); createMsg.innerHTML = '<span class="spinner"></span> Registrando a dupla…';
+        try { await CLOUD.register(); createMsg.textContent = ''; }
+        catch (e) {
+          if (!e.offline) {
+            st.player = null; st.cloud = null; E.save(true); startBtn.disabled = false; createMsg.classList.add('bad');
+            createMsg.textContent = /NOME_EM_USO/.test(e.message) ? `Já existe uma dupla chamada “${n}” na turma ${CLOUD.label(pendingTurma)}. Se for a sua, voltem e toquem no nome dela; se não, escolham outro apelido.` : e.message;
+            return;
+          }
+          UI.toast('Sem internet agora: a dupla será salva online quando a conexão voltar.', '', 'clock');
+        }
+        pendingTurma = null;
+      }
       E.save();
       const un = E.award('recruta');
       sfx('levelup');
@@ -668,6 +766,7 @@
     setHud(true);
     const st = S();
     const f = finalScores();
+    if (st.finalConcept !== f.concept) { st.finalConcept = `${f.concept} (${Math.round(f.overall * 100)}%)`; E.save(); }
     screenEl.appendChild(h('section', { class: 'final-eval' },
       h('div', { class: 'kicker' }, 'RELATÓRIO FINAL · CASO RUMO'), h('h2', null, 'Avaliação da especialista'),
       h('div', { class: 'fe-grid' },
@@ -774,6 +873,7 @@
       h('div', { class: 'tc-sum' },
         S().player ? h('div', { class: 'tc-av', html: person(S().player.avatar) }) : null,
         h('div', null, h('b', null, sm.name), h('div', null, `${sm.level} · ${fmt(sm.xp)} XP · ${sm.progress}% concluído`), h('div', { class: 'small muted' }, `Início: ${dt(sm.startedAt)} · Última atividade: ${dt(sm.lastPlayed)} · Tempo: ${time(sm.playSeconds)}`))),
+      h('p', { class: 'small' }, h('span', { html: icon('globe') }), CLOUD.enabled() ? (S().cloud ? ` Salvamento online ativo · turma ${CLOUD.label(S().cloud.turma)} · código da dupla ${S().cloud.codigo || '(aguardando internet)'} · ${CLOUD.status().text}` : ' Salvamento online ativo (esta partida ainda não está ligada a uma dupla).') : ' Salvamento online desligado: os dados ficam só neste aparelho (veja config.json).'),
       h('table', { class: 'tbl tc-table' }, h('tr', null, h('th', null, 'Missão'), h('th', null, 'Situação'), h('th', null, 'Pontos'), h('th', null, 'Erros'), h('th', null, 'Dicas'), h('th', null, 'Medalha')),
         sm.missions.map((m) => h('tr', null, h('td', null, `${m.num}. ${m.title}`), h('td', null, status(m.status)), h('td', null, `${m.score}/${m.max}`), h('td', null, m.errors), h('td', null, m.hints), h('td', null, m.tier || '—')))),
       sm.finalText ? h('div', { class: 'tc-text' }, h('b', null, 'Justificativa final da missão 6:'), h('blockquote', null, sm.finalText)) : null,
@@ -802,11 +902,12 @@
     }
     async function newPair() {
       if (!(await UI.confirm('Iniciar uma nova partida para outra dupla? O resumo da partida atual será guardado no histórico do professor e o jogo voltará ao início.', 'Nova partida'))) return;
+      if (CLOUD.needsSync()) await CLOUD.flush();
       E.archive(); E.reset(true); shownXp = null; mod.close(); setHud(false); go(renderTitle); UI.toast('Pronto para a próxima dupla!');
     }
     async function restart() {
       if (!(await UI.confirm('Reiniciar o jogo? <b>O progresso atual será apagado</b> (o histórico de duplas é mantido).', 'Reiniciar', true))) return;
-      E.reset(true); shownXp = null; mod.close(); setHud(false); go(renderTitle); UI.toast('Jogo reiniciado.');
+      E.reset(true, true); shownXp = null; mod.close(); setHud(false); go(renderTitle); UI.toast('Jogo reiniciado.');
     }
     async function wipe() {
       if (!(await UI.confirm('Apagar <b>TODOS</b> os dados salvos neste dispositivo, inclusive o histórico de duplas? Esta ação não pode ser desfeita.', 'Apagar tudo', true))) return;
@@ -824,9 +925,12 @@
     document.addEventListener('pointerdown', function once() { AUDIO.unlock(); if (S().settings.music) AUDIO.setMusic(true); document.removeEventListener('pointerdown', once); });
     document.addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) { e.preventDefault(); openTeacher(); } });
     // contador de tempo de jogo (apenas com a aba visível)
-    setInterval(() => { if (!document.hidden && S().player) { S().playSeconds += 15; E.save(); } }, 15000);
-    go(renderTitle);
-    $('#boot') && $('#boot').remove();
+    setInterval(() => { if (!document.hidden && S().player) { S().playSeconds += 15; E.save(true); } }, 15000);
+    CLOUD.init().then(() => {
+      go(renderTitle);
+      $('#boot') && $('#boot').remove();
+      if (CLOUD.needsSync()) CLOUD.schedule(true);
+    });
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { /* offline opcional */ });
   }
   document.addEventListener('DOMContentLoaded', init);

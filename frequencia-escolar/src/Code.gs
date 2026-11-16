@@ -17,7 +17,7 @@
 /** OPCIONAL: preencha antes de executar setupSistema() (pode ser alterado depois no sistema). */
 var NOME_ESCOLA_INICIAL = '';
 
-var VERSAO_SISTEMA = '1.0.0';
+var VERSAO_SISTEMA = '1.0.2';
 var DATA_INICIO_PILOTO = '2026-11-17';
 var NOME_TURMA_PILOTO = 'TURMA PILOTO';
 
@@ -108,8 +108,6 @@ function doGet(e) {
   var out = t.evaluate()
     .setTitle('Frequência Escolar')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .addMetaTag('apple-mobile-web-app-capable', 'yes')
-    .addMetaTag('mobile-web-app-capable', 'yes')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
   var icone = '';
   try { icone = config_().ICONE_URL || ''; } catch (x) { icone = ''; }

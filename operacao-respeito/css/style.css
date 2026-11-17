@@ -101,7 +101,9 @@ svg { display: block; }
 .home { position: relative; min-height: 100vh; display: flex; flex-direction: column; padding: 20px clamp(16px, 4vw, 56px) 12px; overflow: hidden; }
 .home-bg .scan { position: absolute; left: 0; right: 0; height: 160px; top: -160px; background: linear-gradient(180deg, transparent, rgba(167, 139, 250, .07), transparent); animation: scan 7s linear infinite; pointer-events: none; }
 @keyframes scan { to { top: 110%; } }
-.home-top { display: flex; justify-content: flex-end; position: relative; z-index: 2; }
+.home-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; position: relative; z-index: 2; }
+.teacher-btn { min-height: 48px; padding: 8px 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-weight: 700; font-size: .9rem; cursor: pointer; }
+.teacher-btn:hover { border-color: var(--violet-l); background: var(--card2); }
 .home-grid { flex: 1; display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(20px, 4vw, 60px); align-items: center; max-width: 1280px; margin: 0 auto; width: 100%; }
 .home-logo { width: 132px; filter: drop-shadow(0 0 30px rgba(124, 58, 237, .7)); animation: float 5s ease-in-out infinite; margin-bottom: 8px; }
 @keyframes float { 50% { transform: translateY(-8px); } }

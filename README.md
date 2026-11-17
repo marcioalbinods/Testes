@@ -27,6 +27,15 @@ escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos o site f
 
 ---
 
+# 🕵🏾 Operação Respeito (pasta `operacao-respeito/`)
+
+Jogo digital educativo para o 7º ano (Novembro Negro): o estudante é um agente da Agência de Investigação
+Digital e investiga o racismo na rede social fictícia CONECTA em 5 operações e 30 fases, com dossiê
+antirracista, medalhas, certificado e Área do Professor. Sem cadastro e offline.
+Veja [`operacao-respeito/README.md`](operacao-respeito/README.md).
+
+---
+
 # Caçadores de Letras (pasta `CAÇA AS LETRAS/`)
 
 Jogo educativo de alfabetização em formato Escape Room, com 60 fases em 6 mundos.

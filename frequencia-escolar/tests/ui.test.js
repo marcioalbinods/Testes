@@ -365,6 +365,62 @@ function backendChamada(data) {
   assert.deepStrictEqual(insp.__erros, [], 'erros JS inspetora: ' + insp.__erros.join(' | '));
   await insp.__contexto.close();
 
+  // ---------------------------------------------------------------- Opção: chamada inicia com todos presentes
+  console.log('\nOpção "chamada já abre com todos presentes"');
+  amb.novaExecucao(DONO); amb.ctx.apiSalvarConfiguracoes({ CHAMADA_INICIA_PRESENTE: 'SIM' });
+  const pre = await novaPagina(browser, { viewport: { width: 1280, height: 900 } }, INSPETORA);
+  const turmaY = (() => { amb.novaExecucao(DONO); return amb.ctx.apiListarTurmas(false).data.find(t => t.nome === '6º Y').id; })();
+  const chamadaY17 = () => { amb.novaExecucao(DONO); return JSON.parse(JSON.stringify(amb.ctx.apiCarregarChamada({ turmaId: turmaY, data: '2026-11-17' }))).data; };
+  await teste('abre com todos presentes; só consultar e sair NÃO grava nada', async () => {
+    await pre.goto(URL_APP + '?u=' + INSPETORA);
+    await pre.waitForSelector('.ficha-turma');
+    await pre.click('.ficha-turma >> text=6º Y');
+    await pre.waitForFunction(() => document.querySelectorAll('.lc-linha').length === 4);
+    await pre.fill('#ch-data', '2026-11-17');
+    await pre.dispatchEvent('#ch-data', 'change');
+    await pre.waitForFunction(() => { const s = window.__FE.estado(); return s.Ch && s.Ch.data === '2026-11-17' && document.querySelectorAll('.lc-linha').length === 4; });
+    assert.deepStrictEqual((await pre.locator('.contador .v').allTextContents()).map(Number), [4, 4, 0, 0, 0, 0]);
+    assert.ok(/Todos marcados como presentes/.test(await pre.textContent('#ch-status')));
+    await foto(pre, '16-inicia-presente');
+    await pre.click('.sidebar [data-nav="painel"]');
+    await pre.waitForSelector('.ficha-turma');
+    assert.strictEqual(chamadaY17().chamada, null, 'nenhuma chamada criada só por abrir');
+  });
+  await teste('marca só a exceção e finaliza: grava presentes + ausente', async () => {
+    await pre.click('.ficha-turma >> text=6º Y');
+    await pre.waitForFunction(() => document.querySelectorAll('.lc-linha').length === 4);
+    await pre.fill('#ch-data', '2026-11-17');
+    await pre.dispatchEvent('#ch-data', 'change');
+    await pre.waitForFunction(() => { const s = window.__FE.estado(); return s.Ch && s.Ch.data === '2026-11-17' && document.querySelectorAll('.lc-linha').length === 4; });
+    await pre.click('.lc-linha >> nth=1 >> .b-AUSENTE');
+    await pre.click('[data-acao="finalizar"]');
+    await pre.click('.modal-rodape .btn-sucesso');
+    await pre.waitForSelector('.aviso-ok >> text=Chamada finalizada');
+    const c = chamadaY17();
+    assert.strictEqual(c.chamada.status, 'FINALIZADA');
+    assert.deepStrictEqual([c.chamada.presentes, c.chamada.ausentes, c.chamada.naoRegistrados], [3, 1, 0]);
+  });
+  await teste('finalizar sem tocar em nada grava todos como presentes', async () => {
+    await pre.click('.sidebar [data-nav="painel"]');
+    await pre.waitForSelector('.ficha-turma');
+    await pre.click('.ficha-turma >> text=7º Z');
+    await pre.waitForFunction(() => document.querySelectorAll('.lc-linha').length === 3);
+    await pre.fill('#ch-data', '2026-11-17');
+    await pre.dispatchEvent('#ch-data', 'change');
+    await pre.waitForFunction(() => { const s = window.__FE.estado(); return s.Ch && s.Ch.data === '2026-11-17' && document.querySelectorAll('.lc-linha').length === 3; });
+    await pre.click('[data-acao="finalizar"]');
+    await pre.click('.modal-rodape .btn-sucesso');
+    await pre.waitForSelector('.aviso-ok >> text=Chamada finalizada');
+    amb.novaExecucao(DONO);
+    const z = amb.ctx.apiListarTurmas(false).data.find(t => t.nome === '7º Z').id;
+    amb.novaExecucao(DONO);
+    const c = JSON.parse(JSON.stringify(amb.ctx.apiCarregarChamada({ turmaId: z, data: '2026-11-17' }))).data;
+    assert.deepStrictEqual([c.chamada.status, c.chamada.presentes, c.chamada.naoRegistrados], ['FINALIZADA', 3, 0]);
+  });
+  assert.deepStrictEqual(pre.__erros, [], 'erros JS (inicia presente): ' + pre.__erros.join(' | '));
+  await pre.__contexto.close();
+  amb.novaExecucao(DONO); amb.ctx.apiSalvarConfiguracoes({ CHAMADA_INICIA_PRESENTE: 'NAO' });
+
   // ---------------------------------------------------------------- Tablet e celular
   for (const [nome, disp] of [['tablet-ipad', devices['iPad (gen 7)']], ['tablet-android', devices['Galaxy Tab S4']], ['celular', devices['iPhone 13']]]) {
     console.log('\n' + nome + ' (' + disp.viewport.width + 'x' + disp.viewport.height + ')');

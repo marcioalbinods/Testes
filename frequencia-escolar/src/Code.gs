@@ -17,7 +17,7 @@
 /** OPCIONAL: preencha antes de executar setupSistema() (pode ser alterado depois no sistema). */
 var NOME_ESCOLA_INICIAL = '';
 
-var VERSAO_SISTEMA = '1.1.0';
+var VERSAO_SISTEMA = '1.2.0';
 /**
  * Turmas e estudantes iniciais.
  * Por privacidade, os nomes dos estudantes NÃO ficam neste código-fonte: o arquivo de
@@ -32,6 +32,15 @@ function dadosIniciais_() {
   var d = DADOS_ESCOLA_;
   var inicio = d.dataInicio ? validarData_(d.dataInicio, 'dataInicio') : hoje_();
   return { dataInicio: inicio, turno: d.turno || '', anoLetivo: String(d.anoLetivo || inicio.slice(0, 4)), turmas: d.turmas };
+}
+
+/**
+ * A chamada abre com todos como Presente? Usa a configuração; se ela ainda não existir na
+ * planilha (sistema instalado antes desta opção), usa o padrão do arquivo de instalação.
+ */
+function chamadaIniciaPresente_(cfg) {
+  if (cfg.CHAMADA_INICIA_PRESENTE !== undefined && cfg.CHAMADA_INICIA_PRESENTE !== '') return ehSim_(cfg.CHAMADA_INICIA_PRESENTE);
+  return typeof DADOS_ESCOLA_ !== 'undefined' && !!DADOS_ESCOLA_ && DADOS_ESCOLA_.chamadaIniciaPresente === true;
 }
 
 /** Lista de nomes em ordem alfabética (ignorando acentos), sem alterar a grafia. */
@@ -53,6 +62,7 @@ var CONFIG_PADRAO = [
   ['PERIODOS', '', 'Aulas/períodos separados por ponto e vírgula (ex.: 1ª aula;2ª aula). Vazio = uma chamada por dia.'],
   ['DIAS_EDICAO_PROFESSOR', '7', 'Quantos dias para trás o PROFESSOR pode registrar ou corrigir chamadas.'],
   ['PROFESSOR_PODE_REABRIR', 'SIM', 'SIM: professor pode reabrir chamadas finalizadas dentro do prazo. NAO: somente gestão.'],
+  ['CHAMADA_INICIA_PRESENTE', 'NAO', 'SIM: a chamada abre com todos os estudantes marcados como Presente (só é gravada ao salvar/finalizar). NAO: todos começam como Não registrado.'],
   ['BACKUP_PASTA_ID', '', 'Pasta do Google Drive com os backups (preenchido automaticamente).'],
   ['ULTIMO_BACKUP', '', 'Data/hora e ID do último backup (preenchido automaticamente).'],
   ['ICONE_URL', '', 'Endereço público de imagem PNG (ícone do navegador). Opcional.'],
@@ -60,7 +70,7 @@ var CONFIG_PADRAO = [
 ];
 
 /** Chaves que o ADMIN pode alterar pela tela de Configurações. */
-var CONFIG_EDITAVEIS = ['NOME_ESCOLA', 'LIMITE_FREQUENCIA', 'ATRASO_CONTA_COMPARECIMENTO', 'JUSTIFICADA_CONTA_COMPARECIMENTO',
+var CONFIG_EDITAVEIS = ['CHAMADA_INICIA_PRESENTE', 'NOME_ESCOLA', 'LIMITE_FREQUENCIA', 'ATRASO_CONTA_COMPARECIMENTO', 'JUSTIFICADA_CONTA_COMPARECIMENTO',
   'JUSTIFICADA_EXCLUIR_DO_CALCULO', 'CONTAR_RASCUNHOS', 'PERIODOS', 'DIAS_EDICAO_PROFESSOR', 'PROFESSOR_PODE_REABRIR', 'ICONE_URL'];
 
 // ============================================================================ Web App
@@ -158,7 +168,8 @@ function contextoUsuario_(u) {
     turmas: turmas,
     periodos: periodosConfigurados_(cfg),
     limite: configNum_(cfg, 'LIMITE_FREQUENCIA', 90),
-    diasEdicaoProfessor: configNum_(cfg, 'DIAS_EDICAO_PROFESSOR', 7)
+    diasEdicaoProfessor: configNum_(cfg, 'DIAS_EDICAO_PROFESSOR', 7),
+    chamadaIniciaPresente: chamadaIniciaPresente_(cfg)
   };
 }
 
@@ -229,7 +240,7 @@ function apiSalvarConfiguracoes(valores) {
         v = String(n);
       } else if (k === 'DIAS_EDICAO_PROFESSOR') {
         v = String(inteiro_(v, 0, 365, 'Dias de edição do professor'));
-      } else if (['ATRASO_CONTA_COMPARECIMENTO', 'JUSTIFICADA_CONTA_COMPARECIMENTO', 'JUSTIFICADA_EXCLUIR_DO_CALCULO', 'CONTAR_RASCUNHOS', 'PROFESSOR_PODE_REABRIR'].indexOf(k) >= 0) {
+      } else if (['ATRASO_CONTA_COMPARECIMENTO', 'JUSTIFICADA_CONTA_COMPARECIMENTO', 'JUSTIFICADA_EXCLUIR_DO_CALCULO', 'CONTAR_RASCUNHOS', 'PROFESSOR_PODE_REABRIR', 'CHAMADA_INICIA_PRESENTE'].indexOf(k) >= 0) {
         v = simNao_(v);
       } else if (k === 'PERIODOS') {
         var ps = v.split(';').map(function (s) { return texto_(s, 40); }).filter(String);
@@ -310,7 +321,8 @@ function setupSistema() {
     // 7. Configurações iniciais (somente chaves ausentes).
     var cfgAtual = indexarPor_(lerTabela_('CONFIGURACOES', { fresco: true }), 'CHAVE');
     var novasCfg = CONFIG_PADRAO.filter(function (c) { return !cfgAtual[c[0]]; }).map(function (c) {
-      var valor = c[0] === 'NOME_ESCOLA' ? (texto_(NOME_ESCOLA_INICIAL, 150) || 'NOME DA ESCOLA (configure em Administração)') : c[1];
+      var valor = c[0] === 'NOME_ESCOLA' ? (texto_(NOME_ESCOLA_INICIAL, 150) || 'NOME DA ESCOLA (configure em Administração)') :
+        c[0] === 'CHAMADA_INICIA_PRESENTE' ? (chamadaIniciaPresente_({}) ? 'SIM' : 'NAO') : c[1];
       return { CHAVE: c[0], VALOR: valor, DESCRICAO: c[2], ATUALIZADO_EM: agora_(), ATUALIZADO_POR: email };
     });
     inserirRegistros_('CONFIGURACOES', novasCfg);

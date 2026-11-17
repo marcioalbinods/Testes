@@ -350,7 +350,7 @@
   }
   function atualizarContexto() {
     return servidor('apiContexto', []).then(function (ctx) {
-      C.turmas = ctx.turmas; C.escola = ctx.escola; C.periodos = ctx.periodos; C.limite = ctx.limite;
+      C.chamadaIniciaPresente = ctx.chamadaIniciaPresente; C.turmas = ctx.turmas; C.escola = ctx.escola; C.periodos = ctx.periodos; C.limite = ctx.limite;
       $('#topo-escola').textContent = C.escola;
       preencherSeletorTurma();
     });
@@ -484,7 +484,16 @@
       Ch.obs[e.id] = Ch.servidorObs[e.id] = e.observacao || '';
     });
     Ch.editavel = Ch.permissoes.editar && !(Ch.chamada && Ch.chamada.status === 'FINALIZADA');
+    // Opção "chamada inicia com todos presentes": pré-marca na tela quem está sem registro.
+    // Nada é gravado até a pessoa salvar/finalizar (abrir só para consultar não cria chamada).
+    Ch.preMarcados = {};
+    if (C.chamadaIniciaPresente && Ch.editavel) {
+      estado.estudantes.forEach(function (e) {
+        if (!e.inativo && Ch.sit[e.id] === 'NAO_REGISTRADO') { Ch.sit[e.id] = 'PRESENTE'; Ch.preMarcados[e.id] = true; }
+      });
+    }
   }
+  function temPreMarcados() { return !!(Ch && Object.keys(Ch.preMarcados || {}).length); }
 
   function pararChamada() {
     if (Ch && Ch.timer) { clearTimeout(Ch.timer); Ch.timer = null; }
@@ -538,7 +547,7 @@
         '<button class="btn btn-primario" data-acao="salvar">' + ic('salvar') + 'Salvar chamada</button>' +
         '<button class="btn btn-sucesso" data-acao="finalizar">' + ic('finalizar') + 'Finalizar chamada</button></div>' : '');
     atualizarContadores();
-    definirStatus(Ch.alterado ? 'pendente' : (c ? 'salvo-inicial' : 'inicial'));
+    definirStatus(Ch.alterado ? 'pendente' : temPreMarcados() ? 'premarcado' : (c ? 'salvo-inicial' : 'inicial'));
   }
 
   /** Após finalizar, oferece ir direto para a próxima turma com chamada pendente no mesmo dia. */
@@ -597,6 +606,7 @@
     if (!el) return;
     var mapa = {
       'inicial': ['', 'Nenhuma alteração'],
+      'premarcado': ['pendente', 'Todos marcados como presentes — finalize para salvar'],
       'salvo-inicial': ['salvo', 'Dados carregados do servidor'],
       'pendente': ['pendente', 'Alterações ainda não salvas'],
       'salvando': ['salvando', 'Salvando...'],
@@ -671,7 +681,7 @@
       return Ch.salvando.then(function () { return salvarChamada(opts); });
     }
     if (Ch.timer) { clearTimeout(Ch.timer); Ch.timer = null; }
-    if (!Ch.alterado && !opts.finalizar && !opts.forcar) { if (!opts.auto) definirStatus(Ch.chamada ? 'salvo' : 'inicial'); return Promise.resolve(true); }
+    if (!Ch.alterado && !opts.finalizar && !opts.forcar && !temPreMarcados()) { if (!opts.auto) definirStatus(Ch.chamada ? 'salvo' : 'inicial'); return Promise.resolve(true); }
     if (navigator.onLine === false) { definirStatus('offline'); if (!opts.auto) toast('Sem conexão. As marcações estão guardadas neste aparelho e serão enviadas quando a internet voltar.', 'erro'); return Promise.resolve(false); }
     var estado = Ch;
     var seq = Ch.seq;
@@ -735,6 +745,7 @@
       Ch.servidorObs[e.id] = e.observacao || '';
       if (!porId[e.id]) { Ch.estudantes.push(e); Ch.sit[e.id] = e.situacao; Ch.obs[e.id] = e.observacao || ''; }
     });
+    Ch.preMarcados = {}; // o que estava pré-marcado foi enviado e confirmado pelo servidor
     if (Ch.seq === seqEnviado) {
       Ch.alterado = false;
       limparLocal();
@@ -761,6 +772,7 @@
         if (op === 'manter') {
           // Reaplica somente o que ESTE usuário alterou; o restante fica como a outra pessoa salvou.
           var minhas = alteracoesLocais({ sit: Ch.sit, obs: Ch.obs, baseSit: Ch.servidorSit, baseObs: Ch.servidorObs });
+          Object.keys(Ch.preMarcados || {}).forEach(function (id) { delete minhas[id]; }); // pré-marcação não sobrescreve outra pessoa
           var minhasSit = Ch.sit, minhasObs = Ch.obs;
           iniciarEstadoChamada(e.dados);
           if (!Ch.editavel) { renderChamada(); toast('A chamada foi finalizada por outra pessoa e não pode ser alterada sem reabertura.', 'erro'); return; }
@@ -842,6 +854,7 @@
       if (!Ch.editavel) return true;
       var id = b.closest('.lc-linha').getAttribute('data-est');
       var s = b.getAttribute('data-sit');
+      if (Ch.preMarcados) delete Ch.preMarcados[id];
       if (Ch.sit[id] !== s) {
         Ch.sit[id] = s;
         if (s !== 'JUSTIFICADA' && s !== 'ATRASADO') Ch.obs[id] = '';
@@ -863,6 +876,7 @@
     if (acao === 'limpar') {
       confirmar('Limpar seleção?', 'Todas as marcações desta chamada voltarão para "Não registrado". Esta ação será salva no servidor como rascunho.', 'Limpar seleção', 'btn-perigo-cheio').then(function (ok) {
         if (!ok) return;
+        Ch.preMarcados = {};
         Ch.estudantes.forEach(function (e) { Ch.sit[e.id] = 'NAO_REGISTRADO'; Ch.obs[e.id] = ''; atualizarLinha(e.id); });
         $$('[data-obs]').forEach(function (i) { i.value = ''; });
         marcarAlterado();
@@ -1401,7 +1415,7 @@
         sn('ATRASO_CONTA_COMPARECIMENTO', 'Atraso conta como comparecimento?') + sn('JUSTIFICADA_CONTA_COMPARECIMENTO', 'Falta justificada conta como comparecimento?') +
         sn('JUSTIFICADA_EXCLUIR_DO_CALCULO', 'Excluir faltas justificadas da base de cálculo?') + sn('CONTAR_RASCUNHOS', 'Contar chamadas em rascunho nas estatísticas?') + '</div>' +
         '<div class="card-titulo" style="margin-top:20px">Chamada e permissões</div><div class="form-grade">' + tx('PERIODOS', 'Aulas/períodos (separados por ;)') +
-        tx('DIAS_EDICAO_PROFESSOR', 'Prazo de edição do professor (dias)', 'number') + sn('PROFESSOR_PODE_REABRIR', 'Professor pode reabrir chamadas?') + '</div>' +
+        sn('CHAMADA_INICIA_PRESENTE', 'Chamada já abre com todos como Presente?') + tx('DIAS_EDICAO_PROFESSOR', 'Prazo de edição do professor (dias)', 'number') + sn('PROFESSOR_PODE_REABRIR', 'Professor pode reabrir chamadas?') + '</div>' +
         (EH_ADMIN ? '<div class="linha-acoes" style="margin-top:18px"><button class="btn btn-primario" data-adm="config-salvar">' + ic('salvar') + 'Salvar configurações</button></div>' : '') +
         '<p style="font-size:12px;color:#64748b">Versão do sistema: ' + h(d.versao) + '. Todas as alterações ficam registradas na auditoria.</p></div>';
     }).catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });

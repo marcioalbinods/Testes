@@ -143,3 +143,14 @@ Depois de ativar o GitHub Pages, o jogo fica em
 Sistema web de chamada e acompanhamento da frequência escolar em Google Apps Script + Google Sheets.
 Instalação, publicação, segurança, backup e manual completos em
 [`frequencia-escolar/README.md`](frequencia-escolar/README.md).
+
+---
+
+# 🎨 Ateliê Afro — 100 desenhos, infinitas cores! (pasta `atelie-afro/`)
+
+Aplicativo de colorir para o 2º ano (Novembro Negro): 100 desenhos originais em 10 coleções,
+pintura por toque nos tablets, salvamento automático e funcionamento sem internet.
+Veja as instruções em [`atelie-afro/README.md`](atelie-afro/README.md).
+
+Depois de ativar o GitHub Pages, o jogo fica em
+`https://<seu-usuario>.github.io/<nome-do-repositorio>/atelie-afro/`.

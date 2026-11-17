@@ -58,7 +58,8 @@
       finalEval: null,
       settings: { sfx: true, music: false },
       startedAt: null, lastPlayed: null, playSeconds: 0,
-      introSeen: false, graduated: false
+      introSeen: false, graduated: false,
+      cloud: null, updated: 0, finalConcept: ''
     };
   }
   let S = fresh();
@@ -72,14 +73,29 @@
     ensureMissions();
     return S;
   }
-  function save() {
+  // save(true): grava só no aparelho, sem marcar mudança para o salvamento online
+  function save(quiet) {
     S.lastPlayed = new Date().toISOString();
-    try { localStorage.setItem(KEY, JSON.stringify(S)); return true; } catch (e) { return false; }
+    if (!quiet) S.updated = Date.now();
+    let ok = true;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { ok = false; }
+    if (!quiet && window.CLOUD && S.cloud) CLOUD.schedule();
+    return ok;
+  }
+  // recebe o progresso salvo online (ao entrar numa dupla)
+  function adopt(estado, cloud, updated) {
+    const st = S.settings;
+    S = Object.assign(fresh(), estado || {});
+    S.settings = st; S.cloud = cloud; S.updated = updated || Date.now();
+    ensureMissions();
+    save(true);
   }
   function hasSave() { try { const r = localStorage.getItem(KEY); if (!r) return false; const d = JSON.parse(r); return !!(d && d.player); } catch (e) { return false; } }
-  function reset(keepSettings) {
-    const st = S.settings;
+  // keepIdentity: recomeça o progresso mas mantém a dupla (nome, avatar e salvamento online)
+  function reset(keepSettings, keepIdentity) {
+    const st = S.settings, pl = S.player, cl = S.cloud;
     S = fresh(); if (keepSettings) S.settings = st;
+    if (keepIdentity && pl) { S.player = pl; S.cloud = cl; S.introSeen = true; S.startedAt = new Date().toISOString(); }
     ensureMissions();
     try { localStorage.removeItem(KEY); } catch (e) { /* */ }
     save();
@@ -287,7 +303,7 @@
   }
 
   window.ENGINE = {
-    get state() { return S; }, load, save, hasSave, reset, storageOK, level, progress, medalTier, missionMax,
+    get state() { return S; }, load, save, adopt, hasSave, reset, storageOK, level, progress, medalTier, missionMax,
     completeChallenge, completeMission, award, scoreChallenge, evaluateText, summary, history, archive, clearAll,
     h, shuffle, norm, esc, fmt, sleep, reducedMotion, makeDraggable, makeDropZone, clearTap
   };

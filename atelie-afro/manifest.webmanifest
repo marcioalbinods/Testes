@@ -1,0 +1,18 @@
+{
+  "name": "Ateliê Afro — 100 desenhos, infinitas cores!",
+  "short_name": "Ateliê Afro",
+  "description": "Aplicativo de colorir com 100 desenhos que valorizam a identidade negra e a cultura afro-brasileira.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF7E8",
+  "theme_color": "#7B2FBE",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -208,7 +208,7 @@ Clique em **Implantar → Gerenciar implantações** → lápis (editar) → **V
 |---|---|
 | Acesso restrito | `doGet()` só entrega a interface para e-mails **cadastrados e ativos** na aba PROFESSORES. Os demais veem "Acesso não autorizado", sem nenhum dado. |
 | Identidade confirmada | Se o Google não informar o e-mail, **todas** as operações são bloqueadas. Não existe tela de login falsa nem senha em planilha. |
-| Perfis | **ADMIN**: tudo. **GESTOR**: todas as turmas, correções a qualquer tempo, relatórios e estudantes. **PROFESSOR**: só as turmas atribuídas, com edição limitada a `DIAS_EDICAO_PROFESSOR` dias (padrão 7). |
+| Perfis | **ADMIN**: tudo. **GESTOR**: todas as turmas, correções a qualquer tempo, relatórios e estudantes. **PROFESSOR**: só as turmas atribuídas (ou "Todas as turmas", para a inspetora), com edição limitada a `DIAS_EDICAO_PROFESSOR` dias (padrão 7). **CONSULTA**: somente leitura de todas as turmas (ex.: secretaria). Qualquer gravação é recusada pelo servidor. |
 | Validação no servidor | Toda função `api*` revalida usuário, perfil, turma, datas, situações e textos. Os botões escondidos na tela são só conveniência. |
 | Funções administrativas protegidas | `setupSistema`, `verificarSistema`, `instalarBackupDiario`, `fazerBackupAgora` e `backupAgendado` recusam chamadas que não sejam do instalador ou de um ADMIN. Isso vale também para quem tentar chamá-las pelo navegador. |
 | Planilha protegida | No modo recomendado, a planilha pertence à conta dona e **não é compartilhada**. As abas têm proteção "com aviso" contra edição manual acidental. |
@@ -286,6 +286,13 @@ O limite de alerta é configurável: `LIMITE_FREQUENCIA`, padrão 90%. Todas as 
 - **Erro ao salvar** ou **Sem conexão**: as marcações estão **guardadas só neste aparelho** e **ainda não** no servidor. Quando a internet voltar, o envio é automático. Se você fechar o app antes disso, ao reabrir a mesma chamada aparecerá **"Restaurar e salvar"**.
 
 **Corrigir uma chamada finalizada:** abra a chamada (pela data ou pelo Histórico) → **Reabrir para correção** → informe o motivo → corrija → finalize de novo. Fora do prazo do professor, só a equipe gestora pode corrigir.
+
+### Secretaria: Ausentes do dia (perfil CONSULTA)
+1. O ADMIN cadastra o servidor em **Administração → Usuários** com o perfil **CONSULTA**. Ele vê todas as turmas, mas não altera nada.
+2. No menu, **Ausentes do dia** mostra numa só lista, separados por turma, os estudantes **ausentes** e com **falta justificada** (com a observação), além do total de faltas de cada um nos últimos 30 dias. Atrasos não entram.
+3. Atalhos: **Hoje**, **Ontem** e **Esta semana**, ou escolha as datas. Desmarque "Incluir faltas justificadas" para ver só os ausentes.
+4. Um aviso amarelo lista as turmas cuja chamada ainda não foi finalizada (a lista pode mudar até lá).
+5. Para imprimir ou arquivar, use **PDF**, **Excel** ou **CSV**.
 
 ### Histórico
 Filtre por período, estudante, situação e status. Toque numa chamada para ver todos os estudantes, **Corrigir** um registro (com motivo, que fica na auditoria) ou abri-la na tela de chamada.

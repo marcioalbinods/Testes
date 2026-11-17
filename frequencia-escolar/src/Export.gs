@@ -29,9 +29,9 @@ function linhasMeta_(rel) {
     ['FREQUÊNCIA ESCOLAR — ' + rel.titulo],
     ['Escola', rel.meta.escola],
     ['Turma', rel.meta.turma],
-    ['Período analisado', rel.meta.periodo],
-    ['Professor(a)', rel.meta.professor]
+    ['Período analisado', rel.meta.periodo]
   ];
+  if (rel.meta.professor && rel.meta.professor !== '—') l.push(['Professor(a)', rel.meta.professor]);
   if (rel.meta.estudante) l.push(['Estudante', rel.meta.estudante]);
   l.push(['Emitido em', rel.meta.emissao], ['Emitido por', rel.meta.emitidoPor], ['Regras de cálculo', rel.meta.regras]);
   return l;

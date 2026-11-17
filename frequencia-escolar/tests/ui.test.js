@@ -421,6 +421,64 @@ function backendChamada(data) {
   await pre.__contexto.close();
   amb.novaExecucao(DONO); amb.ctx.apiSalvarConfiguracoes({ CHAMADA_INICIA_PRESENTE: 'NAO' });
 
+  // ---------------------------------------------------------------- Secretaria (perfil CONSULTA)
+  console.log('\nSecretaria — perfil CONSULTA e Ausentes do dia');
+  const SEC = 'secretaria@escola.edu.br';
+  amb.novaExecucao(DONO); amb.ctx.apiSalvarProfessor({ nome: 'SERVIDOR DA SECRETARIA', email: SEC, perfil: 'CONSULTA', turmas: [] });
+  const sec = await novaPagina(browser, { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 }, SEC);
+  await teste('menu sem "Fazer chamada"; painel leva aos ausentes', async () => {
+    await sec.goto(URL_APP + '?u=' + SEC);
+    await sec.waitForSelector('.boas-vindas');
+    assert.strictEqual(await sec.locator('.sidebar [data-nav="chamada"]').count(), 0);
+    assert.strictEqual(await sec.locator('.sidebar [data-nav="admin"]').count(), 0);
+    await sec.click('.boas-vindas >> text=Ver ausentes do dia');
+    await sec.waitForSelector('#aus-res .kpi');
+  });
+  await teste('Ausentes do dia: lista agrupada por turma, pendências e exportação', async () => {
+    await sec.fill('#aus-ini', '2026-11-17');
+    await sec.fill('#aus-fim', '2026-11-20');
+    await sec.click('[data-acao="aus-buscar"]');
+    await sec.waitForSelector('#aus-res .grupo-ausentes table');
+    const txt = await sec.textContent('#aus-res');
+    assert.ok(txt.includes('5º X') && txt.includes('Faltas em 30 dias'));
+    assert.ok(!/Atrasado/.test(txt), 'atrasos não aparecem');
+    await foto(sec, '17-ausentes-do-dia', true);
+    for (const fmt of ['PDF', 'XLSX', 'CSV']) {
+      const [down] = await Promise.all([sec.waitForEvent('download'), sec.click('[data-aus-exportar="' + fmt + '"]')]);
+      assert.ok(new RegExp('\\.' + fmt.toLowerCase() + '$').test(down.suggestedFilename()), fmt);
+    }
+    await sec.uncheck('#aus-just');
+    await sec.click('[data-acao="aus-buscar"]');
+    await sec.waitForFunction(() => !document.querySelector('#aus-res .carregando'));
+    assert.ok(!/Falta justificada/.test(await sec.textContent('#aus-res')));
+  });
+  await teste('chamada aberta pela secretaria é somente leitura', async () => {
+    await sec.click('.sidebar [data-nav="painel"]');
+    await sec.waitForSelector('.ficha-turma');
+    await sec.click('.ficha-turma >> text=6º Y');
+    await sec.waitForSelector('.lc-linha');
+    assert.ok(/somente leitura/.test(await sec.textContent('#ch-avisos')));
+    assert.strictEqual(await sec.locator('.bsit:not([disabled])').count(), 0);
+    assert.strictEqual(await sec.locator('[data-acao="finalizar"]').count(), 0);
+  });
+  assert.deepStrictEqual(sec.__erros, [], 'erros JS (secretaria): ' + sec.__erros.join(' | '));
+  await sec.__contexto.close();
+  const secCel = await novaPagina(browser, devices['iPhone 13'], SEC);
+  await teste('Ausentes do dia no celular', async () => {
+    await secCel.goto(URL_APP + '?u=' + SEC);
+    await secCel.waitForSelector('.bottomnav [data-nav="ausentes"]');
+    assert.strictEqual(await secCel.locator('.bottomnav [data-nav="chamada"]').count(), 0);
+    await secCel.tap('.bottomnav [data-nav="ausentes"]');
+    await secCel.fill('#aus-ini', '2026-11-17');
+    await secCel.tap('[data-acao="aus-buscar"]');
+    await secCel.waitForSelector('#aus-res .grupo-ausentes');
+    const largura = await secCel.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(largura <= 0, 'sem rolagem horizontal da página');
+    await foto(secCel, '18-ausentes-celular');
+  });
+  assert.deepStrictEqual(secCel.__erros, [], 'erros JS (secretaria celular): ' + secCel.__erros.join(' | '));
+  await secCel.__contexto.close();
+
   // ---------------------------------------------------------------- Tablet e celular
   for (const [nome, disp] of [['tablet-ipad', devices['iPad (gen 7)']], ['tablet-android', devices['Galaxy Tab S4']], ['celular', devices['iPhone 13']]]) {
     console.log('\n' + nome + ' (' + disp.viewport.width + 'x' + disp.viewport.height + ')');

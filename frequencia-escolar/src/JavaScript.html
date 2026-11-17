@@ -10,6 +10,7 @@
   var C = CONTEXTO;
   var PERFIL_GESTAO = C.usuario.perfil === 'ADMIN' || C.usuario.perfil === 'GESTOR';
   var EH_ADMIN = C.usuario.perfil === 'ADMIN';
+  var EH_CONSULTA = C.usuario.perfil === 'CONSULTA'; // somente leitura (ex.: secretaria)
   var SIT = ['PRESENTE', 'AUSENTE', 'ATRASADO', 'JUSTIFICADA'];
   var ROT = { PRESENTE: 'Presente', AUSENTE: 'Ausente', ATRASADO: 'Atrasado', JUSTIFICADA: 'Justificada', NAO_REGISTRADO: 'Não registrado' };
   var ROT_LONGO = { PRESENTE: 'Presente', AUSENTE: 'Ausente', ATRASADO: 'Atrasado', JUSTIFICADA: 'Falta justificada', NAO_REGISTRADO: 'Não registrado' };
@@ -27,6 +28,7 @@
     estudantes: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
     mais: '<path d="M3 12h18M3 6h18M3 18h18"/>',
+    ausentes: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/>',
     PRESENTE: '<path d="M20 6 9 17l-5-5"/>',
     AUSENTE: '<path d="M18 6 6 18M6 6l12 12"/>',
     ATRASADO: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -271,12 +273,13 @@
   // ------------------------------------------------------------------ Navegação
   var VIEWS = [
     { id: 'painel', rotulo: 'Painel', icone: 'painel' },
-    { id: 'chamada', rotulo: 'Fazer chamada', curto: 'Chamada', icone: 'chamada', destaque: true },
+    { id: 'chamada', rotulo: 'Fazer chamada', curto: 'Chamada', icone: 'chamada', destaque: true, registra: true },
+    { id: 'ausentes', rotulo: 'Ausentes do dia', curto: 'Ausentes', icone: 'ausentes' },
     { id: 'historico', rotulo: 'Histórico', icone: 'historico' },
     { id: 'relatorios', rotulo: 'Relatórios', icone: 'relatorios' },
     { id: 'estudantes', rotulo: 'Estudantes', icone: 'estudantes', gestao: true },
     { id: 'admin', rotulo: 'Administração', icone: 'admin', gestao: true }
-  ].filter(function (v) { return !v.gestao || PERFIL_GESTAO; });
+  ].filter(function (v) { return (!v.gestao || PERFIL_GESTAO) && !(v.registra && EH_CONSULTA); });
 
   function montarNavegacao() {
     $('#nav-lateral').innerHTML = VIEWS.map(function (v) {
@@ -334,7 +337,7 @@
     });
   }
   function renderizarView() {
-    var fn = { painel: vPainel, chamada: vChamada, historico: vHistorico, relatorios: vRelatorios, estudantes: vEstudantes, admin: vAdmin }[S.view];
+    var fn = { painel: vPainel, chamada: vChamada, ausentes: vAusentes, historico: vHistorico, relatorios: vRelatorios, estudantes: vEstudantes, admin: vAdmin }[S.view];
     if (!S.turmaId && S.view !== 'admin') {
       $('#conteudo').innerHTML = '<div class="aviso aviso-atencao">' + ic('alerta') + '<div>Nenhuma turma disponível para o seu usuário. Solicite à equipe gestora a atribuição de uma turma.</div></div>';
       return;
@@ -377,7 +380,8 @@
       var html = '<div class="card boas-vindas"><div><div class="escola">' + h(C.escola) + '</div>' +
         '<div class="ola">Olá, ' + h(C.usuario.nome) + '</div>' +
         '<div class="info">' + h(d.turma.nome) + ' · ' + h(dataExtenso(d.hoje)) + (hoje ? ' · Chamada de hoje: <strong>' + (hoje.status === 'FINALIZADA' ? 'finalizada' : 'em rascunho') + '</strong>' : '') + '</div></div>' +
-        '<button class="btn btn-grande" data-nav="chamada">' + ic('chamada') + h(cta) + '</button></div>';
+        (EH_CONSULTA ? '<button class="btn btn-grande" data-nav="ausentes">' + ic('ausentes') + 'Ver ausentes do dia</button></div>' :
+          '<button class="btn btn-grande" data-nav="chamada">' + ic('chamada') + h(cta) + '</button></div>');
       if (d.rascunhos.length) {
         html += '<div class="aviso aviso-atencao" style="margin-top:14px">' + ic('alerta') + '<div><strong>' + d.rascunhos.length + ' chamada(s) em rascunho</strong> (não entram nas estatísticas até serem finalizadas): ' +
           d.rascunhos.slice(0, 6).map(function (r) { return '<button class="btn-link" data-abrir-chamada="' + h(r.data) + '|' + h(r.periodo) + '">' + dataBr(r.data) + (r.periodo !== 'DIARIO' ? ' (' + h(r.periodo) + ')' : '') + '</button>'; }).join(', ') + '</div></div>';
@@ -1075,6 +1079,98 @@
     else ir();
   }
 
+  // ================================================================== AUSENTES DO DIA (todas as turmas)
+  function vAusentes() {
+    var hoje = hojeSP();
+    var f = S.filtroAus || { inicio: hoje, fim: hoje, justificadas: true };
+    S.filtroAus = f;
+    $('#conteudo').innerHTML = cabecalho('Ausentes do dia', 'Todas as turmas · estudantes ausentes e com falta justificada',
+      '<button class="btn" data-aus-exportar="PDF">' + ic('baixar') + 'PDF</button><button class="btn" data-aus-exportar="XLSX">' + ic('baixar') + 'Excel</button>' +
+      '<button class="btn" data-aus-exportar="CSV">' + ic('baixar') + 'CSV</button>') +
+      '<div class="card card-corpo no-print"><div class="filtros">' +
+      '<div class="campo"><label for="aus-ini">De</label><input type="date" id="aus-ini" value="' + h(f.inicio) + '" max="' + h(hoje) + '"></div>' +
+      '<div class="campo"><label for="aus-fim">Até</label><input type="date" id="aus-fim" value="' + h(f.fim) + '" max="' + h(hoje) + '"></div>' +
+      '<div class="campo"><div class="checks"><label><input type="checkbox" id="aus-just"' + (f.justificadas ? ' checked' : '') + '> Incluir faltas justificadas</label></div></div>' +
+      '<div class="campo"><button class="btn btn-primario" data-acao="aus-buscar">' + ic('atualizar') + 'Atualizar</button></div></div>' +
+      '<div class="linha-acoes" style="margin-top:10px"><button class="btn btn-sm" data-aus-periodo="hoje">Hoje</button>' +
+      '<button class="btn btn-sm" data-aus-periodo="ontem">Ontem</button><button class="btn btn-sm" data-aus-periodo="semana">Esta semana</button></div></div>' +
+      '<div id="aus-res" style="margin-top:14px"></div>';
+    buscarAusentes();
+  }
+  function paramsAusentes() {
+    var f = S.filtroAus;
+    return { inicio: f.inicio, fim: f.fim, situacoes: f.justificadas ? ['AUSENTE', 'JUSTIFICADA'] : ['AUSENTE'] };
+  }
+  function buscarAusentes() {
+    var el = $('#aus-res');
+    el.innerHTML = '<div class="card">' + carregandoHtml('Buscando ausentes...') + '</div>';
+    var pedido = JSON.stringify(paramsAusentes());
+    servidor('apiAusentes', [paramsAusentes()]).then(function (d) {
+      if (S.view !== 'ausentes' || !$('#aus-res') || pedido !== JSON.stringify(paramsAusentes())) return;
+      var uma = d.inicio === d.fim;
+      var html = '<div class="grade grade-kpi" style="margin-bottom:14px">' +
+        kpi('Ausentes', d.porSituacao.AUSENTE || 0, uma ? 'em ' + dataBr(d.inicio) : 'de ' + dataBr(d.inicio) + ' a ' + dataBr(d.fim), 'vermelho') +
+        (d.porSituacao.JUSTIFICADA !== undefined ? kpi('Faltas justificadas', d.porSituacao.JUSTIFICADA, 'identificadas à parte', 'just') : '') +
+        kpi('Turmas consultadas', d.turmas, 'todas as turmas ativas', '') + '</div>';
+      if (d.pendencias.length) {
+        // Agrupa por turma: "5º X (17/11, 18/11)" ou, para um só dia, "5º X — em andamento".
+        var porT = [], idxT = {};
+        d.pendencias.forEach(function (x) {
+          if (!idxT[x.turma]) { idxT[x.turma] = { turma: x.turma, itens: [] }; porT.push(idxT[x.turma]); }
+          idxT[x.turma].itens.push(x);
+        });
+        html += '<div class="aviso aviso-atencao">' + ic('alerta') + '<div><strong>Chamada ainda não finalizada (' + porT.length + ' turma' + (porT.length > 1 ? 's' : '') + '):</strong> ' +
+          porT.map(function (g) {
+            return '<strong>' + h(g.turma) + '</strong>' + (uma ? ' — ' + h(g.itens[0].situacao) : ' (' + g.itens.map(function (x) { return h(x.dataBr.slice(0, 5)); }).join(', ') + ')');
+          }).join(' · ') + '. A lista pode mudar até essas chamadas serem finalizadas.</div></div>';
+      } else if (d.turmas) {
+        html += '<div class="aviso aviso-ok">' + ic('PRESENTE') + '<div>Todas as chamadas do período estão finalizadas: a lista está completa.</div></div>';
+      }
+      if (!d.itens.length) {
+        html += '<div class="card">' + vazioHtml('Nenhum estudante ausente' + (uma ? ' em ' + dataBr(d.inicio) : ' no período') + '.') + '</div>';
+      } else {
+        var grupos = [], porTurma = {};
+        d.itens.forEach(function (x) {
+          if (!porTurma[x.turmaId]) { porTurma[x.turmaId] = { nome: x.turma, itens: [] }; grupos.push(porTurma[x.turmaId]); }
+          porTurma[x.turmaId].itens.push(x);
+        });
+        html += grupos.map(function (g) {
+          return '<div class="card grupo-ausentes"><div class="card-corpo" style="padding-bottom:4px"><div class="card-titulo">' + h(g.nome) +
+            ' <span class="etiqueta et-AUSENTE">' + g.itens.length + '</span></div></div><div class="tabela-wrap"><table class="tabela"><thead><tr>' +
+            (uma ? '' : '<th>Data</th>') + '<th>Nº</th><th>Estudante</th><th>Situação</th><th>Observação</th><th class="num">Faltas em 30 dias</th></tr></thead><tbody>' +
+            g.itens.map(function (x) {
+              return '<tr>' + (uma ? '' : '<td>' + h(x.dataBr) + (x.periodo ? ' · ' + h(x.periodo) : '') + '</td>') + '<td>' + h(x.numero) + '</td>' +
+                '<td><button class="btn-link" data-ficha="' + h(x.estudanteId) + '">' + h(x.nome) + '</button></td>' +
+                '<td><span class="etiqueta et-' + x.situacao + '">' + h(x.situacaoRotulo) + '</span>' +
+                (x.chamadaFinalizada ? '' : ' <span class="etiqueta et-RASCUNHO" title="A chamada desta turma ainda não foi finalizada">não finalizada</span>') + '</td>' +
+                '<td>' + h(x.observacao) + '</td><td class="num' + (x.faltas30 >= 3 ? ' baixo' : '') + '">' + x.faltas30 + '</td></tr>';
+            }).join('') + '</tbody></table></div></div>';
+        }).join('');
+        html += '<p style="font-size:12px;color:#64748b">"Faltas em 30 dias" conta as ausências do estudante nos 30 dias até ' + dataBr(d.fim) + ' (3 ou mais aparecem em vermelho). Toque no nome para abrir a ficha.</p>';
+      }
+      el.innerHTML = html;
+    }).catch(function (e) { if ($('#aus-res')) el.innerHTML = erroHtml(e, false); });
+  }
+  function lerFiltroAusentes() {
+    var ini = $('#aus-ini').value, fim = $('#aus-fim').value;
+    if (!ini || !fim) { toast('Informe as datas.', 'erro'); return false; }
+    if (ini > fim) { toast('A data inicial é posterior à data final.', 'erro'); return false; }
+    S.filtroAus = { inicio: ini, fim: fim, justificadas: $('#aus-just').checked };
+    return true;
+  }
+  function exportarAusentes(formato, botao) {
+    if (!lerFiltroAusentes()) return;
+    var txt = botao.innerHTML;
+    botao.disabled = true;
+    botao.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span>Gerando...';
+    var p = paramsAusentes();
+    p.formato = formato;
+    toast('Gerando arquivo ' + (formato === 'XLSX' ? 'Excel' : formato) + '...');
+    servidor('apiExportarAusentes', [p], { tentativas: 1 }).then(function (arq) { baixarArquivo(arq); toast('Arquivo gerado: ' + arq.nome, 'ok'); })
+      .catch(function (e) { toast(erroMsg(e), 'erro'); })
+      .then(function () { botao.disabled = false; botao.innerHTML = txt; });
+  }
+
   // ================================================================== RELATÓRIOS
   var TIPOS = [
     ['DIARIA', 'Frequência diária'], ['SEMANAL', 'Frequência semanal'], ['MENSAL', 'Frequência mensal'],
@@ -1365,7 +1461,7 @@
       var nomes = {};
       C.turmas.forEach(function (t) { nomes[t.id] = t.nome; });
       $('#admin-corpo').innerHTML = (EH_ADMIN ? '<div class="linha-acoes" style="margin-bottom:12px"><button class="btn btn-primario" data-adm="usuario-novo">' + ic('mais1') + 'Cadastrar usuário</button></div>' : '') +
-        '<div class="aviso aviso-info">' + ic('info') + '<div>O acesso é feito com a <strong>conta Google</strong> do e-mail cadastrado. Não há senhas no sistema. <strong>ADMIN</strong>: tudo · <strong>GESTOR</strong>: todas as turmas, correções e relatórios · <strong>PROFESSOR</strong>: somente as turmas atribuídas.</div></div>' +
+        '<div class="aviso aviso-info">' + ic('info') + '<div>O acesso é feito com a <strong>conta Google</strong> do e-mail cadastrado. Não há senhas no sistema. <strong>ADMIN</strong>: tudo · <strong>GESTOR</strong>: todas as turmas, correções e relatórios · <strong>PROFESSOR</strong>: somente as turmas atribuídas (ou todas, para a inspetora) · <strong>CONSULTA</strong>: somente leitura de todas as turmas (ex.: secretaria), sem alterar nada.</div></div>' +
         '<div class="card"><div class="tabela-wrap"><table class="tabela"><thead><tr><th>Nome</th><th>E-mail (conta Google)</th><th>Perfil</th><th>Turmas</th><th>Situação</th>' + (EH_ADMIN ? '<th></th>' : '') + '</tr></thead><tbody>' +
         lista.map(function (u) {
           var turmas = u.turmas.split(/[;,]/).filter(String).map(function (id) { return id === '*' ? 'Todas' : (nomes[id] || id); }).join(', ');
@@ -1382,7 +1478,7 @@
     modal({ titulo: u ? 'Editar usuário' : 'Cadastrar usuário', corpo: '<div class="form-grade">' +
       '<div class="campo"><label for="fu-nome">Nome</label><input type="text" id="fu-nome" maxlength="150" value="' + h(u ? u.nome : '') + '" autofocus></div>' +
       '<div class="campo"><label for="fu-email">E-mail da conta Google</label><input type="email" id="fu-email" maxlength="200" value="' + h(u ? u.email : '') + '"></div>' +
-      '<div class="campo"><label for="fu-perfil">Perfil</label><select id="fu-perfil">' + ['PROFESSOR', 'GESTOR', 'ADMIN'].map(function (p) { return '<option' + (u && u.perfil === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="campo"><label for="fu-perfil">Perfil</label><select id="fu-perfil">' + ['PROFESSOR', 'CONSULTA', 'GESTOR', 'ADMIN'].map(function (p) { return '<option' + (u && u.perfil === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div></div>' +
       '<div class="campo" style="margin-top:12px"><label>Turmas do professor</label><div class="checks">' +
       '<label style="font-weight:700"><input type="checkbox" id="fu-todas"' + (selecionadas.indexOf('*') >= 0 ? ' checked' : '') + '>Todas as turmas (ex.: inspetora de alunos)</label>' + C.turmas.map(function (t) {
         return '<label><input type="checkbox" class="fu-turma" value="' + h(t.id) + '"' + (selecionadas.indexOf(t.id) >= 0 ? ' checked' : '') + '>' + h(t.nome) + '</label>';
@@ -1552,6 +1648,7 @@
         buscarHistorico(); return;
       }
       if (acao === 'rel-gerar') { gerarRelatorio(); return; }
+      if (acao === 'aus-buscar') { if (lerFiltroAusentes()) buscarAusentes(); return; }
       if (acao === 'est-novo') { formEstudante(null); return; }
     }
     var per = t.closest('[data-periodo]');
@@ -1565,6 +1662,17 @@
       $('#rf-ini').value = ini; $('#rf-fim').value = fim;
       return;
     }
+    var ap = t.closest('[data-aus-periodo]');
+    if (ap) {
+      var hj = hojeSP(), tp = ap.getAttribute('data-aus-periodo'), i0 = hj, f0 = hj;
+      if (tp === 'ontem') { i0 = f0 = somarDias(hj, diaSemana(hj) === 1 ? -3 : -1); }
+      if (tp === 'semana') { var dw = diaSemana(hj); i0 = somarDias(hj, dw === 0 ? -6 : 1 - dw); }
+      $('#aus-ini').value = i0; $('#aus-fim').value = f0;
+      if (lerFiltroAusentes()) buscarAusentes();
+      return;
+    }
+    var ae = t.closest('[data-aus-exportar]');
+    if (ae && !ae.disabled) { exportarAusentes(ae.getAttribute('data-aus-exportar'), ae); return; }
     var ex = t.closest('[data-exportar]');
     if (ex) { exportar(ex.getAttribute('data-exportar'), lerFiltroRel(), ex); return; }
     var ea = t.closest('[data-est-acao]');

@@ -239,6 +239,9 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
 .ficha-turma.st-EM_ANDAMENTO .ft-status { color: var(--amarelo); }
 @media (max-width: 640px) { .grade-turmas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+.grupo-ausentes { margin-bottom: 12px; overflow: hidden; }
+@media print { .grupo-ausentes { break-inside: avoid; box-shadow: none; } }
+
 /* ------------------------------------------------------------------ Chamada */
 .chamada-topo { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); align-items: end; margin-bottom: 14px; }
 .contadores {

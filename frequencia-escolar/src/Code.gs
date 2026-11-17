@@ -17,7 +17,7 @@
 /** OPCIONAL: preencha antes de executar setupSistema() (pode ser alterado depois no sistema). */
 var NOME_ESCOLA_INICIAL = '';
 
-var VERSAO_SISTEMA = '1.2.0';
+var VERSAO_SISTEMA = '1.3.0';
 /**
  * Turmas e estudantes iniciais.
  * Por privacidade, os nomes dos estudantes NÃO ficam neste código-fonte: o arquivo de

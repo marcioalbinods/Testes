@@ -1,5 +1,7 @@
 # Instalação rápida — FREQUÊNCIA ESCOLAR (1 arquivo)
 
+> **Escola com turmas já definidas:** use o arquivo **personalizado** que recebeu, que já contém as turmas e os estudantes, em vez do `Code.gs` desta pasta. O `Code.gs` daqui não tem nenhuma turma: depois de instalar, as turmas são cadastradas em Administração → Turmas.
+
 O sistema inteiro está num **único arquivo**: [`Code.gs`](Code.gs). Ele reúne o código do servidor e as telas (HTML, CSS e JavaScript) embutidas no final. **Não é preciso criar nenhum arquivo HTML.**
 
 O `appsscript.json` é **opcional**: ele fixa o fuso horário e as permissões, mas o sistema funciona sem ele.

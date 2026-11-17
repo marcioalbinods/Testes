@@ -10,6 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const { chromium, devices } = require('playwright');
 const { criarAmbiente } = require('./gas-mock');
+const { NOMES, DADOS_ESCOLA } = require('./dados-teste'); // nomes FICTÍCIOS
+const INSPETORA = 'inspetora@escola.edu.br';
 
 const DONO = 'coordenacao@escola.edu.br';
 const PROF = 'professora@escola.edu.br';
@@ -18,14 +20,17 @@ const CAPTURAS = path.join(__dirname, 'capturas');
 fs.mkdirSync(CAPTURAS, { recursive: true });
 
 const amb = criarAmbiente({ agora: AGORA, dono: DONO });
+amb.ctx.DADOS_ESCOLA_ = DADOS_ESCOLA;
 amb.novaExecucao(DONO);
 amb.ctx.setupSistema();
 amb.novaExecucao(DONO);
 amb.ctx.apiSalvarConfiguracoes({ NOME_ESCOLA: 'ESCOLA MUNICIPAL (NOME A CONFIGURAR)' });
-const turmaId = amb.estado.planilhas[amb.estado.propriedades.SPREADSHEET_ID].getSheetByName('CONFIGURACOES')
-  .getRange(2, 1, 20, 2).getValues().find(l => l[0] === 'TURMA_PILOTO_ID')[1];
+amb.novaExecucao(DONO);
+const turmaId = amb.ctx.apiListarTurmas(false).data[0].id; // 5º X
 amb.novaExecucao(DONO);
 amb.ctx.apiSalvarProfessor({ nome: 'MARIA PROFESSORA', email: PROF, perfil: 'PROFESSOR', turmas: [turmaId] });
+amb.novaExecucao(DONO);
+amb.ctx.apiSalvarProfessor({ nome: 'INSPETORA DE ALUNOS', email: INSPETORA, perfil: 'PROFESSOR', turmas: ['*'] });
 
 let redeFalhando = false;
 let chamadasServidor = [];
@@ -102,7 +107,7 @@ function backendChamada(data) {
     await page.waitForSelector('.boas-vindas');
     const txt = await page.textContent('#conteudo');
     assert.ok(txt.includes('MARIA PROFESSORA'));
-    assert.ok(txt.includes('TURMA PILOTO'));
+    assert.ok(txt.includes('5º X'));
     assert.ok(txt.includes('ESCOLA MUNICIPAL'));
     assert.ok(/20 de novembro de 2026/.test(txt));
     assert.ok(txt.includes('ACOMPANHAMENTO DA FREQUÊNCIA'));
@@ -174,7 +179,7 @@ function backendChamada(data) {
     await page.click('.lc-linha >> nth=0 >> .b-PRESENTE');
     await page.click('[data-acao="finalizar"]');
     await page.waitForSelector('.modal >> text=Ainda há estudantes sem registro');
-    assert.ok((await page.textContent('.modal')).includes('AMAEL HECTOR'));
+    assert.ok((await page.textContent('.modal')).includes(NOMES[1]));
     await page.click('.modal-rodape >> text=Salvar como rascunho');
     await page.waitForFunction(() => /Salvo com sucesso/.test(document.querySelector('#ch-status').textContent));
     assert.strictEqual(backendChamada('2026-11-19').chamada.status, 'RASCUNHO');
@@ -278,7 +283,7 @@ function backendChamada(data) {
     await page.click('#rel-res [data-ficha] >> nth=1');
     await page.waitForSelector('.ficha-cab');
     const t = await page.textContent('.modal');
-    assert.ok(t.includes('AMAEL HECTOR DOS SANTOS SILVA') && t.includes('Histórico cronológico') && t.includes('Frequência'));
+    assert.ok(t.includes(NOMES[1]) && t.includes('Histórico cronológico') && t.includes('Frequência'));
     await foto(page, '08-ficha-estudante');
     await page.keyboard.press('Escape');
   });
@@ -326,6 +331,39 @@ function backendChamada(data) {
     await foto(adm, '12-auditoria');
   });
   assert.deepStrictEqual(adm.__erros, [], 'erros de JavaScript (admin): ' + adm.__erros.join(' | '));
+
+  // ---------------------------------------------------------------- Inspetora (todas as turmas)
+  console.log('\nInspetora — chamadas de várias turmas');
+  const insp = await novaPagina(browser, { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 }, INSPETORA);
+  await teste('painel "Chamadas de hoje" mostra todas as turmas e abre a chamada com um toque', async () => {
+    await insp.goto(URL_APP + '?u=' + INSPETORA);
+    await insp.waitForSelector('.grade-turmas .ficha-turma');
+    assert.strictEqual(await insp.locator('.ficha-turma').count(), 3);
+    assert.deepStrictEqual(await insp.locator('.ficha-turma .ft-nome').allTextContents(), ['5º X', '6º Y', '7º Z']);
+    assert.ok(/1 de 3 turmas finalizadas/.test(await insp.textContent('#conteudo')), 'a 5º X já foi finalizada pela professora');
+    assert.ok(await insp.isVisible('.ficha-turma.st-FINALIZADA >> text=5º X'));
+    await foto(insp, '14-chamadas-de-hoje');
+    await insp.click('.ficha-turma >> text=6º Y');
+    await insp.waitForFunction(() => { const s = window.__FE.estado(); return s.Ch && document.querySelectorAll('.lc-linha').length === 4; });
+    assert.strictEqual(await insp.inputValue('#ch-turma'), await insp.inputValue('#sel-turma-global'));
+  });
+  await teste('após finalizar, botão leva para a próxima turma pendente', async () => {
+    await insp.click('[data-acao="todos-presentes"]');
+    await insp.click('[data-acao="finalizar"]');
+    await insp.click('.modal-rodape .btn-sucesso');
+    await insp.waitForSelector('#ch-proxima >> text=Próxima turma: 7º Z');
+    await foto(insp, '15-proxima-turma');
+    await insp.click('#ch-proxima button');
+    await insp.waitForFunction(() => document.querySelectorAll('.lc-linha').length === 3 && /7º Z/.test(document.querySelector('.cabecalho-pagina').textContent));
+    await insp.click('[data-acao="todos-presentes"]');
+    await insp.click('[data-acao="finalizar"]');
+    await insp.click('.modal-rodape .btn-sucesso');
+    await insp.waitForSelector('#ch-proxima >> text=Todas as 3 turmas');
+    await insp.click('.sidebar [data-nav="painel"]');
+    await insp.waitForSelector('text=3 de 3 turmas finalizadas');
+  });
+  assert.deepStrictEqual(insp.__erros, [], 'erros JS inspetora: ' + insp.__erros.join(' | '));
+  await insp.__contexto.close();
 
   // ---------------------------------------------------------------- Tablet e celular
   for (const [nome, disp] of [['tablet-ipad', devices['iPad (gen 7)']], ['tablet-android', devices['Galaxy Tab S4']], ['celular', devices['iPhone 13']]]) {

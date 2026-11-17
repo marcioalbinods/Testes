@@ -6,7 +6,7 @@
  *
  *  Code.gs — Arquivo principal:
  *   - doGet(): entrada do Web App (com verificação de identidade e autorização).
- *   - setupSistema(): instalação idempotente (cria planilha, abas, turma-piloto e estudantes).
+ *   - setupSistema(): instalação idempotente (cria planilha, abas, turmas e estudantes).
  *   - verificarSistema(): diagnóstico da estrutura e da integridade dos dados.
  *   - executar_(): envelope padrão das funções da API (tratamento de erros).
  *   - Configurações e contexto do usuário.
@@ -17,45 +17,30 @@
 /** OPCIONAL: preencha antes de executar setupSistema() (pode ser alterado depois no sistema). */
 var NOME_ESCOLA_INICIAL = '';
 
-var VERSAO_SISTEMA = '1.0.2';
-var DATA_INICIO_PILOTO = '2026-11-17';
-var NOME_TURMA_PILOTO = 'TURMA PILOTO';
+var VERSAO_SISTEMA = '1.1.0';
+/**
+ * Turmas e estudantes iniciais.
+ * Por privacidade, os nomes dos estudantes NÃO ficam neste código-fonte: o arquivo de
+ * instalação gerado para a escola (ferramentas/gerar-pacote.js --dados) acrescenta no
+ * final a variável DADOS_ESCOLA_ = { dataInicio, turno, anoLetivo, turmas: [{ nome, estudantes: [...] }] }.
+ * Sem ela, o setupSistema cria só a estrutura e o administrador.
+ */
+function dadosIniciais_() {
+  if (typeof DADOS_ESCOLA_ === 'undefined' || !DADOS_ESCOLA_ || !Array.isArray(DADOS_ESCOLA_.turmas)) {
+    return { dataInicio: hoje_(), turno: '', anoLetivo: hoje_().slice(0, 4), turmas: [] };
+  }
+  var d = DADOS_ESCOLA_;
+  var inicio = d.dataInicio ? validarData_(d.dataInicio, 'dataInicio') : hoje_();
+  return { dataInicio: inicio, turno: d.turno || '', anoLetivo: String(d.anoLetivo || inicio.slice(0, 4)), turmas: d.turmas };
+}
 
-/** Estudantes da turma-piloto (número de chamada e nome, preservados integralmente). */
-var ESTUDANTES_PILOTO = [
-  [1, 'ALICE BRITO DOS SANTOS'],
-  [2, 'AMAEL HECTOR DOS SANTOS SILVA'],
-  [3, 'ANA HELENA DE OLIVEIRA'],
-  [4, 'ANA ISADORA MOTA BIZARRIA'],
-  [5, 'ANA LUIZA COSTA VASCONCELOS'],
-  [6, 'ANNA CECILIA SILVEIRA DUARTE'],
-  [7, 'ANNA CLARA PAIXAO SILVA'],
-  [8, 'BRYAN LORENZO SOUZA DE JESUS'],
-  [9, 'DANDARA APRIL SANTOS DE OLIVEIRA'],
-  [10, 'DANIEL DE ALMEIDA BERNARDO'],
-  [11, 'DAVI XAVIER COLETA'],
-  [12, 'DAVID PEDROSA DA SILVA'],
-  [13, 'ENZO GABRIEL MATOS LEITE'],
-  [14, 'GIOVANNA VITORIA ORNELAS SELES'],
-  [15, 'ISABELLA DA SILVA DOURADO'],
-  [16, 'ISADORA DE OLIVEIRA TOMAZ'],
-  [17, 'ISAQUE DOS SANTOS FEITOSA'],
-  [18, 'JASMIM DA SILVA SANTOS'],
-  [19, 'LAURA ALMEIDA DE LIMA'],
-  [20, 'LAURA DE JESUS ROCHA'],
-  [21, 'LEVIH CONCEICAO DA SILVA'],
-  [22, 'LORENA SILVA DE MATOS'],
-  [23, 'MANUELLY OLIVEIRA NASCIMENTO'],
-  [24, 'MARIA LUIZA GOMES DA SILVA DE JESUS'],
-  [25, 'MURILLO OLIVEIRA SOUSA'],
-  [26, 'MURILO SILVA DE JESUS'],
-  [27, 'PERICLES RAFAEL SILVA DE SOUZA'],
-  [28, 'RICHARD ARAUJO DOS SANTOS'],
-  [29, 'SOPHIA DA CRUZ PEREIRA'],
-  [30, 'VINNYCIUS AUGUSTO DE OLIVEIRA VENTURA'],
-  [31, 'WENDEL ARTHUR DE JESUS SALES'],
-  [32, 'MANUELLA BERILO CONCEICAO AQUINO']
-];
+/** Lista de nomes em ordem alfabética (ignorando acentos), sem alterar a grafia. */
+function ordenarNomes_(nomes) {
+  return nomes.slice().sort(function (a, b) {
+    var x = normalizarNome_(a), y = normalizarNome_(b);
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
+}
 
 /** Configurações iniciais: [CHAVE, VALOR PADRÃO, DESCRIÇÃO]. Só são criadas se não existirem. */
 var CONFIG_PADRAO = [
@@ -68,7 +53,6 @@ var CONFIG_PADRAO = [
   ['PERIODOS', '', 'Aulas/períodos separados por ponto e vírgula (ex.: 1ª aula;2ª aula). Vazio = uma chamada por dia.'],
   ['DIAS_EDICAO_PROFESSOR', '7', 'Quantos dias para trás o PROFESSOR pode registrar ou corrigir chamadas.'],
   ['PROFESSOR_PODE_REABRIR', 'SIM', 'SIM: professor pode reabrir chamadas finalizadas dentro do prazo. NAO: somente gestão.'],
-  ['TURMA_PILOTO_ID', '', 'Identificador da turma-piloto (preenchido automaticamente pela instalação).'],
   ['BACKUP_PASTA_ID', '', 'Pasta do Google Drive com os backups (preenchido automaticamente).'],
   ['ULTIMO_BACKUP', '', 'Data/hora e ID do último backup (preenchido automaticamente).'],
   ['ICONE_URL', '', 'Endereço público de imagem PNG (ícone do navegador). Opcional.'],
@@ -172,7 +156,6 @@ function contextoUsuario_(u) {
     escola: cfg.NOME_ESCOLA || '',
     hoje: hoje_(),
     turmas: turmas,
-    turmaPilotoId: cfg.TURMA_PILOTO_ID || '',
     periodos: periodosConfigurados_(cfg),
     limite: configNum_(cfg, 'LIMITE_FREQUENCIA', 90),
     diasEdicaoProfessor: configNum_(cfg, 'DIAS_EDICAO_PROFESSOR', 7)
@@ -288,7 +271,7 @@ function apiVerificarSistema() {
 
 /**
  * EXECUTAR PELO EDITOR (uma vez). Idempotente: pode ser executada novamente sem duplicar
- * planilha, abas, configurações, administrador, turma-piloto ou estudantes.
+ * planilha, abas, configurações, administrador, turmas ou estudantes.
  */
 function setupSistema() {
   var email = exigirExecucaoAdministrativa_();
@@ -346,44 +329,46 @@ function setupSistema() {
       info('Administrador já cadastrado: ' + email);
     }
 
-    // 5. Turma-piloto.
-    var cfg = config_();
+    // 5-6. Turmas e estudantes iniciais (sem duplicar: turma por nome + ano letivo; estudante
+    // por nome normalizado dentro da turma, inclusive inativos e transferidos).
+    var ini = dadosIniciais_();
     var turmas = lerTabela_('TURMAS', { fresco: true });
-    var piloto = cfg.TURMA_PILOTO_ID ? indexarPor_(turmas, 'ID')[cfg.TURMA_PILOTO_ID] : null;
-    if (!piloto) {
-      piloto = turmas.filter(function (t) { return normalizarNome_(t.NOME) === NOME_TURMA_PILOTO && String(t.ANO_LETIVO) === DATA_INICIO_PILOTO.slice(0, 4); })[0] || null;
-    }
-    if (!piloto) {
-      piloto = { ID: gerarId_('TUR'), NOME: NOME_TURMA_PILOTO, ANO_SERIE: '', TURNO: '', ANO_LETIVO: DATA_INICIO_PILOTO.slice(0, 4),
-        DATA_INICIO: DATA_INICIO_PILOTO, ATIVA: 'SIM', CRIADO_EM: agora_(), CRIADO_POR: email, ATUALIZADO_EM: agora_(), ATUALIZADO_POR: email };
-      inserirRegistros_('TURMAS', [piloto]);
-      info('Turma-piloto criada: ' + piloto.NOME + ' (' + piloto.ID + '), início em ' + dataBr_(DATA_INICIO_PILOTO) + '.');
-    } else {
-      info('Turma-piloto já existente: ' + piloto.NOME + ' (' + piloto.ID + ').');
-    }
-    if (cfg.TURMA_PILOTO_ID !== piloto.ID) gravarConfiguracoes_({ TURMA_PILOTO_ID: piloto.ID }, email);
-
-    // 6. Estudantes (sem duplicar: compara por nome normalizado dentro da turma, inclusive inativos).
     var estudantes = lerTabela_('ESTUDANTES', { fresco: true });
-    var existentes = {};
-    estudantes.forEach(function (e) {
-      if (e.TURMA_ID === piloto.ID || e.TURMA_ANTERIOR_ID === piloto.ID) existentes[normalizarNome_(e.NOME)] = e;
+    var novasTurmas = [], novosEst = [];
+    if (!ini.turmas.length) info('Nenhuma turma inicial neste arquivo: cadastre as turmas em Administração > Turmas.');
+    ini.turmas.forEach(function (def) {
+      var nomeTurma = texto_(def.nome, 80);
+      var turma = turmas.concat(novasTurmas).filter(function (t) {
+        return normalizarNome_(t.NOME) === normalizarNome_(nomeTurma) && String(t.ANO_LETIVO) === ini.anoLetivo;
+      })[0];
+      if (!turma) {
+        turma = { ID: gerarId_('TUR'), NOME: nomeTurma, ANO_SERIE: texto_(def.anoSerie || '', 40), TURNO: ini.turno, ANO_LETIVO: ini.anoLetivo,
+          DATA_INICIO: ini.dataInicio, ATIVA: 'SIM', CRIADO_EM: agora_(), CRIADO_POR: email, ATUALIZADO_EM: agora_(), ATUALIZADO_POR: email };
+        novasTurmas.push(turma);
+      }
+      var existentes = {};
+      estudantes.concat(novosEst).forEach(function (e) {
+        if (e.TURMA_ID === turma.ID || e.TURMA_ANTERIOR_ID === turma.ID) existentes[normalizarNome_(e.NOME)] = e;
+      });
+      var criados = 0;
+      ordenarNomes_(def.estudantes || []).forEach(function (bruto) {
+        var nome = texto_(bruto, 150);
+        if (!nome || existentes[normalizarNome_(nome)]) return;
+        var numero = proximoNumero_(estudantes.concat(novosEst), turma.ID);
+        var e = { ID: gerarId_('EST'), TURMA_ID: turma.ID, NUMERO: numero, NOME: nome, SITUACAO: SITUACAO_ESTUDANTE.ATIVO,
+          DATA_ENTRADA: turma.DATA_INICIO || ini.dataInicio, DATA_SAIDA: '', TURMA_ANTERIOR_ID: '', NUMERO_ANTERIOR: '', DATA_TRANSFERENCIA: '',
+          OBSERVACAO: '', CRIADO_EM: agora_(), CRIADO_POR: email, ATUALIZADO_EM: agora_(), ATUALIZADO_POR: email };
+        novosEst.push(e);
+        existentes[normalizarNome_(nome)] = e;
+        criados++;
+      });
+      info('Turma ' + nomeTurma + ': ' + (criados ? criados + ' estudante(s) cadastrado(s).' : 'estudantes já cadastrados (nenhuma duplicação).'));
     });
-    var novos = [], avisos = [];
-    ESTUDANTES_PILOTO.forEach(function (par) {
-      if (existentes[normalizarNome_(par[1])]) return;
-      var ocupado = numeroOcupado_(estudantes.concat(novos), piloto.ID, par[0], null);
-      var numero = ocupado ? proximoNumero_(estudantes.concat(novos), piloto.ID) : par[0];
-      if (ocupado) avisos.push('Número ' + par[0] + ' já ocupado por ' + ocupado.NOME + '; ' + par[1] + ' recebeu o número ' + numero + '.');
-      novos.push({ ID: gerarId_('EST'), TURMA_ID: piloto.ID, NUMERO: numero, NOME: par[1], SITUACAO: SITUACAO_ESTUDANTE.ATIVO,
-        DATA_ENTRADA: piloto.DATA_INICIO || DATA_INICIO_PILOTO, DATA_SAIDA: '', TURMA_ANTERIOR_ID: '', NUMERO_ANTERIOR: '', DATA_TRANSFERENCIA: '',
-        OBSERVACAO: '', CRIADO_EM: agora_(), CRIADO_POR: email, ATUALIZADO_EM: agora_(), ATUALIZADO_POR: email });
-    });
-    inserirRegistros_('ESTUDANTES', novos);
-    info(novos.length ? novos.length + ' estudante(s) cadastrado(s) na turma-piloto.' : 'Estudantes da turma-piloto já cadastrados (nenhuma duplicação).');
-    avisos.forEach(info);
+    inserirRegistros_('TURMAS', novasTurmas);
+    inserirRegistros_('ESTUDANTES', novosEst);
+    info(novasTurmas.length + ' turma(s) nova(s) e ' + novosEst.length + ' estudante(s) novo(s) cadastrados.');
 
-    registrarAuditoria_([novaAuditoria_(email, { acao: 'INSTALACAO', entidade: 'SISTEMA', registroId: ss.getId(), turma: piloto.ID,
+    registrarAuditoria_([novaAuditoria_(email, { acao: 'INSTALACAO', entidade: 'SISTEMA', registroId: ss.getId(),
       novo: 'Versão ' + VERSAO_SISTEMA, detalhes: log.join(' | ') })]);
     SpreadsheetApp.flush();
   } finally {
@@ -459,7 +444,7 @@ function verificarSistema() {
   return d;
 }
 
-/** Diagnóstico completo: estrutura, duplicidades, referências e dados da turma-piloto. */
+/** Diagnóstico completo: estrutura, duplicidades, referências e conferência das turmas iniciais. */
 function diagnostico_() {
   var msgs = [];
   function ok(t) { msgs.push({ ok: true, texto: t }); }
@@ -510,28 +495,26 @@ function diagnostico_() {
   });
   if (orfaos) alerta(orfaos + ' estudante(s) ligados a turma inexistente.');
 
-  var piloto = turmas[cfg.TURMA_PILOTO_ID];
-  if (!piloto) {
-    alerta('Turma-piloto não encontrada.');
-  } else {
-    // Inclui estudantes transferidos para outra turma (continuam no histórico da turma-piloto).
-    var doPiloto = dados.ESTUDANTES.filter(function (e) { return e.TURMA_ID === piloto.ID || e.TURMA_ANTERIOR_ID === piloto.ID; });
+  // Confere cada turma inicial do arquivo de instalação: nomes idênticos e numeração 1..N em ordem alfabética.
+  var ini = dadosIniciais_();
+  ini.turmas.forEach(function (def) {
+    var t = dados.TURMAS.filter(function (x) { return normalizarNome_(x.NOME) === normalizarNome_(def.nome) && String(x.ANO_LETIVO) === ini.anoLetivo; })[0];
+    if (!t) { alerta('Turma ' + def.nome + ' não encontrada.'); return; }
+    var daTurma = dados.ESTUDANTES.filter(function (e) { return e.TURMA_ID === t.ID || e.TURMA_ANTERIOR_ID === t.ID; });
     var porNome = {};
-    doPiloto.forEach(function (e) { porNome[e.NOME] = e; });
-    var faltando = ESTUDANTES_PILOTO.filter(function (par) { return !porNome[par[1]]; });
-    if (faltando.length) alerta('Estudantes da lista oficial ausentes ou com nome diferente: ' + faltando.map(function (p) { return p[1]; }).join(', '));
-    else ok('Os 32 nomes da turma-piloto conferem exatamente com a lista oficial.');
-    var numeracaoOk = ESTUDANTES_PILOTO.every(function (par) {
-      var e = porNome[par[1]];
-      return e && Number(e.TURMA_ID === piloto.ID ? e.NUMERO : e.NUMERO_ANTERIOR) === par[0];
+    daTurma.forEach(function (e) { porNome[e.NOME] = e; });
+    var esperados = ordenarNomes_(def.estudantes.map(function (n) { return texto_(n, 150); }));
+    var faltando = esperados.filter(function (n) { return !porNome[n]; });
+    if (faltando.length) { alerta('Turma ' + def.nome + ': estudantes ausentes ou com nome diferente: ' + faltando.join(', ')); return; }
+    var numeracaoOk = esperados.every(function (n, i) {
+      var e = porNome[n];
+      return Number(e.TURMA_ID === t.ID ? e.NUMERO : e.NUMERO_ANTERIOR) === i + 1;
     });
-    if (numeracaoOk) ok('Numeração de chamada 1 a 32 conferida.');
-    else ok('Numeração da turma-piloto foi alterada em relação à lista inicial (permitido por edição).');
-    var dupNomes = doPiloto.length - Object.keys(porNome).length;
-    if (dupNomes) alerta(dupNomes + ' estudante(s) com nome repetido na turma-piloto.');
-    ok('Turma-piloto: "' + piloto.NOME + '", início ' + dataBr_(piloto.DATA_INICIO) + ', ' +
-      doPiloto.filter(function (e) { return e.TURMA_ID === piloto.ID && e.SITUACAO === SITUACAO_ESTUDANTE.ATIVO; }).length + ' estudante(s) ativo(s).');
-  }
+    var ativos = daTurma.filter(function (e) { return e.TURMA_ID === t.ID && e.SITUACAO === SITUACAO_ESTUDANTE.ATIVO; }).length;
+    ok('Turma ' + t.NOME + ': ' + esperados.length + ' nomes conferidos' + (numeracaoOk ? ', numeração 1 a ' + esperados.length + ' em ordem alfabética' : ' (numeração alterada depois da instalação)') +
+      ', ' + ativos + ' ativo(s), início ' + dataBr_(t.DATA_INICIO) + '.');
+  });
+  if (!dados.TURMAS.length) alerta('Nenhuma turma cadastrada.');
 
   var chaves = {};
   var chamadasPorId = indexarPor_(dados.CHAMADAS, 'ID');

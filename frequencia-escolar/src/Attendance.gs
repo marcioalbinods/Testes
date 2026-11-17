@@ -417,3 +417,37 @@ function apiListarHistorico(f) {
     };
   });
 }
+
+/**
+ * API: situação das chamadas de um dia em TODAS as turmas ativas do usuário
+ * (painel "Chamadas de hoje" e botão "Próxima turma").
+ * Lê só a aba CHAMADAS (pequena) e o cadastro de estudantes (em cache).
+ */
+function apiResumoDia(data) {
+  return executar_('apiResumoDia', function () {
+    var u = exigirUsuario_();
+    var dia = data ? validarData_(data, 'Data') : hoje_();
+    var cfg = config_();
+    var periodos = periodosConfigurados_(cfg);
+    var estudantes = lerTabela_('ESTUDANTES');
+    var doDia = lerTabela_('CHAMADAS').filter(function (c) { return c.DATA === dia; });
+    var turmas = turmasDoUsuario_(u, false).map(function (t) {
+      var chamadas = doDia.filter(function (c) { return c.TURMA_ID === t.ID; });
+      var finalizadas = chamadas.filter(function (c) { return c.STATUS === STATUS_CHAMADA.FINALIZADA; });
+      var status = !chamadas.length ? 'PENDENTE' : finalizadas.length >= periodos.length ? 'FINALIZADA' : 'EM_ANDAMENTO';
+      var soma = { PRESENTES: 0, AUSENTES: 0, ATRASADOS: 0, JUSTIFICADOS: 0, NAO_REGISTRADOS: 0 };
+      chamadas.forEach(function (c) { Object.keys(soma).forEach(function (k) { soma[k] += Number(c[k]) || 0; }); });
+      var perm = permissoesChamada_(u, t, dia, cfg);
+      return {
+        id: t.ID, nome: t.NOME, status: status, estudantes: estudantesElegiveis_(t.ID, dia, estudantes).length,
+        presentes: soma.PRESENTES, ausentes: soma.AUSENTES, atrasados: soma.ATRASADOS, justificados: soma.JUSTIFICADOS,
+        naoRegistrados: soma.NAO_REGISTRADOS, podeRegistrar: perm.editar, motivo: perm.motivo
+      };
+    });
+    return {
+      data: dia, turmas: turmas,
+      finalizadas: turmas.filter(function (t) { return t.status === 'FINALIZADA'; }).length,
+      total: turmas.length
+    };
+  });
+}

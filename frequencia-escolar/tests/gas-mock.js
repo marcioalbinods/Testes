@@ -327,8 +327,13 @@ function criarAmbiente(opcoes) {
     SpreadsheetApp, DocumentApp, DriveApp, UrlFetchApp, PropertiesService, CacheService, LockService, Session, Utilities, ScriptApp, HtmlService, Logger,
     console: consoleSilencioso
   });
-  const arquivos = fs.readdirSync(raizSrc).filter(f => f.endsWith('.gs')).sort();
-  for (const f of arquivos) vm.runInContext(fs.readFileSync(path.join(raizSrc, f), 'utf8'), ctx, { filename: f });
+  if (process.env.FE_ARQUIVO) {
+    // Testa um arquivo de instalação único (ex.: o personalizado da escola, guardado fora do repositório).
+    vm.runInContext(fs.readFileSync(process.env.FE_ARQUIVO, 'utf8'), ctx, { filename: 'Code.gs' });
+  } else {
+    const arquivos = fs.readdirSync(raizSrc).filter(f => f.endsWith('.gs')).sort();
+    for (const f of arquivos) vm.runInContext(fs.readFileSync(path.join(raizSrc, f), 'utf8'), ctx, { filename: f });
+  }
 
   /** Simula uma NOVA execução (cada chamada do navegador é uma execução separada no Apps Script). */
   function novaExecucao(usuario) {

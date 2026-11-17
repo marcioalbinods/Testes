@@ -5,7 +5,9 @@ Sistema web de chamada escolar construído só com a infraestrutura Google:
 **Google Apps Script** (servidor), **Google Sheets** (banco de dados) e **HTML Service** (interface em HTML5, CSS3 e JavaScript).
 Não usa servidores externos, bancos externos nem hospedagem paga.
 
-Piloto: **TURMA PILOTO**, 32 estudantes, início em **17/11/2026**.
+Uso atual: **14 turmas do período vespertino** (5º ao 9º ano), início em **17/11/2026**, com a chamada feita pela inspetora de alunos.
+
+> **Privacidade:** os nomes dos estudantes **não ficam neste repositório**. As turmas e os estudantes vão num arquivo de instalação personalizado, gerado fora do GitHub com `node ferramentas/gerar-pacote.js --dados escola.json --saida <fora-do-repositório>/Code.gs`. O formato do JSON está em `tests/dados-teste.js` (dados fictícios).
 
 | Painel (computador) | Chamada (computador) |
 |---|---|
@@ -38,7 +40,7 @@ Todos os arquivos que vão para o Google Apps Script estão em **`src/`**:
 | Arquivo | Responsabilidade |
 |---|---|
 | `appsscript.json` | Manifesto: fuso `America/Sao_Paulo`, motor V8 e permissões (escopos). |
-| `Code.gs` | Arquivo principal: `doGet()`, `setupSistema()`, `verificarSistema()`, lista dos 32 estudantes, configurações e tratamento padrão de erros da API. |
+| `Code.gs` | Arquivo principal: `doGet()`, `setupSistema()`, `verificarSistema()`, carga das turmas iniciais (`DADOS_ESCOLA_`), configurações e tratamento padrão de erros da API. |
 | `Util.gs` | Datas no fuso de São Paulo, validação de textos e datas, geração de IDs únicos. |
 | `Database.gs` | Acesso ao Google Sheets: leitura e escrita em lote, cache (CacheService) e bloqueio de gravações simultâneas (LockService). |
 | `Security.gs` | Identidade Google, perfis (ADMIN, GESTOR, PROFESSOR), acesso por turma e prazos de edição. |
@@ -117,14 +119,15 @@ Os nomes precisam ser **exatamente** esses, com maiúsculas e minúsculas iguais
    Planilha criada: https://docs.google.com/spreadsheets/d/...
    Aba criada: CONFIGURACOES ... AUDITORIA
    Administrador cadastrado: sua.conta@...
-   Turma-piloto criada: TURMA PILOTO (...), início em 17/11/2026.
-   32 estudante(s) cadastrado(s) na turma-piloto.
-   [OK] Os 32 nomes da turma-piloto conferem exatamente com a lista oficial.
+   Turma 5º A: 32 estudante(s) cadastrado(s).
+   ...
+   [OK] Turma 5º A: 32 nomes conferidos, numeração 1 a 32 em ordem alfabética, ...
+   ...
    [OK] Numeração de chamada 1 a 32 conferida.
    ✅ INSTALAÇÃO CONCLUÍDA COM SUCESSO.
    ```
 
-**O que o `setupSistema()` faz:** cria a planilha **"FREQUÊNCIA ESCOLAR — Banco de Dados"** no seu Drive, com as 7 abas (CONFIGURACOES, PROFESSORES, TURMAS, ESTUDANTES, CHAMADAS, FREQUENCIAS e AUDITORIA). Também cria cabeçalhos, formatação e proteção, as configurações iniciais, você como ADMIN, a TURMA PILOTO e os 32 estudantes. Guarda o ID da planilha em **Propriedades do script** e valida tudo no final.
+**O que o `setupSistema()` faz:** cria a planilha **"FREQUÊNCIA ESCOLAR — Banco de Dados"** no seu Drive, com as 7 abas (CONFIGURACOES, PROFESSORES, TURMAS, ESTUDANTES, CHAMADAS, FREQUENCIAS e AUDITORIA). Também cria cabeçalhos, formatação e proteção, as configurações iniciais, você como ADMIN e as turmas e estudantes do arquivo de instalação, em ordem alfabética e numerados de 1 a N. Guarda o ID da planilha em **Propriedades do script** e valida tudo no final.
 
 **Pode ser executado de novo sem problema**: ele é idempotente, ou seja, não duplica planilha, turma, estudantes nem configurações. Se alguma aba ou coluna tiver sido apagada, ele a recria.
 
@@ -159,7 +162,7 @@ O sistema identifica o usuário pelo e-mail da conta Google (`Session.getActiveU
 1. No editor, clique em **Implantar** (canto superior direito) → **Nova implantação**.
 2. Clique na engrenagem ao lado de "Selecionar tipo" → **App da Web**.
 3. Preencha:
-   - **Descrição:** `Versão 1.0 — piloto`
+   - **Descrição:** `Versão 1.1`
    - **Executar como:** **Eu (sua.conta@suaescola.edu.br)**
    - **Quem pode acessar:** **Qualquer pessoa em *Sua Escola*** (o nome do domínio)
 4. Clique em **Implantar**. Se for pedido, autorize novamente.
@@ -174,7 +177,7 @@ Abra o link (você entra como ADMIN). Vá em **Administração → Usuários →
 - nome;
 - **e-mail da conta Google** do professor;
 - perfil **PROFESSOR**;
-- a turma **TURMA PILOTO**.
+- as turmas dele. Para a **inspetora de alunos**, marque **"Todas as turmas"**: ela passa a ver todas as turmas no painel **Chamadas de hoje**.
 
 Só e-mails cadastrados e ativos conseguem entrar. **Não existem senhas**: o login é a própria conta Google.
 
@@ -258,6 +261,12 @@ O limite de alerta é configurável: `LIMITE_FREQUENCIA`, padrão 90%. Todas as 
 
 ## 8. Manual básico de utilização
 
+### Inspetora de alunos: chamada de todas as turmas (uso diário)
+1. Abra o sistema. No **Painel**, a seção **Chamadas de hoje** mostra todas as turmas: cinza = não iniciada, amarelo = em andamento, verde = finalizada. A barra mostra quantas já foram finalizadas.
+2. Toque na turma. A chamada abre com a data de hoje.
+3. Marque os estudantes (veja abaixo) e toque em **Finalizar chamada**.
+4. Toque em **Próxima turma: …** para ir direto à próxima turma pendente. Quando todas estiverem prontas, aparece o aviso "Todas as turmas estão com a chamada finalizada".
+
 ### Professor: fazer a chamada (uso diário)
 1. Abra o atalho do sistema. O **Painel** mostra a turma, a data de hoje e os indicadores.
 2. Toque em **Fazer chamada**. A data de hoje já vem preenchida (horário de São Paulo).
@@ -326,7 +335,7 @@ O primeiro comando roda **45 testes de backend**. O segundo roda **22 testes de 
 | Item obrigatório | Coberto por | Resultado |
 |---|---|---|
 | Inicialização (`setupSistema`) e idempotência (3 execuções) | backend | ✅ |
-| Cadastro dos 32 estudantes, nomes exatos, numeração 1–32, IDs únicos | backend | ✅ |
+| Cadastro das turmas iniciais: nomes exatos, ordem alfabética, numeração 1–N, IDs únicos, sem duplicar | backend | ✅ |
 | Criação de chamadas; uma por turma/data/período | backend | ✅ |
 | Marcação de presença, ausência, atraso e falta justificada | backend + interface | ✅ |
 | Salvamento no Sheets em lote (≤ 4 `setValues` por gravação) | backend | ✅ |
@@ -348,7 +357,7 @@ O primeiro comando roda **45 testes de backend**. O segundo roda **22 testes de 
 Estes testes dependem da sua conta Google e não podem ser feitos fora dela:
 
 - [ ] `setupSistema` executado; registro mostra "INSTALAÇÃO CONCLUÍDA COM SUCESSO".
-- [ ] A planilha "FREQUÊNCIA ESCOLAR — Banco de Dados" existe no seu Drive, com 7 abas e 32 estudantes.
+- [ ] A planilha "FREQUÊNCIA ESCOLAR — Banco de Dados" existe no seu Drive, com 7 abas, 14 turmas e todos os estudantes.
 - [ ] `instalarBackupDiario` executado; **Fazer backup agora** cria uma cópia na pasta de backups.
 - [ ] Publicado como App da Web conforme a seção 3.2; link `/exec` copiado.
 - [ ] **Com a conta de um professor cadastrado**, o link abre e mostra o nome dele. *(Confirma a identificação pelo Google.)*
@@ -371,6 +380,6 @@ Estes testes dependem da sua conta Google e não podem ser feitos fora dela:
   - `LockService` nas gravações;
   - controle de versão contra sobrescritas;
   - repetição automática com espera crescente.
-- **Capacidade esperada:** uma turma de 32 estudantes gera cerca de 6.400 registros por ano letivo, folgado para o Google Sheets. O sistema suporta várias turmas e crescimento gradual. Ele **não promete uso ilimitado**: o Apps Script tem cotas (tempo de execução, execuções simultâneas por usuário, limite de 10 milhões de células por planilha). Gravações simultâneas são enfileiradas e levam de 1 a 3 segundos cada.
+- **Capacidade esperada:** 14 turmas (cerca de 440 estudantes) geram cerca de 440 registros por dia letivo, ou cerca de 90 mil por ano, dentro do limite do Google Sheets. Com o passar dos meses, relatórios e painéis podem levar alguns segundos a mais. Por isso, recomendamos uma planilha nova por ano letivo. O sistema suporta várias turmas e crescimento gradual. Ele **não promete uso ilimitado**: o Apps Script tem cotas (tempo de execução, execuções simultâneas por usuário, limite de 10 milhões de células por planilha). Gravações simultâneas são enfileiradas e levam de 1 a 3 segundos cada.
 - **Recomendação para anos seguintes:** ao final do ano letivo, faça backup e comece uma nova planilha. Para isso, apague a propriedade `SPREADSHEET_ID` e execute `setupSistema` novamente, guardando o ID antigo para consulta.
 - **Logs de erro:** veja **Execuções** no editor do Apps Script. Erros internos aparecem ali, enquanto o usuário vê só uma mensagem amigável.

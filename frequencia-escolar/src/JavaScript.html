@@ -302,7 +302,7 @@
       (inativas.length ? '<optgroup label="Inativas">' + inativas.map(function (t) { return '<option value="' + h(t.id) + '">' + h(t.nome) + '</option>'; }).join('') + '</optgroup>' : '');
     if (!turmaAtual()) {
       var salva = ls.get('fe:turma');
-      var pref = [salva, C.turmaPilotoId].filter(function (id) { return C.turmas.some(function (t) { return t.id === id; }); })[0];
+      var pref = [salva].filter(function (id) { return C.turmas.some(function (t) { return t.id === id; }); })[0];
       S.turmaId = pref || (ativas[0] || C.turmas[0]).id;
     }
     sel.value = S.turmaId;
@@ -350,7 +350,7 @@
   }
   function atualizarContexto() {
     return servidor('apiContexto', []).then(function (ctx) {
-      C.turmas = ctx.turmas; C.escola = ctx.escola; C.periodos = ctx.periodos; C.limite = ctx.limite; C.turmaPilotoId = ctx.turmaPilotoId;
+      C.turmas = ctx.turmas; C.escola = ctx.escola; C.periodos = ctx.periodos; C.limite = ctx.limite;
       $('#topo-escola').textContent = C.escola;
       preencherSeletorTurma();
     });
@@ -366,7 +366,10 @@
     var el = $('#conteudo');
     el.innerHTML = carregandoHtml('Carregando painel...');
     var turmaPedida = S.turmaId;
-    servidor('apiPainel', [S.turmaId]).then(function (d) {
+    var hojeP = hojeSP();
+    var resumo = C.turmas.filter(function (x) { return x.ativa; }).length > 1 ? servidor('apiResumoDia', [hojeP]).catch(function () { return null; }) : Promise.resolve(null);
+    Promise.all([servidor('apiPainel', [S.turmaId]), resumo]).then(function (r) {
+      var d = r[0], rd = r[1];
       if (S.view !== 'painel' || turmaPedida !== S.turmaId) return;
       var T = d.totais;
       var hoje = d.chamadaHoje[0];
@@ -379,7 +382,8 @@
         html += '<div class="aviso aviso-atencao" style="margin-top:14px">' + ic('alerta') + '<div><strong>' + d.rascunhos.length + ' chamada(s) em rascunho</strong> (não entram nas estatísticas até serem finalizadas): ' +
           d.rascunhos.slice(0, 6).map(function (r) { return '<button class="btn-link" data-abrir-chamada="' + h(r.data) + '|' + h(r.periodo) + '">' + dataBr(r.data) + (r.periodo !== 'DIARIO' ? ' (' + h(r.periodo) + ')' : '') + '</button>'; }).join(', ') + '</div></div>';
       }
-      html += '<h2 class="secao">Resumo da turma</h2><div class="grade grade-kpi">' +
+      if (rd) html += painelDoDia(rd);
+      html += '<h2 class="secao">Resumo da turma ' + h(d.turma.nome) + '</h2><div class="grade grade-kpi">' +
         kpi('Estudantes cadastrados', d.estudantesAtivos, 'ativos na turma', '') +
         kpi('Chamadas realizadas', d.chamadasRealizadas, 'finalizadas', '') +
         kpi('Frequência geral', pct(T.frequencia), T.base ? T.comparecimentos + ' de ' + T.base + ' registros' : 'sem registros ainda', T.frequencia !== null && T.frequencia < d.limite ? 'vermelho' : 'verde') +
@@ -407,6 +411,21 @@
       el.innerHTML = html;
     }).catch(function (e) { if (S.view === 'painel') el.innerHTML = erroHtml(e, true); });
   }
+  var ROT_STATUS_DIA = { PENDENTE: 'Não iniciada', EM_ANDAMENTO: 'Em andamento', FINALIZADA: 'Finalizada' };
+  /** Grade "Chamadas de hoje": uma ficha por turma, com a situação da chamada do dia. */
+  function painelDoDia(rd) {
+    var pct0 = rd.total ? Math.round(rd.finalizadas / rd.total * 100) : 0;
+    return '<h2 class="secao">Chamadas de hoje — ' + rd.finalizadas + ' de ' + rd.total + ' turmas finalizadas</h2>' +
+      '<div class="progresso-dia" role="progressbar" aria-valuenow="' + pct0 + '" aria-valuemin="0" aria-valuemax="100"><span style="width:' + pct0 + '%"></span></div>' +
+      '<div class="grade grade-turmas">' + rd.turmas.map(function (t) {
+        var det = t.status === 'PENDENTE' ? t.estudantes + ' estudantes' :
+          'P ' + t.presentes + ' · A ' + t.ausentes + (t.atrasados ? ' · AT ' + t.atrasados : '') + (t.justificados ? ' · J ' + t.justificados : '') +
+          (t.naoRegistrados ? ' · faltam ' + t.naoRegistrados : '');
+        return '<button class="card ficha-turma st-' + t.status + '" data-abrir-turma="' + h(t.id) + '"' + (t.podeRegistrar || t.status !== 'PENDENTE' ? '' : ' title="' + h(t.motivo) + '"') + '>' +
+          '<span class="ft-nome">' + h(t.nome) + '</span><span class="ft-status">' + (t.status === 'FINALIZADA' ? ic('PRESENTE') : t.status === 'EM_ANDAMENTO' ? ic('ATRASADO') : ic('chamada')) +
+          ROT_STATUS_DIA[t.status] + '</span><span class="ft-det">' + h(det) + '</span></button>';
+      }).join('') + '</div>';
+  }
   function kpi(rotulo, valor, det, cor) {
     return '<div class="card kpi ' + (cor || '') + '"><div class="rotulo">' + h(rotulo) + '</div><div class="valor">' + h(valor) + '</div><div class="det">' + h(det) + '</div></div>';
   }
@@ -422,13 +441,13 @@
     var periodos = C.periodos || ['DIARIO'];
     var periodo = periodoInicial || (Ch && Ch.turmaId === S.turmaId ? Ch.periodo : periodos[0]);
     var el = $('#conteudo');
-    el.innerHTML = cabecalho('Fazer chamada', h(t ? t.nome : '') + ' · Professor(a): ' + h(C.usuario.nome)) +
+    el.innerHTML = cabecalho('Fazer chamada', h(t ? t.nome : '') + ' · Responsável: ' + h(C.usuario.nome)) +
       '<div class="card card-corpo"><div class="chamada-topo">' +
       '<div class="campo"><label for="ch-turma">Turma</label><select id="ch-turma">' + C.turmas.map(function (x) { return '<option value="' + h(x.id) + '"' + (x.id === S.turmaId ? ' selected' : '') + '>' + h(x.nome) + '</option>'; }).join('') + '</select></div>' +
       '<div class="campo"><label for="ch-data">Data</label><input type="date" id="ch-data" value="' + h(data) + '" max="' + h(hoje) + '"' + (t && t.dataInicio ? ' min="' + h(t.dataInicio) + '"' : '') + '></div>' +
       (periodos.length > 1 || (periodo && periodos.indexOf(periodo) < 0) ? '<div class="campo"><label for="ch-periodo">Aula / período</label><select id="ch-periodo">' +
         periodos.concat(periodos.indexOf(periodo) < 0 ? [periodo] : []).map(function (p) { return '<option value="' + h(p) + '"' + (p === periodo ? ' selected' : '') + '>' + h(nomePeriodo(p)) + '</option>'; }).join('') + '</select></div>' : '') +
-      '<div class="campo"><label>Professor(a)</label><input type="text" value="' + h(C.usuario.nome) + '" readonly tabindex="-1"></div>' +
+      '<div class="campo"><label>Responsável pela chamada</label><input type="text" value="' + h(C.usuario.nome) + '" readonly tabindex="-1"></div>' +
       '</div><div class="faixa-status" id="ch-faixa"></div></div>' +
       '<div id="ch-avisos" style="margin-top:14px"></div><div id="ch-corpo">' + carregandoHtml('Carregando estudantes...') + '</div>';
     carregarChamada(S.turmaId, data, periodo);
@@ -485,7 +504,9 @@
     if (!Ch.permissoes.editar) avisos += '<div class="aviso aviso-info">' + ic('cadeado') + '<div>' + h(Ch.permissoes.motivo || 'Somente consulta.') + '</div></div>';
     if (c && c.status === 'FINALIZADA') {
       avisos += '<div class="aviso aviso-ok">' + ic('finalizar') + '<div><strong>Chamada finalizada.</strong> Os registros estão salvos no servidor.' +
-        (Ch.permissoes.editar && Ch.permissoes.reabrir ? '<div class="acoes"><button class="btn btn-sm" data-acao="reabrir">' + ic('abrir') + 'Reabrir para correção</button></div>' : '') + '</div></div>';
+        '<div class="acoes"><span id="ch-proxima"></span>' +
+        (Ch.permissoes.editar && Ch.permissoes.reabrir ? '<button class="btn btn-sm" data-acao="reabrir">' + ic('abrir') + 'Reabrir para correção</button>' : '') + '</div></div></div>';
+      setTimeout(mostrarProximaTurma, 0);
     }
     if (!Ch.estudantes.length) {
       $('#ch-avisos').innerHTML = avisos;
@@ -518,6 +539,23 @@
         '<button class="btn btn-sucesso" data-acao="finalizar">' + ic('finalizar') + 'Finalizar chamada</button></div>' : '');
     atualizarContadores();
     definirStatus(Ch.alterado ? 'pendente' : (c ? 'salvo-inicial' : 'inicial'));
+  }
+
+  /** Após finalizar, oferece ir direto para a próxima turma com chamada pendente no mesmo dia. */
+  function mostrarProximaTurma() {
+    var alvo = $('#ch-proxima');
+    if (!alvo || !Ch || C.turmas.filter(function (x) { return x.ativa; }).length < 2) return;
+    var estado = Ch;
+    servidor('apiResumoDia', [Ch.data]).then(function (rd) {
+      if (Ch !== estado || !$('#ch-proxima')) return;
+      var lista = rd.turmas;
+      var i = lista.map(function (t) { return t.id; }).indexOf(Ch.turmaId);
+      var ordem = lista.slice(i + 1).concat(lista.slice(0, Math.max(i, 0)));
+      var prox = ordem.filter(function (t) { return t.status !== 'FINALIZADA' && t.podeRegistrar; })[0];
+      $('#ch-proxima').innerHTML = prox ?
+        '<button class="btn btn-sm btn-primario" data-abrir-turma="' + h(prox.id) + '">Próxima turma: ' + h(prox.nome) + ' →</button>' :
+        '<strong>✔ Todas as ' + rd.total + ' turmas estão com a chamada de ' + dataBr(rd.data) + ' finalizada.</strong>';
+    }).catch(function () { /* o botão é só um atalho */ });
   }
 
   function contagem() {
@@ -1004,14 +1042,23 @@
       }).catch(function (e2) { toast(erroMsg(e2), 'erro'); if (e2.codigo === 'CONFLITO') carregarDetalhe(d.chamada.id); });
     });
   }
+  /** Abre a tela de chamada de uma turma/data (do painel, do histórico ou de "Próxima turma"). */
   function abrirNaChamada(turmaId, data, periodo) {
-    S.turmaId = turmaId;
-    $('#sel-turma-global').value = turmaId;
-    if (S.view === 'chamada') { trocarChamada(turmaId, data, periodo); return; }
-    S.view = 'chamada';
-    $$('[data-nav]').forEach(function (b) { b.classList.toggle('ativo', b.getAttribute('data-nav') === 'chamada'); });
-    window.scrollTo(0, 0);
-    vChamada(data, periodo);
+    if (S.view === 'chamada' && Ch && Ch.turmaId === turmaId) { trocarChamada(turmaId, data, periodo); return; }
+    var ir = function () {
+      S.turmaId = turmaId;
+      ls.set('fe:turma', turmaId);
+      $('#sel-turma-global').value = turmaId;
+      pararChamada();
+      Ch = null;
+      S.pedidoChamada = '';
+      S.view = 'chamada';
+      $$('[data-nav]').forEach(function (b) { b.classList.toggle('ativo', b.getAttribute('data-nav') === 'chamada'); });
+      window.scrollTo(0, 0);
+      vChamada(data, periodo);
+    };
+    if (S.view === 'chamada') permitirSaida().then(function (ok) { if (ok) ir(); });
+    else ir();
   }
 
   // ================================================================== RELATÓRIOS
@@ -1273,7 +1320,7 @@
       $('#admin-corpo').innerHTML = '<div class="linha-acoes" style="margin-bottom:12px"><button class="btn btn-primario" data-adm="turma-nova">' + ic('mais1') + 'Nova turma</button></div>' +
         '<div class="card"><div class="tabela-wrap"><table class="tabela"><thead><tr><th>Turma</th><th>Ano/série</th><th>Turno</th><th>Ano letivo</th><th>Início</th><th class="num">Estudantes</th><th>Situação</th><th></th></tr></thead><tbody>' +
         lista.map(function (t) {
-          return '<tr><td><strong>' + h(t.nome) + '</strong>' + (t.id === C.turmaPilotoId ? ' <span class="etiqueta et-ATIVO">piloto</span>' : '') + '</td><td>' + h(t.anoSerie) + '</td><td>' + h(t.turno) + '</td><td>' + h(t.anoLetivo) + '</td><td>' + dataBr(t.dataInicio) + '</td><td class="num">' + t.estudantesAtivos + '</td>' +
+          return '<tr><td><strong>' + h(t.nome) + '</strong>' + '</td><td>' + h(t.anoSerie) + '</td><td>' + h(t.turno) + '</td><td>' + h(t.anoLetivo) + '</td><td>' + dataBr(t.dataInicio) + '</td><td class="num">' + t.estudantesAtivos + '</td>' +
             '<td><span class="etiqueta et-' + (t.ativa ? 'ATIVO' : 'INATIVO') + '">' + (t.ativa ? 'Ativa' : 'Inativa') + '</span></td>' +
             '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm" data-adm="turma-editar" data-id="' + h(t.id) + '">' + ic('editar') + 'Editar</button> ' +
             '<button class="btn btn-sm ' + (t.ativa ? 'btn-perigo' : '') + '" data-adm="turma-status" data-id="' + h(t.id) + '">' + (t.ativa ? 'Inativar' : 'Reativar') + '</button></td></tr>';
@@ -1322,13 +1369,14 @@
       '<div class="campo"><label for="fu-nome">Nome</label><input type="text" id="fu-nome" maxlength="150" value="' + h(u ? u.nome : '') + '" autofocus></div>' +
       '<div class="campo"><label for="fu-email">E-mail da conta Google</label><input type="email" id="fu-email" maxlength="200" value="' + h(u ? u.email : '') + '"></div>' +
       '<div class="campo"><label for="fu-perfil">Perfil</label><select id="fu-perfil">' + ['PROFESSOR', 'GESTOR', 'ADMIN'].map(function (p) { return '<option' + (u && u.perfil === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></div></div>' +
-      '<div class="campo" style="margin-top:12px"><label>Turmas do professor</label><div class="checks">' + C.turmas.map(function (t) {
+      '<div class="campo" style="margin-top:12px"><label>Turmas do professor</label><div class="checks">' +
+      '<label style="font-weight:700"><input type="checkbox" id="fu-todas"' + (selecionadas.indexOf('*') >= 0 ? ' checked' : '') + '>Todas as turmas (ex.: inspetora de alunos)</label>' + C.turmas.map(function (t) {
         return '<label><input type="checkbox" class="fu-turma" value="' + h(t.id) + '"' + (selecionadas.indexOf(t.id) >= 0 ? ' checked' : '') + '>' + h(t.nome) + '</label>';
       }).join('') + '</div><div class="ajuda">Gestores e administradores acessam todas as turmas.</div></div>' +
       '<div class="ajuda" id="fu-erro" style="color:#b91c1c;margin-top:8px"></div>',
       acoes: [{ rotulo: 'Cancelar', valor: false }, { rotulo: 'Salvar', classe: 'btn-primario', valor: true, validar: function (f) {
         var perfil = $('#fu-perfil', f).value;
-        var turmas = $$('.fu-turma', f).filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+        var turmas = $('#fu-todas', f).checked ? ['*'] : $$('.fu-turma', f).filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
         dados = { id: u ? u.id : '', nome: $('#fu-nome', f).value, email: $('#fu-email', f).value, perfil: perfil, turmas: perfil === 'PROFESSOR' ? turmas : ['*'] };
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim())) { $('#fu-erro', f).textContent = 'E-mail inválido.'; return false; }
         if (perfil === 'PROFESSOR' && !turmas.length) { $('#fu-erro', f).textContent = 'Selecione ao menos uma turma.'; return false; }
@@ -1463,6 +1511,13 @@
     if (S.view === 'chamada' && eventoChamada(ev)) return;
     var fi = t.closest('[data-ficha]');
     if (fi) { abrirFicha(fi.getAttribute('data-ficha')); return; }
+    var at = t.closest('[data-abrir-turma]');
+    if (at) {
+      var idT = at.getAttribute('data-abrir-turma');
+      var dataAbrir = S.view === 'chamada' && Ch ? Ch.data : hojeSP();
+      abrirNaChamada(idT, dataAbrir, (C.periodos || ['DIARIO'])[0]);
+      return;
+    }
     var ac = t.closest('[data-abrir-chamada]');
     if (ac) { var p = ac.getAttribute('data-abrir-chamada').split('|'); abrirNaChamada(S.turmaId, p[0], p[1]); return; }
     var det = t.closest('[data-detalhe]');

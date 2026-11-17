@@ -38,8 +38,11 @@ let chamadasServidor = [];
 // Servidor HTTP local: entrega o HTML gerado pelo doGet() para o usuário informado.
 const servidor = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
-  amb.novaExecucao(u.searchParams.get('u') || PROF);
-  const html = amb.ctx.doGet({}).getContent();
+  const usr = u.searchParams.get('u');
+  amb.novaExecucao(usr === 'anon' ? '' : (usr || PROF)); // 'anon' = visitante sem conta Google
+  const parametros = {};
+  u.searchParams.forEach((v, k) => { parametros[k] = v; });
+  const html = amb.ctx.doGet({ parameter: parametros }).getContent();
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
 });
@@ -420,6 +423,114 @@ function backendChamada(data) {
   assert.deepStrictEqual(pre.__erros, [], 'erros JS (inicia presente): ' + pre.__erros.join(' | '));
   await pre.__contexto.close();
   amb.novaExecucao(DONO); amb.ctx.apiSalvarConfiguracoes({ CHAMADA_INICIA_PRESENTE: 'NAO' });
+
+  // ---------------------------------------------------------------- Secretaria (perfil CONSULTA)
+  console.log('\nSecretaria — perfil CONSULTA e Ausentes do dia');
+  const SEC = 'secretaria@escola.edu.br';
+  amb.novaExecucao(DONO); amb.ctx.apiSalvarProfessor({ nome: 'SERVIDOR DA SECRETARIA', email: SEC, perfil: 'CONSULTA', turmas: [] });
+  const sec = await novaPagina(browser, { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 }, SEC);
+  await teste('menu sem "Fazer chamada"; painel leva aos ausentes', async () => {
+    await sec.goto(URL_APP + '?u=' + SEC);
+    await sec.waitForSelector('.boas-vindas');
+    assert.strictEqual(await sec.locator('.sidebar [data-nav="chamada"]').count(), 0);
+    assert.strictEqual(await sec.locator('.sidebar [data-nav="admin"]').count(), 0);
+    await sec.click('.boas-vindas >> text=Ver ausentes do dia');
+    await sec.waitForSelector('#aus-res .kpi');
+  });
+  await teste('Ausentes do dia: lista agrupada por turma, pendências e exportação', async () => {
+    await sec.fill('#aus-ini', '2026-11-17');
+    await sec.fill('#aus-fim', '2026-11-20');
+    await sec.click('[data-acao="aus-buscar"]');
+    await sec.waitForSelector('#aus-res .grupo-ausentes table');
+    const txt = await sec.textContent('#aus-res');
+    assert.ok(txt.includes('5º X') && txt.includes('Faltas em 30 dias'));
+    assert.ok(!/Atrasado/.test(txt), 'atrasos não aparecem');
+    await foto(sec, '17-ausentes-do-dia', true);
+    for (const fmt of ['PDF', 'XLSX', 'CSV']) {
+      const [down] = await Promise.all([sec.waitForEvent('download'), sec.click('[data-aus-exportar="' + fmt + '"]')]);
+      assert.ok(new RegExp('\\.' + fmt.toLowerCase() + '$').test(down.suggestedFilename()), fmt);
+    }
+    await sec.uncheck('#aus-just');
+    await sec.click('[data-acao="aus-buscar"]');
+    await sec.waitForFunction(() => !document.querySelector('#aus-res .carregando'));
+    assert.ok(!/Falta justificada/.test(await sec.textContent('#aus-res')));
+  });
+  await teste('chamada aberta pela secretaria é somente leitura', async () => {
+    await sec.click('.sidebar [data-nav="painel"]');
+    await sec.waitForSelector('.ficha-turma');
+    await sec.click('.ficha-turma >> text=6º Y');
+    await sec.waitForSelector('.lc-linha');
+    assert.ok(/somente leitura/.test(await sec.textContent('#ch-avisos')));
+    assert.strictEqual(await sec.locator('.bsit:not([disabled])').count(), 0);
+    assert.strictEqual(await sec.locator('[data-acao="finalizar"]').count(), 0);
+  });
+  assert.deepStrictEqual(sec.__erros, [], 'erros JS (secretaria): ' + sec.__erros.join(' | '));
+  await sec.__contexto.close();
+  const secCel = await novaPagina(browser, devices['iPhone 13'], SEC);
+  await teste('Ausentes do dia no celular', async () => {
+    await secCel.goto(URL_APP + '?u=' + SEC);
+    await secCel.waitForSelector('.bottomnav [data-nav="ausentes"]');
+    assert.strictEqual(await secCel.locator('.bottomnav [data-nav="chamada"]').count(), 0);
+    await secCel.tap('.bottomnav [data-nav="ausentes"]');
+    await secCel.fill('#aus-ini', '2026-11-17');
+    await secCel.tap('[data-acao="aus-buscar"]');
+    await secCel.waitForSelector('#aus-res .grupo-ausentes');
+    const largura = await secCel.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(largura <= 0, 'sem rolagem horizontal da página');
+    await foto(secCel, '18-ausentes-celular');
+  });
+  assert.deepStrictEqual(secCel.__erros, [], 'erros JS (secretaria celular): ' + secCel.__erros.join(' | '));
+  await secCel.__contexto.close();
+
+  // ---------------------------------------------------------------- Consulta sem login (link + código)
+  console.log('\nConsulta sem login (link + código)');
+  const admC = await novaPagina(browser, { viewport: { width: 1280, height: 900 } }, DONO);
+  let linkConsulta = '', codigoConsulta = '';
+  await teste('ADMIN gera link e código em Administração → Consulta sem login', async () => {
+    await admC.goto(URL_APP + '?u=' + DONO);
+    await admC.click('.sidebar [data-nav="admin"]');
+    await admC.click('[data-aba="consulta"]');
+    await admC.waitForSelector('#cs-url');
+    await admC.fill('#cs-url', 'https://script.google.com/a/macros/escola.edu.br/s/AKfycbPUBLICO_teste/exec');
+    await admC.click('[data-adm="consulta-gerar"]');
+    await admC.click('.modal-rodape >> text=Gerar');
+    await admC.waitForSelector('#cs-codigo');
+    codigoConsulta = (await admC.textContent('#cs-codigo')).trim();
+    linkConsulta = await admC.inputValue('#cs-link');
+    assert.ok(/^\d{6}$/.test(codigoConsulta) && /\?consulta=[0-9a-f]{64}$/.test(linkConsulta));
+    await foto(admC, '19-admin-consulta-sem-login');
+  });
+  assert.deepStrictEqual(admC.__erros, [], 'erros JS (admin consulta): ' + admC.__erros.join(' | '));
+  await admC.__contexto.close();
+  const pub = await novaPagina(browser, devices['iPhone 13'], '');
+  await teste('visitante SEM conta Google: código errado é recusado; certo mostra a lista', async () => {
+    const chave = linkConsulta.split('?consulta=')[1];
+    await pub.goto(URL_APP + '?u=anon&consulta=' + chave);
+    await pub.waitForSelector('#codigo');
+    assert.ok(!(await pub.textContent('body')).includes(NOMES[0]), 'nada de nomes antes do código');
+    await pub.fill('#codigo', codigoConsulta === '000000' ? '111111' : '000000');
+    await pub.click('#btn-entrar');
+    await pub.waitForSelector('#erro-codigo >> text=incorreto');
+    await pub.fill('#codigo', codigoConsulta);
+    await pub.click('#btn-entrar');
+    await pub.waitForSelector('#tela-lista:not([hidden])');
+    await pub.fill('#ini', '2026-11-17');
+    await pub.click('#btn-atualizar');
+    await pub.waitForSelector('#resultado table');
+    const txt = await pub.textContent('#resultado');
+    assert.ok(txt.includes('5º X') && txt.includes('Ausente') && txt.includes('Faltas em 30 dias'));
+    const largura = await pub.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(largura <= 0, 'sem rolagem horizontal');
+    await foto(pub, '20-consulta-sem-login-celular');
+    const [down] = await Promise.all([pub.waitForEvent('download'), pub.click('#btn-pdf')]);
+    assert.ok(/\.pdf$/.test(down.suggestedFilename()));
+  });
+  await teste('link inválido mostra aviso, sem dados', async () => {
+    await pub.goto(URL_APP + '?u=anon&consulta=' + 'e'.repeat(64));
+    assert.ok(/Link de consulta inválido/.test(await pub.textContent('body')));
+  });
+  assert.deepStrictEqual(pub.__erros, [], 'erros JS (consulta pública): ' + pub.__erros.join(' | '));
+  await pub.__contexto.close();
 
   // ---------------------------------------------------------------- Tablet e celular
   for (const [nome, disp] of [['tablet-ipad', devices['iPad (gen 7)']], ['tablet-android', devices['Galaxy Tab S4']], ['celular', devices['iPhone 13']]]) {

@@ -378,6 +378,93 @@ teste('painel "Chamadas de hoje": situação por turma (pendente, em andamento, 
   const p = ok(api(PROF, 'apiResumoDia', '2026-11-19'));
   assert.deepStrictEqual(p.turmas.map(x => x.nome), ['5º X'], 'professor vê só a própria turma');
 });
+teste('perfil CONSULTA (secretaria): vê todas as turmas e NÃO consegue gravar nada', () => {
+  const SEC = 'secretaria@escola.edu.br';
+  ok(api(DONO, 'apiSalvarProfessor', { nome: 'Servidor da Secretaria', email: SEC, perfil: 'CONSULTA', turmas: [] }));
+  const c = ok(api(SEC, 'apiContexto'));
+  assert.strictEqual(c.usuario.perfil, 'CONSULTA');
+  assert.strictEqual(c.turmas.length, 3);
+  const ch = ok(api(SEC, 'apiCarregarChamada', { turmaId, data: '2026-11-19' }));
+  assert.strictEqual(ch.permissoes.editar, false);
+  assert.ok(/somente leitura/.test(ch.permissoes.motivo));
+  erro(api(SEC, 'apiSalvarChamada', { turmaId, data: '2026-11-20', versao: 0, requestId: 'S1', registros: [{ estudanteId: est[0].id, situacao: 'PRESENTE' }] }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiCorrigirRegistro', { chamadaId: ch.chamada.id, versao: ch.chamada.versao, estudanteId: est[0].id, situacao: 'PRESENTE', motivo: 'tentativa indevida' }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiReabrirChamada', { chamadaId: ch.chamada.id, versao: ch.chamada.versao, motivo: 'tentativa indevida' }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiSalvarEstudante', { turmaId, nome: 'ALUNO INDEVIDO' }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiAlterarStatusEstudante', est[0].id, false, 'tentativa', '2026-11-20'), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiSalvarTurma', { nome: 'X', dataInicio: '2026-11-17' }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiSalvarConfiguracoes', { LIMITE_FREQUENCIA: '50' }), 'SEM_PERMISSAO');
+  erro(api(SEC, 'apiExecutarBackup'), 'SEM_PERMISSAO');
+  ok(api(SEC, 'apiRelatorio', { tipo: 'GERAL', turmaId }));
+  ok(api(SEC, 'apiFichaEstudante', { estudanteId: est[0].id }));
+});
+teste('Ausentes do dia: todas as turmas, faltas em 30 dias e pendências', () => {
+  const SEC = 'secretaria@escola.edu.br';
+  const d = ok(api(SEC, 'apiAusentes', { inicio: '2026-11-19', fim: '2026-11-19' }));
+  assert.deepStrictEqual(d.itens.map(x => [x.turma, x.nome, x.situacao]), [['5º X', NOMES[0], 'AUSENTE'], ['5º X', NOMES[31], 'JUSTIFICADA']]);
+  assert.deepStrictEqual(d.porSituacao, { AUSENTE: 1, JUSTIFICADA: 1 });
+  assert.strictEqual(d.itens[0].faltas30, 2, 'ausente em 17/11 (corrigido) e 19/11');
+  assert.ok(d.itens.every(x => x.chamadaFinalizada));
+  assert.deepStrictEqual(d.pendencias.map(x => x.turma + ':' + x.situacao), ['6º Y:em andamento', '7º Z:não iniciada']);
+  const so = ok(api(SEC, 'apiAusentes', { inicio: '2026-11-19', fim: '2026-11-19', situacoes: ['AUSENTE'] }));
+  assert.deepStrictEqual(so.itens.map(x => x.situacao), ['AUSENTE']);
+  erro(api(SEC, 'apiAusentes', { inicio: '2026-11-19', situacoes: ['ATRASADO'] }), 'DADOS_INVALIDOS');
+  const sem = ok(api(SEC, 'apiAusentes', { inicio: '2026-11-17', fim: '2026-11-19' }));
+  assert.ok(sem.itens.some(x => x.data === '2026-11-17' && x.situacao === 'AUSENTE'));
+  assert.ok(!sem.itens.some(x => x.situacao === 'ATRASADO'), 'atrasos não entram');
+  const prof = ok(api(PROF, 'apiAusentes', { inicio: '2026-11-19' }));
+  assert.ok(prof.itens.every(x => x.turma === '5º X') && prof.turmas === 1);
+  const csv = ok(api(SEC, 'apiExportarAusentes', { inicio: '2026-11-19', fim: '2026-11-19', formato: 'CSV' }));
+  const txt = Buffer.from(csv.base64, 'base64').toString('utf8');
+  assert.ok(txt.includes('Ausentes do dia 19/11/2026') && txt.includes(NOMES[0]) && txt.includes('"Turma";"Todas as turmas"'));
+  assert.ok(!/Professor\(a\)/.test(txt));
+  ok(api(SEC, 'apiExportarAusentes', { inicio: '2026-11-17', fim: '2026-11-19', formato: 'PDF' }));
+  ok(api(SEC, 'apiExportarAusentes', { inicio: '2026-11-19', formato: 'XLSX' }));
+});
+teste('consulta sem login: link + código, somente ausentes, bloqueio por tentativas e desativação', () => {
+  const URL_PUB = 'https://script.google.com/a/macros/escola.edu.br/s/AKfycbTESTE123_-abc/exec';
+  erro(api(PROF, 'apiConsultaPublicaGerar', { url: URL_PUB }), 'SEM_PERMISSAO');
+  erro(api(DONO, 'apiConsultaPublicaGerar', { url: 'https://exemplo.com/x' }), 'DADOS_INVALIDOS');
+  const g = ok(api(DONO, 'apiConsultaPublicaGerar', { url: URL_PUB }));
+  assert.ok(/^\d{6}$/.test(g.codigo), 'código de 6 dígitos');
+  const chave = g.link.split('?consulta=')[1];
+  assert.ok(g.link.startsWith(URL_PUB + '?consulta=') && /^[0-9a-f]{64}$/.test(chave));
+  assert.ok(!estado.propriedades.CONSULTA_PUBLICA.includes('"' + g.codigo + '"'), 'código não é guardado em texto');
+  assert.strictEqual(ok(api(DONO, 'apiConsultaPublicaStatus')).codigo, undefined, 'código não é mostrado de novo');
+  // Página sem login
+  amb.novaExecucao('');
+  const pg = ctx.doGet({ parameter: { consulta: chave } }).getContent();
+  assert.ok(pg.includes('Código de acesso') && !pg.includes(NOMES[0]), 'página pede código e não expõe nomes');
+  amb.novaExecucao('');
+  assert.ok(/Link de consulta inválido/.test(ctx.doGet({ parameter: { consulta: 'f'.repeat(64) } }).getContent()));
+  // Lista com código correto (anônimo)
+  const d = ok(api('', 'apiConsultaPublica', { chave, codigo: g.codigo, inicio: '2026-11-19', fim: '2026-11-19' }));
+  assert.deepStrictEqual(d.itens.map(x => x.nome), [NOMES[0], NOMES[31]]);
+  assert.ok(d.itens.every(x => x.estudanteId === undefined), 'sem identificadores internos');
+  ok(api('', 'apiConsultaPublicaPdf', { chave, codigo: g.codigo, inicio: '2026-11-19' }));
+  erro(api('', 'apiConsultaPublica', { chave, codigo: g.codigo, inicio: '2026-10-01', fim: '2026-11-19' }), 'DADOS_INVALIDOS');
+  // O link não abre as demais funções do sistema
+  erro(api('', 'apiAusentes', { inicio: '2026-11-19' }), 'SEM_IDENTIDADE');
+  erro(api('', 'apiCarregarChamada', { turmaId, data: '2026-11-19' }), 'SEM_IDENTIDADE');
+  // Código errado e bloqueio
+  erro(api('', 'apiConsultaPublica', { chave, codigo: '000000' === g.codigo ? '111111' : '000000' }), 'CODIGO_INVALIDO');
+  erro(api('', 'apiConsultaPublica', { chave: 'a'.repeat(64), codigo: g.codigo }), 'LINK_INVALIDO');
+  for (let i = 0; i < 3; i++) erro(api('', 'apiConsultaPublica', { chave, codigo: 'abc' }), 'CODIGO_INVALIDO');
+  erro(api('', 'apiConsultaPublica', { chave, codigo: '12' }), 'BLOQUEADO');
+  erro(api('', 'apiConsultaPublica', { chave, codigo: g.codigo }), 'BLOQUEADO', 'bloqueado mesmo com o código certo');
+  // Novo link/código invalida o anterior e libera o bloqueio
+  const g2 = ok(api(DONO, 'apiConsultaPublicaGerar', { url: URL_PUB }));
+  erro(api('', 'apiConsultaPublica', { chave, codigo: g.codigo }), 'LINK_INVALIDO');
+  const chave2 = g2.link.split('?consulta=')[1];
+  ok(api('', 'apiConsultaPublica', { chave: chave2, codigo: g2.codigo }));
+  // Desativar
+  ok(api(DONO, 'apiConsultaPublicaDesativar'));
+  erro(api('', 'apiConsultaPublica', { chave: chave2, codigo: g2.codigo }), 'LINK_INVALIDO');
+  const aud = ok(api(DONO, 'apiListarAuditoria', {})).itens.map(a => a.ACAO);
+  ['CONSULTA_SEM_LOGIN', 'CONSULTA_SEM_LOGIN_BLOQUEADA', 'CONSULTA_SEM_LOGIN_GERADA', 'CONSULTA_SEM_LOGIN_DESATIVADA'].forEach(a => assert.ok(aud.includes(a), a));
+  // Reativa para os testes de interface não dependerem disto
+  estado.consultaTeste = ok(api(DONO, 'apiConsultaPublicaGerar', { url: URL_PUB }));
+});
 teste('usuário com "Todas as turmas" (ex.: inspetora) acessa todas as turmas', () => {
   ok(api(DONO, 'apiSalvarProfessor', { nome: 'Inspetora Teste', email: 'inspetora@escola.edu.br', perfil: 'PROFESSOR', turmas: ['*'] }));
   const c = ok(api('inspetora@escola.edu.br', 'apiContexto'));

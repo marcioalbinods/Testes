@@ -12,10 +12,12 @@
  *  - ADMIN: tudo (cadastros, configurações, backup, exportação completa).
  *  - GESTOR: todas as turmas; chamadas, correções, reabertura, relatórios, cadastro de estudantes.
  *  - PROFESSOR: somente as turmas atribuídas; chamada e correções dentro do prazo configurado.
+ *  - CONSULTA: SOMENTE LEITURA de todas as turmas (ex.: secretaria): painel, ausentes, histórico e
+ *    relatórios. Nenhuma gravação é permitida (bloqueio no servidor, em permissoesChamada_ e nos cadastros).
  */
 
-var PERFIL = { ADMIN: 'ADMIN', GESTOR: 'GESTOR', PROFESSOR: 'PROFESSOR' };
-var PERFIS_VALIDOS = ['ADMIN', 'GESTOR', 'PROFESSOR'];
+var PERFIL = { ADMIN: 'ADMIN', GESTOR: 'GESTOR', PROFESSOR: 'PROFESSOR', CONSULTA: 'CONSULTA' };
+var PERFIS_VALIDOS = ['ADMIN', 'GESTOR', 'PROFESSOR', 'CONSULTA'];
 var _usuarioMemo = { carregado: false, valor: null };
 
 /** E-mail do usuário conectado (minúsculas) ou '' se o Google não informar. */
@@ -80,7 +82,7 @@ function ehGestao_(u) {
 }
 
 function podeAcessarTurma_(u, turmaId) {
-  if (ehGestao_(u)) return true;
+  if (ehGestao_(u) || u.perfil === PERFIL.CONSULTA) return true;
   return u.turmas.indexOf('*') >= 0 || u.turmas.indexOf(turmaId) >= 0;
 }
 
@@ -111,6 +113,7 @@ function turmasDoUsuario_(u, incluirInativas) {
 function permissoesChamada_(u, turma, data, cfg) {
   var hoje = hoje_();
   var r = { editar: true, reabrir: true, motivo: '' };
+  if (u.perfil === PERFIL.CONSULTA) return { editar: false, reabrir: false, motivo: 'Perfil de consulta: somente leitura. Nenhuma alteração é permitida.' };
   if (data > hoje) return { editar: false, reabrir: false, motivo: 'Não é permitido registrar chamada para datas futuras.' };
   if (turma.DATA_INICIO && data < turma.DATA_INICIO) {
     return { editar: false, reabrir: false, motivo: 'A turma inicia em ' + dataBr_(turma.DATA_INICIO) + '. Não há chamadas antes dessa data.' };

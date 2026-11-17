@@ -37,6 +37,9 @@ Use um **computador** para a instalação.
   Clique em **Implantar** e copie o link que termina em `/exec`.
 - **Ao atualizar o código, sem mudar o link:** **Implantar → Gerenciar implantações** → lápis → **Versão: Nova versão** → **Implantar**.
 
+## 4b. (Opcional) Consulta de ausentes sem login
+Crie uma **segunda** implantação: **Implantar → Nova implantação → App da Web**, com **Executar como: Eu** e **Quem pode acessar: Qualquer pessoa**. Depois cole o endereço dela no sistema, em **Administração → Consulta sem login**. Em cada atualização, publique a **Nova versão** nas duas implantações.
+
 ## 5. Primeiro acesso
 1. Abra o link `/exec`. Você entra como **ADMIN**.
 2. Em **Administração → Configurações**, preencha o nome da escola.

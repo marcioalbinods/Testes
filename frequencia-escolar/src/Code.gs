@@ -17,7 +17,7 @@
 /** OPCIONAL: preencha antes de executar setupSistema() (pode ser alterado depois no sistema). */
 var NOME_ESCOLA_INICIAL = '';
 
-var VERSAO_SISTEMA = '1.2.0';
+var VERSAO_SISTEMA = '1.4.0';
 /**
  * Turmas e estudantes iniciais.
  * Por privacidade, os nomes dos estudantes NÃO ficam neste código-fonte: o arquivo de
@@ -79,6 +79,10 @@ var CONFIG_EDITAVEIS = ['CHAMADA_INICIA_PRESENTE', 'NOME_ESCOLA', 'LIMITE_FREQUE
 function doGet(e) {
   if (!sistemaInstalado_()) {
     return paginaMensagem_('Sistema não instalado', 'O administrador ainda não executou a instalação (setupSistema).');
+  }
+  // Consulta sem login (link + código): só a lista de ausentes, somente leitura. Ver Consulta.gs.
+  if (e && e.parameter && e.parameter.consulta) {
+    return paginaConsulta_(String(e.parameter.consulta));
   }
   var email = emailAtual_();
   if (!email) {

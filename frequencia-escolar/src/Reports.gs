@@ -353,3 +353,127 @@ function apiFichaEstudante(p) {
     return fichaEstudante_(exigirUsuario_(), p.estudanteId, p.inicio, p.fim, null);
   });
 }
+
+// ------------------------------------------------------------------ Ausentes (todas as turmas)
+
+/** Situações listadas em "Ausentes do dia" (atrasos não entram: o estudante esteve na escola). */
+var SITUACOES_AUSENCIA = ['AUSENTE', 'JUSTIFICADA'];
+
+/**
+ * Lista os estudantes ausentes e com falta justificada de TODAS as turmas
+ * ativas que o usuário pode ver, num período. Inclui chamadas em rascunho (marcadas como tal),
+ * para que a secretaria veja as faltas do dia antes da finalização.
+ * p = { inicio, fim, situacoes: ['AUSENTE','JUSTIFICADA'] } (padrão: as duas)
+ */
+function ausentesPeriodo_(u, p) {
+  p = p || {};
+  var hoje = hoje_();
+  var ini = p.inicio ? validarData_(p.inicio, 'Data inicial') : hoje;
+  var fim = p.fim ? validarData_(p.fim, 'Data final') : ini;
+  if (ini > fim) throw appError_('DADOS_INVALIDOS', 'A data inicial é posterior à data final.');
+  if (adicionarDias_(ini, 92) < fim) throw appError_('DADOS_INVALIDOS', 'Escolha um período de até 3 meses.');
+  var situacoes = (Array.isArray(p.situacoes) ? p.situacoes : ['AUSENTE', 'JUSTIFICADA']).filter(function (s) { return SITUACOES_AUSENCIA.indexOf(s) >= 0; });
+  if (!situacoes.length) throw appError_('DADOS_INVALIDOS', 'Escolha ao menos uma situação.');
+
+  var turmas = turmasDoUsuario_(u, false);
+  var turmasPorId = indexarPor_(turmas, 'ID');
+  var inicio30 = adicionarDias_(fim, -29);
+  var chamadas = lerTabela_('CHAMADAS').filter(function (c) { return turmasPorId[c.TURMA_ID] && c.DATA >= (ini < inicio30 ? ini : inicio30) && c.DATA <= fim; });
+  var chamadasPorId = indexarPor_(chamadas, 'ID');
+  var registros = chamadas.length ? lerTabela_('FREQUENCIAS').filter(function (r) { return chamadasPorId[r.CHAMADA_ID]; }) : [];
+
+  // Faltas (AUSENTE) de cada estudante nos 30 dias que terminam na data final: ajuda a busca ativa.
+  var faltas30 = {};
+  registros.forEach(function (r) {
+    if (r.SITUACAO === SITUACAO.AUSENTE && r.DATA >= inicio30) faltas30[r.ESTUDANTE_ID] = (faltas30[r.ESTUDANTE_ID] || 0) + 1;
+  });
+  var estudantesPorId = indexarPor_(lerTabela_('ESTUDANTES'), 'ID');
+  var itens = registros.filter(function (r) {
+    return r.DATA >= ini && situacoes.indexOf(r.SITUACAO) >= 0;
+  }).map(function (r) {
+    var c = chamadasPorId[r.CHAMADA_ID];
+    var e = estudantesPorId[r.ESTUDANTE_ID];
+    return {
+      turmaId: r.TURMA_ID, turma: turmasPorId[r.TURMA_ID].NOME, data: r.DATA, dataBr: dataBr_(r.DATA),
+      periodo: r.PERIODO === PERIODO_UNICO ? '' : r.PERIODO, estudanteId: r.ESTUDANTE_ID, numero: r.NUMERO,
+      nome: e ? e.NOME : r.NOME_ESTUDANTE, situacao: r.SITUACAO, situacaoRotulo: ROTULO_SITUACAO[r.SITUACAO],
+      observacao: r.OBSERVACAO, faltas30: faltas30[r.ESTUDANTE_ID] || 0,
+      chamadaFinalizada: c.STATUS === STATUS_CHAMADA.FINALIZADA
+    };
+  });
+  var ordemTurma = {};
+  turmas.forEach(function (t, i) { ordemTurma[t.ID] = i; });
+  itens.sort(function (a, b) {
+    return ordemTurma[a.turmaId] - ordemTurma[b.turmaId] || a.data.localeCompare(b.data) || (Number(a.numero) || 0) - (Number(b.numero) || 0);
+  });
+
+  // Turmas com chamada não finalizada no período (a lista pode estar incompleta para elas).
+  var periodos = periodosConfigurados_(config_());
+  var pendencias = [];
+  for (var d = ini; d <= fim; d = adicionarDias_(d, 1)) {
+    var dow = diaDaSemana_(d);
+    var doDia = chamadas.filter(function (c) { return c.DATA === d; });
+    // Dia sem nenhuma chamada na escola (feriado, fim de semana): só é pendência se for o único dia consultado.
+    if (!doDia.length && (ini !== fim || dow === 0 || dow === 6)) continue;
+    turmas.forEach(function (t) {
+      if (t.DATA_INICIO && d < t.DATA_INICIO) return;
+      var cs = doDia.filter(function (c) { return c.TURMA_ID === t.ID; });
+      var fin = cs.filter(function (c) { return c.STATUS === STATUS_CHAMADA.FINALIZADA; }).length;
+      if (fin < periodos.length) pendencias.push({ data: d, dataBr: dataBr_(d), turma: t.NOME, situacao: cs.length ? 'em andamento' : 'não iniciada' });
+    });
+  }
+  var porSituacao = {};
+  situacoes.forEach(function (s) { porSituacao[s] = 0; });
+  itens.forEach(function (x) { porSituacao[x.situacao]++; });
+  return { inicio: ini, fim: fim, situacoes: situacoes, itens: itens, porSituacao: porSituacao, pendencias: pendencias, turmas: turmas.length };
+}
+
+/** API: ausentes do dia/período de todas as turmas do usuário. */
+function apiAusentes(p) {
+  return executar_('apiAusentes', function () {
+    return ausentesPeriodo_(exigirUsuario_(), p);
+  });
+}
+
+/** Monta a lista de ausentes no formato de relatório (para PDF/Excel/CSV). */
+function relatorioAusentes_(u, p) {
+  var d = ausentesPeriodo_(u, p);
+  var cfg = config_();
+  var uma = d.inicio === d.fim;
+  var nomesSit = d.situacoes.map(function (s) { return ROTULO_SITUACAO[s].toLowerCase(); }).join(', ');
+  var colunas = [{ chave: 'turma', rotulo: 'Turma' }];
+  if (!uma) colunas.push({ chave: 'dataBr', rotulo: 'Data' });
+  colunas = colunas.concat([{ chave: 'numero', rotulo: 'Nº', tipo: 'num' }, { chave: 'nome', rotulo: 'Estudante' },
+    { chave: 'situacaoRotulo', rotulo: 'Situação' }, { chave: 'observacao', rotulo: 'Observação' },
+    { chave: 'faltas30', rotulo: 'Faltas em 30 dias', tipo: 'num' }]);
+  var resumo = d.situacoes.map(function (s) { return { rotulo: ROTULO_SITUACAO[s], valor: d.porSituacao[s] }; });
+  resumo.push({ rotulo: 'Turmas consultadas', valor: d.turmas });
+  var rel = {
+    tipo: 'AUSENTES',
+    titulo: uma ? 'Ausentes do dia ' + dataBr_(d.inicio) : 'Ausentes de ' + dataBr_(d.inicio) + ' a ' + dataBr_(d.fim),
+    meta: { escola: cfg.NOME_ESCOLA || '', turma: 'Todas as turmas', periodo: dataBr_(d.inicio) + (uma ? '' : ' a ' + dataBr_(d.fim)),
+      inicio: d.inicio, fim: d.fim, professor: '—', emitidoPor: u.nome + ' (' + u.email + ')', emissao: dataHoraBr_(agora_()),
+      regras: 'Situações listadas: ' + nomesSit + '. Inclui chamadas ainda não finalizadas. "Faltas em 30 dias" conta as ausências do estudante nos 30 dias até ' + dataBr_(d.fim) + '.' },
+    colunas: colunas, linhas: d.itens, resumo: resumo
+  };
+  if (d.pendencias.length) {
+    rel.aviso = 'Atenção: chamada não finalizada em ' + d.pendencias.map(function (x) { return x.turma + (uma ? '' : ' (' + x.dataBr + ')'); }).join(', ') + '. A lista pode estar incompleta.';
+  }
+  return rel;
+}
+
+/** API: exporta a lista de ausentes em PDF, Excel ou CSV. p = { inicio, fim, situacoes, formato } */
+function apiExportarAusentes(p) {
+  return executar_('apiExportarAusentes', function () {
+    var u = exigirUsuario_();
+    p = p || {};
+    var rel = relatorioAusentes_(u, p);
+    var formato = String(p.formato || '').toUpperCase();
+    var arquivo = formato === 'CSV' ? gerarCsv_(rel) : formato === 'XLSX' ? gerarXlsx_(rel) : formato === 'PDF' ? gerarPdf_(rel) : null;
+    if (!arquivo) throw appError_('DADOS_INVALIDOS', 'Formato de exportação inválido.');
+    comLock_(function () {
+      auditar_(u.email, { acao: 'EXPORTACAO_RELATORIO', entidade: 'RELATORIO', registroId: 'AUSENTES', novo: formato, detalhes: rel.titulo });
+    });
+    return arquivo;
+  });
+}

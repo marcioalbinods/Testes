@@ -185,7 +185,7 @@
     render(`
       <div class="home">
         <div class="home-bg" aria-hidden="true"><span class="scan"></span></div>
-        <div class="home-top">${soundBtn()}</div>
+        <div class="home-top"><button class="teacher-btn" data-act="teacher">🔐 Área do Professor</button>${soundBtn()}</div>
         <div class="home-grid">
           <div class="home-left">
             <div class="home-logo">${ART.logo(132)}</div>
@@ -209,7 +209,6 @@
         </div>
         <footer class="home-foot">
           <span>Jogo educativo • 7º ano • Novembro Negro e Dia Nacional de Zumbi e da Consciência Negra (20/11)</span>
-          <button class="link-btn" data-act="teacher">🔐 Área do Professor</button>
         </footer>
       </div>`, 'home');
   }
@@ -946,6 +945,7 @@
         <button class="btn btn-ghost btn-lg" data-act="howTo">❔ Como jogar</button>
         <button class="btn btn-ghost btn-lg" data-act="about">✊🏾 Sobre o Novembro Negro</button>
         <button class="btn btn-ghost btn-lg" data-act="goHome">🏠 Tela inicial</button>
+        <button class="btn btn-ghost btn-lg" data-act="teacher">🔐 Área do Professor</button>
         <button class="btn btn-danger btn-lg" data-act="askRestart">↺ Reiniciar jogo</button>
       </div>`,
       buttons: [{ label: 'Fechar', cls: 'btn-primary', act: 'closeModal' }]

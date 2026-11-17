@@ -38,8 +38,11 @@ let chamadasServidor = [];
 // Servidor HTTP local: entrega o HTML gerado pelo doGet() para o usuário informado.
 const servidor = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
-  amb.novaExecucao(u.searchParams.get('u') || PROF);
-  const html = amb.ctx.doGet({}).getContent();
+  const usr = u.searchParams.get('u');
+  amb.novaExecucao(usr === 'anon' ? '' : (usr || PROF)); // 'anon' = visitante sem conta Google
+  const parametros = {};
+  u.searchParams.forEach((v, k) => { parametros[k] = v; });
+  const html = amb.ctx.doGet({ parameter: parametros }).getContent();
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
 });
@@ -478,6 +481,56 @@ function backendChamada(data) {
   });
   assert.deepStrictEqual(secCel.__erros, [], 'erros JS (secretaria celular): ' + secCel.__erros.join(' | '));
   await secCel.__contexto.close();
+
+  // ---------------------------------------------------------------- Consulta sem login (link + código)
+  console.log('\nConsulta sem login (link + código)');
+  const admC = await novaPagina(browser, { viewport: { width: 1280, height: 900 } }, DONO);
+  let linkConsulta = '', codigoConsulta = '';
+  await teste('ADMIN gera link e código em Administração → Consulta sem login', async () => {
+    await admC.goto(URL_APP + '?u=' + DONO);
+    await admC.click('.sidebar [data-nav="admin"]');
+    await admC.click('[data-aba="consulta"]');
+    await admC.waitForSelector('#cs-url');
+    await admC.fill('#cs-url', 'https://script.google.com/a/macros/escola.edu.br/s/AKfycbPUBLICO_teste/exec');
+    await admC.click('[data-adm="consulta-gerar"]');
+    await admC.click('.modal-rodape >> text=Gerar');
+    await admC.waitForSelector('#cs-codigo');
+    codigoConsulta = (await admC.textContent('#cs-codigo')).trim();
+    linkConsulta = await admC.inputValue('#cs-link');
+    assert.ok(/^\d{6}$/.test(codigoConsulta) && /\?consulta=[0-9a-f]{64}$/.test(linkConsulta));
+    await foto(admC, '19-admin-consulta-sem-login');
+  });
+  assert.deepStrictEqual(admC.__erros, [], 'erros JS (admin consulta): ' + admC.__erros.join(' | '));
+  await admC.__contexto.close();
+  const pub = await novaPagina(browser, devices['iPhone 13'], '');
+  await teste('visitante SEM conta Google: código errado é recusado; certo mostra a lista', async () => {
+    const chave = linkConsulta.split('?consulta=')[1];
+    await pub.goto(URL_APP + '?u=anon&consulta=' + chave);
+    await pub.waitForSelector('#codigo');
+    assert.ok(!(await pub.textContent('body')).includes(NOMES[0]), 'nada de nomes antes do código');
+    await pub.fill('#codigo', codigoConsulta === '000000' ? '111111' : '000000');
+    await pub.click('#btn-entrar');
+    await pub.waitForSelector('#erro-codigo >> text=incorreto');
+    await pub.fill('#codigo', codigoConsulta);
+    await pub.click('#btn-entrar');
+    await pub.waitForSelector('#tela-lista:not([hidden])');
+    await pub.fill('#ini', '2026-11-17');
+    await pub.click('#btn-atualizar');
+    await pub.waitForSelector('#resultado table');
+    const txt = await pub.textContent('#resultado');
+    assert.ok(txt.includes('5º X') && txt.includes('Ausente') && txt.includes('Faltas em 30 dias'));
+    const largura = await pub.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(largura <= 0, 'sem rolagem horizontal');
+    await foto(pub, '20-consulta-sem-login-celular');
+    const [down] = await Promise.all([pub.waitForEvent('download'), pub.click('#btn-pdf')]);
+    assert.ok(/\.pdf$/.test(down.suggestedFilename()));
+  });
+  await teste('link inválido mostra aviso, sem dados', async () => {
+    await pub.goto(URL_APP + '?u=anon&consulta=' + 'e'.repeat(64));
+    assert.ok(/Link de consulta inválido/.test(await pub.textContent('body')));
+  });
+  assert.deepStrictEqual(pub.__erros, [], 'erros JS (consulta pública): ' + pub.__erros.join(' | '));
+  await pub.__contexto.close();
 
   // ---------------------------------------------------------------- Tablet e celular
   for (const [nome, disp] of [['tablet-ipad', devices['iPad (gen 7)']], ['tablet-android', devices['Galaxy Tab S4']], ['celular', devices['iPhone 13']]]) {

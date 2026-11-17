@@ -1416,13 +1416,13 @@
 
   // ================================================================== ADMINISTRAÇÃO
   function vAdmin() {
-    var abas = EH_ADMIN ? [['turmas', 'Turmas'], ['usuarios', 'Usuários'], ['config', 'Configurações'], ['backup', 'Backup e dados'], ['auditoria', 'Auditoria']]
+    var abas = EH_ADMIN ? [['turmas', 'Turmas'], ['usuarios', 'Usuários'], ['config', 'Configurações'], ['consulta', 'Consulta sem login'], ['backup', 'Backup e dados'], ['auditoria', 'Auditoria']]
       : [['usuarios', 'Usuários'], ['auditoria', 'Auditoria']];
     if (!S.abaAdmin || !abas.some(function (a) { return a[0] === S.abaAdmin; })) S.abaAdmin = abas[0][0];
     $('#conteudo').innerHTML = cabecalho('Administração', EH_ADMIN ? 'Turmas, usuários, regras de cálculo, backup e auditoria' : 'Consulta de usuários e auditoria') +
       '<div class="abas">' + abas.map(function (a) { return '<button class="aba ' + (a[0] === S.abaAdmin ? 'ativa' : '') + '" data-aba="' + a[0] + '">' + h(a[1]) + '</button>'; }).join('') + '</div>' +
       '<div id="admin-corpo">' + carregandoHtml() + '</div>';
-    ({ turmas: aTurmas, usuarios: aUsuarios, config: aConfig, backup: aBackup, auditoria: aAuditoria })[S.abaAdmin]();
+    ({ turmas: aTurmas, usuarios: aUsuarios, config: aConfig, consulta: aConsulta, backup: aBackup, auditoria: aAuditoria })[S.abaAdmin]();
   }
   function aTurmas() {
     servidor('apiListarTurmas', [true]).then(function (lista) {
@@ -1516,6 +1516,31 @@
         '<p style="font-size:12px;color:#64748b">Versão do sistema: ' + h(d.versao) + '. Todas as alterações ficam registradas na auditoria.</p></div>';
     }).catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });
   }
+  /** Aba "Consulta sem login": link + código para ver os ausentes sem conta Google. */
+  function aConsulta() {
+    servidor('apiConsultaPublicaStatus', []).then(function (st) { renderConsulta(st, ''); })
+      .catch(function (e) { $('#admin-corpo').innerHTML = erroHtml(e, true); });
+  }
+  function renderConsulta(st, codigoNovo) {
+    var el = $('#admin-corpo');
+    if (!el) return;
+    el.innerHTML = '<div class="card card-corpo">' +
+      '<div class="card-titulo">' + ic('ausentes') + 'Consulta de ausentes sem login</div>' +
+      '<div class="aviso aviso-atencao">' + ic('alerta') + '<div>Quem tiver o <strong>link e o código</strong> verá nomes e faltas dos estudantes de todas as turmas, <strong>sem conta Google</strong>. ' +
+      'O sistema não sabe quem consultou, apenas registra data e hora. Envie link e código <strong>por canais diferentes</strong> (ex.: link por mensagem, código por telefone) e só para quem precisa. Em caso de vazamento, gere um novo ou desative.</div></div>' +
+      '<p style="margin:0 0 12px">Situação: <span class="etiqueta et-' + (st.ativo ? 'ATIVO">ATIVA' : 'INATIVO">DESATIVADA') + '</span>' +
+      (st.ativo ? ' · gerada em ' + dataHoraBr(st.criadoEm) + ' por ' + h(st.criadoPor) : '') + '</p>' +
+      (codigoNovo ? '<div class="aviso aviso-ok">' + ic('PRESENTE') + '<div><strong>Novo link e código gerados.</strong> Anote o código agora: por segurança, ele <strong>não será mostrado de novo</strong>.' +
+        '<div style="font-size:30px;font-weight:800;letter-spacing:.25em;margin:8px 0" id="cs-codigo">' + h(codigoNovo) + '</div></div></div>' : '') +
+      (st.ativo ? '<div class="campo" style="margin-bottom:12px"><label for="cs-link">Link da consulta</label><input type="text" id="cs-link" readonly value="' + h(st.link) + '">' +
+        '<div class="linha-acoes" style="margin-top:8px"><button class="btn btn-sm" data-adm="consulta-copiar">Copiar link</button></div></div>' : '') +
+      '<div class="campo" style="margin-bottom:12px"><label for="cs-url">Endereço da implantação de consulta (acesso "Qualquer pessoa")</label>' +
+      '<input type="text" id="cs-url" placeholder="https://script.google.com/.../exec" value="' + h(st.url) + '">' +
+      '<div class="ajuda">Crie em Implantar → Nova implantação → App da Web → Executar como: Eu · Quem pode acessar: Qualquer pessoa. Cole aqui o endereço gerado (termina em /exec).</div></div>' +
+      '<div class="linha-acoes"><button class="btn btn-primario" data-adm="consulta-gerar">' + ic('atualizar') + (st.ativo ? 'Gerar novo link e código' : 'Ativar e gerar link e código') + '</button>' +
+      (st.ativo ? '<button class="btn btn-perigo" data-adm="consulta-desativar">Desativar consulta sem login</button>' : '') + '</div></div>';
+  }
+
   function aBackup() {
     $('#admin-corpo').innerHTML = '<div class="grade grade-2"><div class="card card-corpo"><div class="card-titulo">' + ic('salvar') + 'Backups da planilha</div><div id="bk-info">' + carregandoHtml() + '</div></div>' +
       '<div class="card card-corpo"><div class="card-titulo">' + ic('baixar') + 'Exportação e verificação</div>' +
@@ -1605,6 +1630,24 @@
         $('#diag').innerHTML = '<div class="aviso ' + (d.ok ? 'aviso-ok' : 'aviso-atencao') + '">' + ic(d.ok ? 'PRESENTE' : 'alerta') + '<div><strong>' + (d.ok ? 'Nenhuma inconsistência encontrada.' : 'Foram encontradas inconsistências.') + '</strong></div></div>' +
           '<ul class="diag">' + d.mensagens.map(function (m) { return '<li class="' + (m.ok ? 'okk' : 'nok') + '">' + (m.ok ? '✔ ' : '✖ ') + h(m.texto) + '</li>'; }).join('') + '</ul>';
       }).catch(function (e) { $('#diag').innerHTML = erroHtml(e, false); });
+    } else if (acao === 'consulta-gerar') {
+      var url = $('#cs-url').value.trim();
+      confirmar('Gerar link e código?', 'Um <strong>novo link e um novo código</strong> serão criados. Os anteriores deixarão de funcionar imediatamente.', 'Gerar').then(function (ok) {
+        if (!ok) return;
+        servidor('apiConsultaPublicaGerar', [{ url: url }], { exigeConexao: true }).then(function (st) { renderConsulta(st, st.codigo); toast('Link e código gerados.', 'ok'); })
+          .catch(function (e) { toast(erroMsg(e), 'erro'); });
+      });
+    } else if (acao === 'consulta-desativar') {
+      confirmar('Desativar a consulta sem login?', 'O link e o código atuais deixarão de funcionar imediatamente.', 'Desativar', 'btn-perigo-cheio').then(function (ok) {
+        if (!ok) return;
+        servidor('apiConsultaPublicaDesativar', [], { exigeConexao: true }).then(function (st) { renderConsulta(st, ''); toast('Consulta sem login desativada.', 'ok'); })
+          .catch(function (e) { toast(erroMsg(e), 'erro'); });
+      });
+    } else if (acao === 'consulta-copiar') {
+      var campo = $('#cs-link');
+      campo.select();
+      try { navigator.clipboard.writeText(campo.value).then(function () { toast('Link copiado.', 'ok'); }, function () { document.execCommand('copy'); toast('Link copiado.', 'ok'); }); }
+      catch (x) { document.execCommand('copy'); toast('Link copiado.', 'ok'); }
     } else if (acao === 'aud-buscar') {
       S.filtroAud = { inicio: $('#au-ini').value, fim: $('#au-fim').value, acao: $('#au-acao').value, turmaId: $('#au-turma').value, pagina: 1 };
       $('#aud-res').innerHTML = carregandoHtml();

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ausentes do dia — Frequência Escolar</title>
+  <style>
+    :root { --azul: #1d4ed8; --azul-escuro: #1e3a8a; --texto: #0f172a; --texto-2: #475569; --texto-3: #64748b; --divisao: #e2e8f0;
+      --vermelho: #b91c1c; --vermelho-bg: #fee2e2; --just: #075985; --just-bg: #e0f2fe; --amarelo: #78350f; --amarelo-bg: #fffbeb; --verde: #14532d; --verde-bg: #f0fdf4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Roboto, -apple-system, Arial, sans-serif; background: #f5f7fb; color: var(--texto); font-size: 15px; }
+    header { background: #fff; border-bottom: 1px solid var(--divisao); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    header svg { width: 38px; height: 38px; flex: none; }
+    .t1 { font-weight: 800; color: var(--azul-escuro); letter-spacing: .02em; }
+    .t2 { font-size: 12.5px; color: var(--texto-3); }
+    main { max-width: 1000px; margin: 0 auto; padding: 18px 16px 40px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--texto-3); margin-bottom: 16px; font-size: 14px; }
+    .card { background: #fff; border: 1px solid var(--divisao); border-radius: 10px; box-shadow: 0 2px 8px rgba(15, 23, 42, .05); padding: 16px; margin-bottom: 14px; }
+    .entrar { max-width: 380px; margin: 8vh auto 0; text-align: center; }
+    label { display: block; font-size: 13px; font-weight: 700; color: var(--texto-2); margin-bottom: 5px; text-align: left; }
+    input[type=date], input[type=password], input[type=text] { width: 100%; min-height: 44px; padding: 8px 11px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 16px; background: #fff; }
+    #codigo { font-size: 26px; letter-spacing: .4em; text-align: center; }
+    button { font: inherit; cursor: pointer; min-height: 44px; padding: 0 16px; border-radius: 7px; border: 1px solid #cbd5e1; background: #fff; font-weight: 650; }
+    button.pri { background: var(--azul); border-color: var(--azul); color: #fff; }
+    button:disabled { opacity: .55; cursor: default; }
+    .linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .linha .campo { flex: 1 1 150px; }
+    .erro { color: var(--vermelho); font-size: 14px; min-height: 20px; margin-top: 8px; }
+    .aviso { padding: 11px 13px; border-radius: 7px; font-size: 14px; margin-bottom: 14px; border: 1px solid; }
+    .aviso.at { background: var(--amarelo-bg); border-color: #fde68a; color: var(--amarelo); }
+    .aviso.ok { background: var(--verde-bg); border-color: #bbf7d0; color: var(--verde); }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .kpi { background: #fff; border: 1px solid var(--divisao); border-left: 4px solid var(--vermelho); border-radius: 10px; padding: 10px 14px; }
+    .kpi.j { border-left-color: #38bdf8; }
+    .kpi .r { font-size: 12.5px; color: var(--texto-3); font-weight: 600; }
+    .kpi .v { font-size: 26px; font-weight: 800; }
+    h2 { font-size: 17px; margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+    .cont { background: var(--vermelho-bg); color: var(--vermelho); border-radius: 99px; padding: 1px 9px; font-size: 13px; }
+    .tw { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; font-size: 11.5px; text-transform: uppercase; color: var(--texto-3); padding: 8px; border-bottom: 1px solid var(--divisao); white-space: nowrap; }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--divisao); }
+    tr:last-child td { border-bottom: 0; }
+    .num { text-align: right; }
+    .alto { color: var(--vermelho); font-weight: 800; }
+    .et { display: inline-block; border-radius: 99px; padding: 2px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .et.AUSENTE { background: var(--vermelho-bg); color: var(--vermelho); }
+    .et.JUSTIFICADA { background: var(--just-bg); color: var(--just); }
+    .et.rasc { background: #fef9c3; color: #854d0e; }
+    .rodape { font-size: 12px; color: var(--texto-3); }
+    .vazio { text-align: center; color: var(--texto-3); padding: 24px; }
+    [hidden] { display: none !important; }
+    @media print { header, #filtros, .nao-imprimir { display: none !important; } body { background: #fff; } .card { box-shadow: none; break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#1d4ed8"/><rect x="15" y="14" width="34" height="38" rx="5" fill="#fff"/><rect x="24" y="10" width="16" height="8" rx="3" fill="#bfdbfe"/><path d="M21 28l4 4 7-8M21 41l4 4 7-8" stroke="#16a34a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="35" y="27" width="9" height="3.4" rx="1.7" fill="#94a3b8"/><rect x="35" y="40" width="9" height="3.4" rx="1.7" fill="#94a3b8"/></svg>
+    <div><div class="t1">FREQUÊNCIA ESCOLAR</div><div class="t2" id="escola"></div></div>
+  </header>
+  <main>
+    <section id="tela-codigo" class="card entrar">
+      <h1>Ausentes do dia</h1>
+      <p class="sub">Consulta somente leitura. Digite o código de acesso recebido da coordenação.</p>
+      <form id="form-codigo" autocomplete="off">
+        <label for="codigo">Código de acesso (6 dígitos)</label>
+        <input id="codigo" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]*" autofocus>
+        <div class="erro" id="erro-codigo" role="alert"></div>
+        <button class="pri" type="submit" id="btn-entrar" style="width:100%">Entrar</button>
+      </form>
+    </section>
+
+    <section id="tela-lista" hidden>
+      <h1 id="titulo">Ausentes do dia</h1>
+      <p class="sub">Todas as turmas · ausentes e faltas justificadas · somente leitura</p>
+      <div class="card" id="filtros">
+        <div class="linha">
+          <div class="campo"><label for="ini">De</label><input type="date" id="ini"></div>
+          <div class="campo"><label for="fim">Até</label><input type="date" id="fim"></div>
+          <label style="display:flex;gap:6px;align-items:center;font-weight:500;flex:1 1 200px;min-height:44px"><input type="checkbox" id="just" checked> Incluir faltas justificadas</label>
+          <button class="pri" id="btn-atualizar">Atualizar</button>
+        </div>
+        <div class="linha" style="margin-top:10px">
+          <button data-periodo="hoje">Hoje</button><button data-periodo="ontem">Ontem</button><button data-periodo="semana">Esta semana</button>
+          <span style="flex:1"></span>
+          <button id="btn-pdf">Baixar PDF</button><button id="btn-imprimir">Imprimir</button>
+        </div>
+      </div>
+      <div id="resultado"></div>
+    </section>
+  </main>
+  <script>
+    var DADOS = <?!= dadosJson ?>;
+    (function () {
+      'use strict';
+      var codigo = ''; // mantido só na memória desta página (não é salvo no aparelho)
+      function $(s) { return document.querySelector(s); }
+      function h(v) { return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function br(iso) { var p = String(iso).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+      function somar(iso, n) { var p = iso.split('-'); var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)); return d.toISOString().slice(0, 10); }
+      function dow(iso) { var p = iso.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay(); }
+      function hoje() { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()); } catch (e) { return DADOS.hoje; } }
+      $('#escola').textContent = DADOS.escola;
+      $('#ini').value = $('#fim').value = hoje();
+      $('#ini').max = $('#fim').max = hoje();
+
+      function chamar(fn, p) {
+        return new Promise(function (ok, falha) {
+          google.script.run.withSuccessHandler(function (r) { if (r && r.ok) ok(r.data); else falha(r || { erro: 'Erro inesperado.' }); })
+            .withFailureHandler(function () { falha({ erro: 'Sem conexão com o servidor. Verifique a internet e tente novamente.' }); })[fn](p);
+        });
+      }
+      function params() { return { chave: DADOS.chave, codigo: codigo, inicio: $('#ini').value, fim: $('#fim').value, justificadas: $('#just').checked }; }
+
+      $('#form-codigo').addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var c = $('#codigo').value.replace(/\D/g, '');
+        if (c.length !== 6) { $('#erro-codigo').textContent = 'O código tem 6 dígitos.'; return; }
+        $('#btn-entrar').disabled = true; $('#erro-codigo').textContent = '';
+        codigo = c;
+        chamar('apiConsultaPublica', params()).then(function (d) {
+          $('#tela-codigo').hidden = true; $('#tela-lista').hidden = false;
+          mostrar(d);
+        }).catch(function (e) {
+          codigo = '';
+          $('#erro-codigo').textContent = e.erro || 'Não foi possível entrar.';
+          if (e.codigo === 'LINK_INVALIDO') $('#form-codigo').hidden = true;
+        }).then(function () { $('#btn-entrar').disabled = false; });
+      });
+
+      function atualizar() {
+        if (!$('#ini').value || !$('#fim').value) return;
+        $('#resultado').innerHTML = '<div class="card vazio">Buscando...</div>';
+        chamar('apiConsultaPublica', params()).then(mostrar).catch(function (e) {
+          $('#resultado').innerHTML = '<div class="aviso at">' + h(e.erro) + '</div>';
+          if (e.codigo === 'CODIGO_INVALIDO' || e.codigo === 'LINK_INVALIDO' || e.codigo === 'BLOQUEADO') sair(e.erro);
+        });
+      }
+      function sair(msg) { codigo = ''; $('#tela-lista').hidden = true; $('#tela-codigo').hidden = false; $('#codigo').value = ''; $('#erro-codigo').textContent = msg || ''; }
+
+      function mostrar(d) {
+        var uma = d.inicio === d.fim;
+        $('#titulo').textContent = uma ? 'Ausentes do dia ' + br(d.inicio) : 'Ausentes de ' + br(d.inicio) + ' a ' + br(d.fim);
+        var html = '<div class="kpis"><div class="kpi"><div class="r">Ausentes</div><div class="v">' + (d.porSituacao.AUSENTE || 0) + '</div></div>' +
+          (d.porSituacao.JUSTIFICADA !== undefined ? '<div class="kpi j"><div class="r">Faltas justificadas</div><div class="v">' + d.porSituacao.JUSTIFICADA + '</div></div>' : '') + '</div>';
+        if (d.pendencias.length) {
+          var porT = [], idx = {};
+          d.pendencias.forEach(function (x) { if (!idx[x.turma]) { idx[x.turma] = []; porT.push(x.turma); } idx[x.turma].push(x); });
+          html += '<div class="aviso at"><strong>Chamada ainda não finalizada:</strong> ' + porT.map(function (t) {
+            return '<strong>' + h(t) + '</strong>' + (uma ? ' — ' + h(idx[t][0].situacao) : ' (' + idx[t].map(function (x) { return h(x.dataBr.slice(0, 5)); }).join(', ') + ')');
+          }).join(' · ') + '. A lista pode mudar até essas chamadas serem finalizadas.</div>';
+        } else if (d.turmas) {
+          html += '<div class="aviso ok">Todas as chamadas do período estão finalizadas: a lista está completa.</div>';
+        }
+        if (!d.itens.length) {
+          html += '<div class="card vazio">Nenhum estudante ausente' + (uma ? ' em ' + br(d.inicio) : ' no período') + '.</div>';
+        } else {
+          var grupos = [], g = {};
+          d.itens.forEach(function (x) { if (!g[x.turmaId]) { g[x.turmaId] = { nome: x.turma, itens: [] }; grupos.push(g[x.turmaId]); } g[x.turmaId].itens.push(x); });
+          html += grupos.map(function (gr) {
+            return '<div class="card"><h2>' + h(gr.nome) + ' <span class="cont">' + gr.itens.length + '</span></h2><div class="tw"><table><thead><tr>' + (uma ? '' : '<th>Data</th>') +
+              '<th>Nº</th><th>Estudante</th><th>Situação</th><th>Observação</th><th class="num">Faltas em 30 dias</th></tr></thead><tbody>' +
+              gr.itens.map(function (x) {
+                return '<tr>' + (uma ? '' : '<td>' + h(x.dataBr) + '</td>') + '<td>' + h(x.numero) + '</td><td>' + h(x.nome) + '</td><td><span class="et ' + x.situacao + '">' + h(x.situacaoRotulo) + '</span>' +
+                  (x.chamadaFinalizada ? '' : ' <span class="et rasc">não finalizada</span>') + '</td><td>' + h(x.observacao) + '</td><td class="num' + (x.faltas30 >= 3 ? ' alto' : '') + '">' + x.faltas30 + '</td></tr>';
+              }).join('') + '</tbody></table></div></div>';
+          }).join('');
+        }
+        html += '<p class="rodape">"Faltas em 30 dias" = ausências do estudante nos 30 dias até ' + br(d.fim) + '. Consulta registrada na auditoria do sistema.</p>';
+        $('#resultado').innerHTML = html;
+      }
+
+      $('#btn-atualizar').addEventListener('click', atualizar);
+      Array.prototype.forEach.call(document.querySelectorAll('[data-periodo]'), function (b) {
+        b.addEventListener('click', function () {
+          var hj = hoje(), t = b.getAttribute('data-periodo'), i = hj, f = hj;
+          if (t === 'ontem') { i = f = somar(hj, dow(hj) === 1 ? -3 : -1); }
+          if (t === 'semana') { var d = dow(hj); i = somar(hj, d === 0 ? -6 : 1 - d); }
+          $('#ini').value = i; $('#fim').value = f;
+          atualizar();
+        });
+      });
+      $('#btn-imprimir').addEventListener('click', function () { window.print(); });
+      $('#btn-pdf').addEventListener('click', function () {
+        var b = $('#btn-pdf'); b.disabled = true; b.textContent = 'Gerando...';
+        chamar('apiConsultaPublicaPdf', params()).then(function (arq) {
+          var bin = atob(arq.base64), bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          var url = URL.createObjectURL(new Blob([bytes], { type: arq.mime }));
+          var a = document.createElement('a'); a.href = url; a.download = arq.nome; document.body.appendChild(a); a.click();
+          setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 60000);
+        }).catch(function (e) { alert(e.erro || 'Não foi possível gerar o PDF.'); })
+          .then(function () { b.disabled = false; b.textContent = 'Baixar PDF'; });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -268,7 +268,9 @@ function criarAmbiente(opcoes) {
     formatDate: formatarData,
     getUuid: () => crypto.randomUUID(),
     Charset: { UTF_8: 'UTF-8' },
-    base64Encode(v) { return Array.isArray(v) ? Buffer.from(v).toString('base64') : Buffer.from(String(v), 'utf8').toString('base64'); },
+    DigestAlgorithm: { SHA_256: 'sha256' },
+    computeDigest(alg, valor) { return Array.from(crypto.createHash(alg).update(String(valor), 'utf8').digest()).map(b => (b > 127 ? b - 256 : b)); },
+    base64Encode(v) { return Array.isArray(v) ? Buffer.from(v.map(b => b & 255)).toString('base64') : Buffer.from(String(v), 'utf8').toString('base64'); },
     newBlob(c, mime) { return blob(Buffer.from(String(c)), mime); }
   };
   const ScriptApp = {

@@ -287,6 +287,17 @@ O limite de alerta é configurável: `LIMITE_FREQUENCIA`, padrão 90%. Todas as 
 
 **Corrigir uma chamada finalizada:** abra a chamada (pela data ou pelo Histórico) → **Reabrir para correção** → informe o motivo → corrija → finalize de novo. Fora do prazo do professor, só a equipe gestora pode corrigir.
 
+### Consulta de ausentes SEM login (link + código)
+Para quem não tem conta Google institucional. Mostra **somente** a lista de ausentes e faltas justificadas (até 31 dias), sem alterar nada.
+1. **Criar o segundo link (uma vez):** no Apps Script, clique em **Implantar → Nova implantação → App da Web**, com **Executar como: Eu** e **Quem pode acessar: Qualquer pessoa**. Copie o endereço `/exec` gerado. Se a opção "Qualquer pessoa" não aparecer, o domínio da rede bloqueia esse recurso, e a alternativa é a conta institucional.
+2. No sistema, em **Administração → Consulta sem login**, cole esse endereço e clique em **Ativar e gerar link e código**. Anote o **código de 6 dígitos**: ele aparece **uma única vez**.
+3. Envie o **link** e o **código** por canais diferentes, e só para quem precisa.
+4. Segurança:
+   - após 5 códigos errados, a consulta é bloqueada por 15 minutos;
+   - cada consulta é registrada na auditoria (data e hora; o sistema não sabe *quem* consultou);
+   - **Gerar novo link e código** invalida os anteriores, e **Desativar** encerra o acesso na hora.
+5. **Ao atualizar o sistema**, publique a nova versão nas **duas** implantações (Gerenciar implantações → lápis em cada uma → Nova versão).
+
 ### Secretaria: Ausentes do dia (perfil CONSULTA)
 1. O ADMIN cadastra o servidor em **Administração → Usuários** com o perfil **CONSULTA**. Ele vê todas as turmas, mas não altera nada.
 2. No menu, **Ausentes do dia** mostra numa só lista, separados por turma, os estudantes **ausentes** e com **falta justificada** (com a observação), além do total de faltas de cada um nos últimos 30 dias. Atrasos não entram.

@@ -11,7 +11,7 @@ const path = require('path');
 const src = path.join(__dirname, '..', 'src');
 const dest = path.join(__dirname, '..', 'instalacao');
 fs.mkdirSync(dest, { recursive: true });
-const ordem = ['Code', 'Util', 'Database', 'Security', 'Audit', 'Students', 'Attendance', 'Reports', 'Export', 'Backup'];
+const ordem = ['Code', 'Util', 'Database', 'Security', 'Audit', 'Students', 'Attendance', 'Reports', 'Export', 'Backup', 'Consulta'];
 const extras = fs.readdirSync(src).filter(f => f.endsWith('.gs')).map(f => f.slice(0, -3)).filter(n => !ordem.includes(n));
 if (extras.length) throw new Error('Arquivos .gs fora da ordem definida: ' + extras.join(', '));
 let saida = '/**\n * FREQUÊNCIA ESCOLAR — PACOTE DE INSTALAÇÃO (sistema completo em um único arquivo)\n' +
@@ -26,8 +26,8 @@ for (const n of ordem) {
 const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : ''; };
 const arqDados = arg('--dados');
 const html = {};
-for (const n of ['Index', 'Styles', 'JavaScript']) html[n] = fs.readFileSync(path.join(src, n + '.html'), 'utf8');
-saida += '\n\n// ' + '='.repeat(76) + '\n// TELAS HTML EMBUTIDAS (Index.html, Styles.html, JavaScript.html)\n// ' + '='.repeat(76) + '\n\n';
+for (const n of ['Index', 'Styles', 'JavaScript', 'ConsultaPublica']) html[n] = fs.readFileSync(path.join(src, n + '.html'), 'utf8');
+saida += '\n\n// ' + '='.repeat(76) + '\n// TELAS HTML EMBUTIDAS (Index, Styles, JavaScript, ConsultaPublica)\n// ' + '='.repeat(76) + '\n\n';
 saida += 'var HTML_EMBUTIDO_ = {\n' + Object.keys(html).map(k => '  ' + k + ': ' + JSON.stringify(html[k]).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')).join(',\n') + '\n};\n';
 if (arqDados) {
   const dados = JSON.parse(fs.readFileSync(arqDados, 'utf8'));

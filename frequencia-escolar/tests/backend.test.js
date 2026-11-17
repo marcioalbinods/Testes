@@ -11,14 +11,7 @@ const PROF = 'professora@escola.edu.br';
 const GESTOR = 'gestora@escola.edu.br';
 const ESTRANHO = 'intruso@gmail.com';
 
-const NOMES = ['ALICE BRITO DOS SANTOS', 'AMAEL HECTOR DOS SANTOS SILVA', 'ANA HELENA DE OLIVEIRA', 'ANA ISADORA MOTA BIZARRIA',
-  'ANA LUIZA COSTA VASCONCELOS', 'ANNA CECILIA SILVEIRA DUARTE', 'ANNA CLARA PAIXAO SILVA', 'BRYAN LORENZO SOUZA DE JESUS',
-  'DANDARA APRIL SANTOS DE OLIVEIRA', 'DANIEL DE ALMEIDA BERNARDO', 'DAVI XAVIER COLETA', 'DAVID PEDROSA DA SILVA',
-  'ENZO GABRIEL MATOS LEITE', 'GIOVANNA VITORIA ORNELAS SELES', 'ISABELLA DA SILVA DOURADO', 'ISADORA DE OLIVEIRA TOMAZ',
-  'ISAQUE DOS SANTOS FEITOSA', 'JASMIM DA SILVA SANTOS', 'LAURA ALMEIDA DE LIMA', 'LAURA DE JESUS ROCHA', 'LEVIH CONCEICAO DA SILVA',
-  'LORENA SILVA DE MATOS', 'MANUELLY OLIVEIRA NASCIMENTO', 'MARIA LUIZA GOMES DA SILVA DE JESUS', 'MURILLO OLIVEIRA SOUSA',
-  'MURILO SILVA DE JESUS', 'PERICLES RAFAEL SILVA DE SOUZA', 'RICHARD ARAUJO DOS SANTOS', 'SOPHIA DA CRUZ PEREIRA',
-  'VINNYCIUS AUGUSTO DE OLIVEIRA VENTURA', 'WENDEL ARTHUR DE JESUS SALES', 'MANUELLA BERILO CONCEICAO AQUINO'];
+const { NOMES, DADOS_ESCOLA } = require('./dados-teste'); // nomes FICTÍCIOS
 
 let total = 0, falhas = 0;
 function teste(nome, fn) {
@@ -31,25 +24,26 @@ function erro(r, codigo) { assert.ok(r && r.ok === false, 'esperava erro ' + cod
 
 const amb = criarAmbiente({ agora: '2026-11-20T10:00:00-03:00', dono: DONO });
 const { api, estado, ctx } = amb;
+ctx.DADOS_ESCOLA_ = DADOS_ESCOLA; // simula o arquivo de instalação personalizado da escola
 function aba(nome) { return estado.planilhas[estado.propriedades.SPREADSHEET_ID].getSheetByName(nome); }
 function linhas(nome) { return Math.max(0, aba(nome).getLastRow() - 1); }
 
 console.log('\n1. Inicialização');
 let turmaId;
-teste('setupSistema cria planilha, 7 abas, configurações, admin e turma-piloto', () => {
+teste('setupSistema cria planilha, 7 abas, configurações, admin e as turmas iniciais', () => {
   amb.novaExecucao(DONO);
   const log = ctx.setupSistema();
   assert.ok(estado.propriedades.SPREADSHEET_ID, 'ID salvo em Script Properties');
   const ss = estado.planilhas[estado.propriedades.SPREADSHEET_ID];
   assert.deepStrictEqual(ss.getSheets().map(s => s.getName()), ['CONFIGURACOES', 'PROFESSORES', 'TURMAS', 'ESTUDANTES', 'CHAMADAS', 'FREQUENCIAS', 'AUDITORIA']);
   assert.ok(/INSTALAÇÃO CONCLUÍDA COM SUCESSO/.test(estado.logs.join('\n')), 'mensagem de conclusão');
-  assert.strictEqual(linhas('TURMAS'), 1);
+  assert.strictEqual(linhas('TURMAS'), 3);
   assert.strictEqual(linhas('PROFESSORES'), 1);
   assert.ok(log.length > 0);
   ss.getSheets().forEach(s => assert.ok(s.getProtections().length === 1 && s.getProtections()[0]._aviso, 'proteção com aviso em ' + s.getName()));
 });
-teste('cadastro dos 32 estudantes com nomes íntegros e numeração 1 a 32', () => {
-  assert.strictEqual(linhas('ESTUDANTES'), 32);
+teste('estudantes cadastrados com nomes íntegros, em ordem alfabética e numeração 1 a N', () => {
+  assert.strictEqual(linhas('ESTUDANTES'), 39);
   const v = aba('ESTUDANTES').getRange(2, 1, 32, 15).getValues();
   const cab = aba('ESTUDANTES').getRange(1, 1, 1, 15).getValues()[0];
   const iNome = cab.indexOf('NOME'), iNum = cab.indexOf('NUMERO'), iId = cab.indexOf('ID'), iEnt = cab.indexOf('DATA_ENTRADA');
@@ -71,7 +65,8 @@ teste('verificarSistema aprova a estrutura', () => {
   amb.novaExecucao(DONO);
   const d = ctx.verificarSistema();
   assert.ok(d.ok, JSON.stringify(d.mensagens.filter(m => !m.ok)));
-  assert.ok(d.mensagens.some(m => /32 nomes/.test(m.texto)));
+  assert.ok(d.mensagens.some(m => /5º X: 32 nomes conferidos, numeração 1 a 32 em ordem alfabética/.test(m.texto)), JSON.stringify(d.mensagens));
+  assert.ok(d.mensagens.some(m => /6º Y: 4 nomes conferidos/.test(m.texto)));
 });
 
 console.log('\n2. Segurança e controle de acesso');
@@ -85,7 +80,7 @@ teste('usuário não cadastrado é bloqueado (API e doGet)', () => {
   erro(api(ESTRANHO, 'apiPainel', 'x'), 'NAO_AUTORIZADO');
   amb.novaExecucao(ESTRANHO);
   const pg = ctx.doGet({});
-  assert.ok(/não autorizado/i.test(pg.getContent()) && !/ALICE/.test(pg.getContent()));
+  assert.ok(/não autorizado/i.test(pg.getContent()) && !pg.getContent().includes(NOMES[0]));
 });
 teste('setupSistema/verificarSistema/backup não podem ser chamados por terceiros', () => {
   amb.novaExecucao(ESTRANHO);
@@ -104,13 +99,14 @@ teste('admin acessa o doGet e recebe o contexto sem credenciais', () => {
   assert.ok(!/SPREADSHEET_ID|token/i.test(html.match(/var CONTEXTO = (.*);/)[1]));
   const c = JSON.parse(html.match(/var CONTEXTO = (.*);/)[1]);
   assert.strictEqual(c.usuario.perfil, 'ADMIN');
-  assert.strictEqual(c.turmas.length, 1);
+  assert.deepStrictEqual(c.turmas.map(x => x.nome), ['5º X', '6º Y', '7º Z'], 'turmas em ordem natural');
   turmaId = c.turmas[0].id;
-  assert.strictEqual(c.turmas[0].nome, 'TURMA PILOTO');
+  assert.strictEqual(c.turmas[0].nome, '5º X');
+  assert.strictEqual(c.turmas[0].dataInicio, '2026-11-17');
   assert.strictEqual(c.turmas[0].estudantesAtivos, 32);
   assert.strictEqual(c.turmas[0].dataInicio, '2026-11-17');
 });
-teste('admin cadastra professor (turma-piloto) e gestor', () => {
+teste('admin cadastra professor (uma turma) e gestor', () => {
   ok(api(DONO, 'apiSalvarProfessor', { nome: 'Maria Professora', email: PROF, perfil: 'PROFESSOR', turmas: [turmaId] }));
   ok(api(DONO, 'apiSalvarProfessor', { nome: 'Joana Gestora', email: GESTOR, perfil: 'GESTOR', turmas: ['*'] }));
   erro(api(DONO, 'apiSalvarProfessor', { nome: 'Outra', email: PROF, perfil: 'PROFESSOR', turmas: [turmaId] }), 'DUPLICADO');
@@ -336,7 +332,7 @@ teste('ficha individual: totais, percentual e histórico cronológico', () => {
   const f = ok(api(PROF, 'apiFichaEstudante', { estudanteId: est[1].id }));
   assert.strictEqual(f.estudante.nome, NOMES[1]);
   assert.strictEqual(f.estudante.numero, 2);
-  assert.strictEqual(f.estudante.turmaNome, 'TURMA PILOTO');
+  assert.strictEqual(f.estudante.turmaNome, '5º X');
   assert.deepStrictEqual([f.resumo.registros, f.resumo.presencas, f.resumo.atrasos], [2, 1, 1]);
   assert.strictEqual(f.resumo.frequencia, 100);
   assert.deepStrictEqual(f.historico.map(x => x.data), ['2026-11-17', '2026-11-19']);
@@ -347,8 +343,8 @@ teste('exportação CSV (UTF-8 com BOM, separador ;) com cabeçalho do relatóri
   const a = ok(api(PROF, 'apiExportarRelatorio', { tipo: 'GERAL', turmaId, formato: 'CSV' }));
   const txt = Buffer.from(a.base64, 'base64').toString('utf8');
   assert.ok(txt.charCodeAt(0) === 0xFEFF);
-  assert.ok(txt.includes('"Turma";"TURMA PILOTO"'));
-  assert.ok(txt.includes('"ALICE BRITO DOS SANTOS"'));
+  assert.ok(txt.includes('"Turma";"5º X"'));
+  assert.ok(txt.includes('"' + NOMES[0] + '"'));
   assert.ok(txt.includes('"Período analisado"'));
   assert.ok(/\.csv$/.test(a.nome));
 });
@@ -367,13 +363,36 @@ teste('exportação PDF (A4) e Excel executam sem erro e removem arquivos tempor
   assert.ok(/dados_completos/.test(exp.nome));
 });
 
+teste('painel "Chamadas de hoje": situação por turma (pendente, em andamento, finalizada)', () => {
+  const r = ok(api(GESTOR, 'apiResumoDia', '2026-11-19'));
+  assert.deepStrictEqual(r.turmas.map(x => x.nome), ['5º X', '6º Y', '7º Z']);
+  assert.strictEqual(r.turmas[0].status, 'FINALIZADA');
+  assert.strictEqual(r.turmas[1].status, 'PENDENTE');
+  assert.strictEqual(r.turmas[1].estudantes, 4);
+  assert.deepStrictEqual([r.finalizadas, r.total], [1, 3]);
+  const y = ok(api(GESTOR, 'apiCarregarChamada', { turmaId: r.turmas[1].id, data: '2026-11-19' }));
+  ok(api(GESTOR, 'apiSalvarChamada', { turmaId: r.turmas[1].id, data: '2026-11-19', versao: 0, requestId: 'Y1', registros: [{ estudanteId: y.estudantes[0].id, situacao: 'PRESENTE' }] }));
+  const r2 = ok(api(GESTOR, 'apiResumoDia', '2026-11-19'));
+  assert.strictEqual(r2.turmas[1].status, 'EM_ANDAMENTO');
+  assert.strictEqual(r2.turmas[1].naoRegistrados, 3);
+  const p = ok(api(PROF, 'apiResumoDia', '2026-11-19'));
+  assert.deepStrictEqual(p.turmas.map(x => x.nome), ['5º X'], 'professor vê só a própria turma');
+});
+teste('usuário com "Todas as turmas" (ex.: inspetora) acessa todas as turmas', () => {
+  ok(api(DONO, 'apiSalvarProfessor', { nome: 'Inspetora Teste', email: 'inspetora@escola.edu.br', perfil: 'PROFESSOR', turmas: ['*'] }));
+  const c = ok(api('inspetora@escola.edu.br', 'apiContexto'));
+  assert.strictEqual(c.turmas.length, 3);
+  assert.strictEqual(c.usuario.perfil, 'PROFESSOR');
+  erro(api('inspetora@escola.edu.br', 'apiSalvarTurma', { nome: 'X', dataInicio: '2026-11-17' }), 'SEM_PERMISSAO');
+});
+
 console.log('\n6. Cadastros (estudantes, turmas) e preservação do histórico');
 let novoEst, turma2;
 teste('adicionar estudante (número automático 33), validar nome e homônimo', () => {
   novoEst = ok(api(GESTOR, 'apiSalvarEstudante', { turmaId, nome: 'JOÃO PEDRO DA SILVA', dataEntrada: '2026-11-20' }));
   assert.strictEqual(novoEst.numero, 33);
   assert.ok(novoEst.id.startsWith('EST-'));
-  erro(api(GESTOR, 'apiSalvarEstudante', { turmaId, nome: 'ALICE BRITO DOS SANTOS' }), 'HOMONIMO');
+  erro(api(GESTOR, 'apiSalvarEstudante', { turmaId, nome: NOMES[0] }), 'HOMONIMO');
   erro(api(GESTOR, 'apiSalvarEstudante', { turmaId, nome: '=HYPERLINK("x")' }), 'DADOS_INVALIDOS');
   erro(api(GESTOR, 'apiSalvarEstudante', { turmaId, nome: 'AB' }), 'DADOS_INVALIDOS');
 });
@@ -399,7 +418,7 @@ teste('inativar estudante preserva histórico e remove das próximas chamadas', 
   assert.ok(antiga.estudantes.some(e => e.id === est[2].id), 'continua na chamada antiga');
   const ficha = ok(api(PROF, 'apiFichaEstudante', { estudanteId: est[2].id }));
   assert.strictEqual(ficha.resumo.registros, 2, 'histórico preservado');
-  assert.strictEqual(linhas('ESTUDANTES'), 33, 'nenhum registro apagado');
+  assert.strictEqual(linhas('ESTUDANTES'), 40, 'nenhum registro apagado');
   const lista = ok(api(PROF, 'apiListarEstudantes', turmaId, false));
   assert.strictEqual(lista.length, 32);
   ok(api(GESTOR, 'apiAlterarStatusEstudante', est[2].id, true, '', ''));
@@ -414,8 +433,9 @@ teste('criar e editar turma; professor só acessa turmas atribuídas', () => {
   erro(api(PROF, 'apiPainel', turma2.id), 'SEM_PERMISSAO');
   const ctxProf = ok(api(PROF, 'apiContexto'));
   assert.deepStrictEqual(ctxProf.turmas.map(t => t.id), [turmaId]);
-  ok(api(DONO, 'apiSalvarTurma', { id: turmaId, nome: 'TURMA PILOTO — 5º ANO A', dataInicio: '2026-11-17' }));
-  assert.strictEqual(ok(api(PROF, 'apiContexto')).turmas[0].nome, 'TURMA PILOTO — 5º ANO A');
+  ok(api(DONO, 'apiSalvarTurma', { id: turmaId, nome: '5º X RENOMEADA', dataInicio: '2026-11-17' }));
+  assert.strictEqual(ok(api(PROF, 'apiContexto')).turmas[0].nome, '5º X RENOMEADA');
+  ok(api(DONO, 'apiSalvarTurma', { id: turmaId, nome: '5º X', dataInicio: '2026-11-17' }));
 });
 teste('transferir estudante: registros antigos permanecem na turma de origem', () => {
   const t = ok(api(GESTOR, 'apiTransferirEstudante', est[3].id, turma2.id, '2026-11-20', 'Remanejamento'));

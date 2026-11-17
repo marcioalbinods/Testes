@@ -223,6 +223,22 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
 .barra-pct { height: 6px; background: var(--neutro-bg); border-radius: 99px; overflow: hidden; margin-top: 5px; }
 .barra-pct span { display: block; height: 100%; background: var(--vermelho-forte); }
 
+/* Painel "Chamadas de hoje" */
+.progresso-dia { height: 10px; background: var(--neutro-bg); border-radius: 99px; overflow: hidden; margin: -2px 0 12px; }
+.progresso-dia span { display: block; height: 100%; background: var(--verde-forte); transition: width .3s; }
+.grade-turmas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ficha-turma { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; text-align: left; border-left: 5px solid var(--divisao-2); min-height: 92px; }
+.ficha-turma:hover { border-color: var(--azul); }
+.ficha-turma .ft-nome { font-size: 20px; font-weight: 800; color: var(--texto); }
+.ficha-turma .ft-status { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--texto-3); }
+.ficha-turma .ft-status svg.ic { width: 16px; height: 16px; }
+.ficha-turma .ft-det { font-size: 12px; color: var(--texto-3); }
+.ficha-turma.st-FINALIZADA { border-left-color: var(--verde-forte); background: #f6fef9; }
+.ficha-turma.st-FINALIZADA .ft-status { color: var(--verde); }
+.ficha-turma.st-EM_ANDAMENTO { border-left-color: #eab308; background: #fffdf0; }
+.ficha-turma.st-EM_ANDAMENTO .ft-status { color: var(--amarelo); }
+@media (max-width: 640px) { .grade-turmas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* ------------------------------------------------------------------ Chamada */
 .chamada-topo { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); align-items: end; margin-bottom: 14px; }
 .contadores {

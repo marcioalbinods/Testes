@@ -280,7 +280,8 @@ function criarAmbiente(opcoes) {
       return b;
     }
   };
-  const raizSrc = path.join(__dirname, '..', 'src');
+  // FE_PACOTE=1 testa o pacote de instalação (instalacao/) em vez dos arquivos de src/.
+  const raizSrc = path.join(__dirname, '..', process.env.FE_PACOTE ? 'instalacao' : 'src');
   function processarTemplate(conteudo, vars, ctx) {
     let codigo = 'var __s="";with(__v){';
     const partes = conteudo.split(/(<\?!?=?[\s\S]*?\?>)/);
@@ -296,12 +297,23 @@ function criarAmbiente(opcoes) {
   }
   function saidaHtml(conteudo) {
     const o = { _c: conteudo, _titulo: '', _meta: {}, getContent() { return o._c; }, setTitle(t) { o._titulo = t; return o; },
-      addMetaTag(n, v) { o._meta[n] = v; return o; }, setXFrameOptionsMode() { return o; }, setFaviconUrl(u) { o._favicon = u; return o; } };
+      addMetaTag(n, v) {
+        // Somente as metatags permitidas pelo Apps Script (HtmlOutput.addMetaTag).
+        if (n !== 'viewport') { // o sistema só usa a metatag viewport (a única garantida em qualquer conta)
+          throw new Error('A metatag especificada não é permitida neste contexto: ' + n);
+        }
+        o._meta[n] = v; return o;
+      }, setXFrameOptionsMode() { return o; }, setFaviconUrl(u) { o._favicon = u; return o; } };
     return o;
   }
   const HtmlService = {
     XFrameOptionsMode: { DEFAULT: 'DEFAULT', ALLOWALL: 'ALLOWALL' },
+    createHtmlOutput(c) { return saidaHtml(String(c)); },
     createHtmlOutputFromFile(n) { return saidaHtml(fs.readFileSync(path.join(raizSrc, n + '.html'), 'utf8')); },
+    createTemplate(conteudo) {
+      const t = { evaluate() { return saidaHtml(processarTemplate(conteudo, Object.assign({}, t), ctx)); } };
+      return t;
+    },
     createTemplateFromFile(n) {
       const t = { _n: n, evaluate() { return saidaHtml(processarTemplate(fs.readFileSync(path.join(raizSrc, n + '.html'), 'utf8'), Object.assign({}, t), ctx)); } };
       return t;
@@ -315,8 +327,13 @@ function criarAmbiente(opcoes) {
     SpreadsheetApp, DocumentApp, DriveApp, UrlFetchApp, PropertiesService, CacheService, LockService, Session, Utilities, ScriptApp, HtmlService, Logger,
     console: consoleSilencioso
   });
-  const arquivos = fs.readdirSync(raizSrc).filter(f => f.endsWith('.gs')).sort();
-  for (const f of arquivos) vm.runInContext(fs.readFileSync(path.join(raizSrc, f), 'utf8'), ctx, { filename: f });
+  if (process.env.FE_ARQUIVO) {
+    // Testa um arquivo de instalação único (ex.: o personalizado da escola, guardado fora do repositório).
+    vm.runInContext(fs.readFileSync(process.env.FE_ARQUIVO, 'utf8'), ctx, { filename: 'Code.gs' });
+  } else {
+    const arquivos = fs.readdirSync(raizSrc).filter(f => f.endsWith('.gs')).sort();
+    for (const f of arquivos) vm.runInContext(fs.readFileSync(path.join(raizSrc, f), 'utf8'), ctx, { filename: f });
+  }
 
   /** Simula uma NOVA execução (cada chamada do navegador é uma execução separada no Apps Script). */
   function novaExecucao(usuario) {

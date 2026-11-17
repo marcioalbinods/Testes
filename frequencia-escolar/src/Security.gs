@@ -96,6 +96,10 @@ function exigirTurma_(u, turmaId) {
 function turmasDoUsuario_(u, incluirInativas) {
   return lerTabela_('TURMAS').filter(function (t) {
     return podeAcessarTurma_(u, t.ID) && (incluirInativas || ehSim_(t.ATIVA));
+  }).sort(function (a, b) {
+    // Ativas primeiro; depois por nome em ordem natural (5º A, 5º B, ..., 9º D).
+    return (ehSim_(b.ATIVA) ? 1 : 0) - (ehSim_(a.ATIVA) ? 1 : 0) ||
+      String(a.NOME).localeCompare(String(b.NOME), 'pt-BR', { numeric: true, sensitivity: 'base' });
   });
 }
 

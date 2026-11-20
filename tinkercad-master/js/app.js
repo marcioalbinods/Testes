@@ -157,7 +157,7 @@
       }, { rootMargin: '200px' });
       io.observe(el); return () => { alive = false; io.disconnect(); };
     }, [ph.id]);
-    return html`<div ref=${ref} class=${'thumb ' + (size || '')}>${src ? html`<img src=${src} alt=${'Referência: ' + ph.nome} />` : html`<span class="thumb-ph"><${Icon} n="cube" s=${28} /></span>`}</div>`;
+    return html`<div ref=${ref} class=${'thumb ' + (size ? 'thumb-' + size : '')}>${src ? html`<img src=${src} alt=${'Referência: ' + ph.nome} />` : html`<span class="thumb-ph"><${Icon} n="cube" s=${28} /></span>`}</div>`;
   }
 
   /* ---------------- Visualizador 3D ---------------- */
@@ -480,9 +480,9 @@
       try {
         const img = await TM.readImage(file);
         const n = (st.tentativas[id] || 0) + 1;
-        const r = Object.assign(img, { fase: id, tentativa: n, data: new Date().toISOString() });
+        const r = Object.assign(img, { fase: id, tentativa: n, quando: new Date().toISOString() });
         await TM.savePrint(id, r); setRec(r);
-        update((s) => { s.tentativas[id] = n; s.historico.push({ id, tipo: 'print', detalhe: n, data: r.data }); return s; });
+        update((s) => { s.tentativas[id] = n; s.historico.push({ id, tipo: 'print', detalhe: n, data: r.quando }); return s; });
         toast('Print registrado como tentativa ' + n + ' da fase ' + id + '.');
       } catch (e) { setErr(e.message || 'Falha ao carregar a imagem.'); }
     };
@@ -495,7 +495,7 @@
       <p class="muted">Fase ${id} · ${ph.nome} · ${st.tentativas[id] || 0} tentativa(s) registrada(s)</p>
       ${rec ? html`<figure class="print-prev">
           <img src=${rec.data} alt=${'Seu print da fase ' + id} />
-          <figcaption><span><b>Tentativa ${rec.tentativa}</b> · ${fmtDate(rec.data)}</span><span>${rec.nome} · ${rec.w}×${rec.h}px</span></figcaption>
+          <figcaption><span><b>Tentativa ${rec.tentativa}</b> · ${fmtDate(rec.quando)}</span><span>${rec.nome} · ${rec.w}×${rec.h}px</span></figcaption>
           <div class="print-actions"><button class="btn ghost sm" onClick=${() => inp.current.click()}><${Icon} n="upload" s=${14}/> Substituir imagem</button></div>
         </figure>`
         : html`<div class=${'drop ' + (drag ? 'drag' : '')} onDragOver=${(e) => { e.preventDefault(); setDrag(true); }} onDragLeave=${() => setDrag(false)} onDrop=${(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files[0]; f && take(f); }} onClick=${() => inp.current.click()} role="button" tabindex="0" onKeyDown=${(e) => (e.key === 'Enter' || e.key === ' ') && inp.current.click()}>
@@ -602,7 +602,7 @@
           <div class="limit-note"><${Icon} n="eye" s=${18}/><p>Este aplicativo não analisa imagens sozinho. A avaliação visual é feita pelo <b>professor Claude</b>, na conversa. Siga os passos abaixo.</p></div>
           <ol class="eval-steps">
             <li><b>Anexe o print</b> da fase ${ph.id} numa conversa com o Claude.
-              ${rec ? html`<div class="mini-print"><img src=${rec.data} alt="Print desta fase"/><span>Tentativa ${rec.tentativa} · ${fmtDate(rec.data)}</span><button class="btn ghost sm" onClick=${copyImg}><${Icon} n="copy" s=${14}/> Copiar imagem</button></div>`
+              ${rec ? html`<div class="mini-print"><img src=${rec.data} alt="Print desta fase"/><span>Tentativa ${rec.tentativa} · ${fmtDate(rec.quando)}</span><button class="btn ghost sm" onClick=${copyImg}><${Icon} n="copy" s=${14}/> Copiar imagem</button></div>`
                 : html`<p class="warn">Você ainda não carregou o print desta fase. Carregue na área de entrega para registrar a tentativa.</p>`}</li>
             <li><b>Copie e envie esta mensagem</b> junto com a imagem. Ela traz o número da fase, os requisitos, os critérios e o protocolo de avaliação.
               <div class="msg-box"><pre id="eval-msg">${msg}</pre><button class="btn primary sm" onClick=${() => copyText(msg)}><${Icon} n="copy" s=${14}/> Copiar mensagem</button></div></li>

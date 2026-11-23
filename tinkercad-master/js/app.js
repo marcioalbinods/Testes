@@ -66,7 +66,15 @@
   /* ---------------- Estado ---------------- */
   function useStore() {
     const [st, setSt] = useState(TM.loadState);
-    const update = useCallback((fn) => setSt((prev) => { const next = fn(JSON.parse(JSON.stringify(prev))); TM.saveState(next); return next; }), []);
+    const update = useCallback((fn, opts) => setSt((prev) => {
+      const next = fn(JSON.parse(JSON.stringify(prev)));
+      if (!(opts && opts.keepTime)) next.atualizado = new Date().toISOString();
+      TM.saveState(next); stRef.current = next;
+      if (!(opts && opts.fromDrive) && TM.drive) TM.drive.schedule();
+      return next;
+    }), []);
+    const stRef = useRef(st); stRef.current = st;
+    useEffect(() => { TM.drive && TM.drive.init(() => stRef.current, (merged) => update(() => merged, { keepTime: true, fromDrive: true })); }, []);
     return [st, update];
   }
   const isUnlocked = (st, id) => id === 1 || st.desbloqueadas.includes(id) || !!st.concluidas[id - 1];
@@ -221,6 +229,17 @@
     </div>`;
   }
 
+  function useDrive() {
+    const [d, setD] = useState({ status: 'carregando', detalhe: '' });
+    useEffect(() => (TM.drive ? TM.drive.on((x) => setD({ status: x.status, detalhe: x.detalhe, ultima: x.ultima })) : undefined), []);
+    return d;
+  }
+  const DRIVE_LABEL = { carregando: 'Verificando o Drive…', indisponivel: 'Salvo só neste navegador', desconectado: 'Drive desconectado', sincronizando: 'Sincronizando…', ok: 'Salvo no Google Drive', erro: 'Erro ao salvar no Drive' };
+  function DriveChip() {
+    const d = useDrive();
+    return html`<a class=${'drive-chip d-' + d.status} href="#ajustes" title=${d.detalhe}><${Icon} n=${d.status === 'ok' ? 'check' : d.status === 'erro' ? 'x' : 'upload'} s=${14}/><span>${DRIVE_LABEL[d.status] || ''}${d.status === 'ok' && d.ultima ? ' · ' + d.ultima.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</span></a>`;
+  }
+
   /* ---------------- Sidebar ---------------- */
   function Sidebar({ st, route, open, setOpen }) {
     const done = Object.keys(st.concluidas).length;
@@ -239,6 +258,7 @@
         <${Ring} value=${done / TOTAL} size=${58} stroke=${6} label=${done} />
         <div><b>${done} de ${TOTAL} fases</b><span>${totalPoints(st).toLocaleString('pt-BR')} pontos</span></div>
       </div>
+      <${DriveChip} />
       <nav>${items.map(([k, ic, l]) => html`<a key=${k} href=${'#' + k} class=${cur === k ? 'on' : ''} onClick=${() => setOpen(false)}><${Icon} n=${ic} /> <span>${l}</span></a>`)}</nav>
       <a class="side-cta" href=${'#fase-' + nextPhase(st).id} onClick=${() => setOpen(false)}><${Icon} n="play" s=${16}/> Continuar: fase ${nextPhase(st).id}</a>
     </aside>`;
@@ -668,17 +688,32 @@
     </div>`;
   }
 
+  function DrivePanel() {
+    const d = useDrive();
+    const busy = d.status === 'sincronizando' || d.status === 'carregando';
+    return html`<section class=${'panel drive-panel d-' + d.status}>
+      <div class="panel-head"><h2>Google Drive</h2><span class="drive-state">${DRIVE_LABEL[d.status]}</span></div>
+      <p>${d.detalhe}</p>
+      ${d.status === 'indisponivel' ? html`<p class="muted">Abra o curso pelo link do Claude (claude.ai) para salvar no Drive. Aqui, use o backup em texto abaixo para levar o progresso entre aparelhos.</p>` : html`<p class="muted">O progresso fica no arquivo <code>tinkercad-master-progresso.json</code> do seu Drive. Ao abrir o curso em outro aparelho, ele é carregado e mesclado com o que houver ali, sem perder fases de nenhum dos lados. Os prints continuam guardados em cada aparelho.</p>`}
+      <div class="row-btns">
+        ${d.status === 'desconectado' ? html`<button class="btn primary" onClick=${() => TM.drive.connect()}><${Icon} n="upload" s=${15}/> Conectar ao Google Drive</button>` : null}
+        ${d.status === 'ok' || d.status === 'erro' ? html`<button class="btn ghost" disabled=${busy} onClick=${() => TM.drive.sync()}><${Icon} n="rotate" s=${15}/> Sincronizar agora</button><button class="btn ghost" onClick=${() => TM.drive.disconnect()}>Pausar neste aparelho</button>` : null}
+      </div>
+    </section>`;
+  }
+
   /* ---------------- Ajustes / backup ---------------- */
   function Settings({ st, update }) {
     const [txt, setTxt] = useState(''); const [ask, setAsk] = useState(false); const [msg, setMsg] = useState('');
     const exportStr = useMemo(() => btoa(unescape(encodeURIComponent(JSON.stringify(st)))), [st]);
     const doImport = () => {
-      try { const s = JSON.parse(decodeURIComponent(escape(atob(txt.trim())))); if (!s || s.v !== 1) throw 0; update(() => Object.assign(TM.blankState(), s)); setMsg('Progresso importado.'); setTxt(''); }
+      try { const s = JSON.parse(decodeURIComponent(escape(atob(txt.trim())))); if (!s || s.v !== 1) throw 0; update(() => Object.assign(TM.blankState(), s), { fromDrive: true }); setTimeout(() => TM.drive && TM.drive.replace(), 0); setMsg('Progresso importado.'); setTxt(''); }
       catch (e) { setMsg('O texto não é um backup válido do Tinkercad Master.'); }
     };
-    const reset = () => { update(() => TM.blankState()); TM.clearPrints(); setAsk(false); setMsg('Progresso apagado. O curso recomeçou da fase 1.'); };
+    const reset = () => { update(() => TM.blankState(), { fromDrive: true }); setTimeout(() => TM.drive && TM.drive.replace(), 0); TM.clearPrints(); setAsk(false); setMsg('Progresso apagado. O curso recomeçou da fase 1.'); };
     return html`<div class="page">
-      <header class="page-head"><span class="eyebrow">Armazenamento local</span><h1>Progresso e backup</h1><p>Tudo fica salvo apenas neste navegador: fases, pontos, tentativas, dicas e avaliações no armazenamento local; os prints em um banco interno do navegador. Nada é enviado para servidores.</p></header>
+      <header class="page-head"><span class="eyebrow">Seu progresso</span><h1>Progresso e backup</h1><p>O progresso fica salvo neste navegador e, quando você conecta o Google Drive, também num arquivo do seu Drive, para continuar em qualquer aparelho. Os prints ficam só no aparelho onde foram carregados.</p></header>
+      <${DrivePanel} />
       ${!TM.storageOK ? html`<p class="warn">O armazenamento deste navegador está bloqueado (janela anônima ou cookies desativados). O progresso vale só enquanto a página estiver aberta.</p>` : null}
       <div class="two">
         <section class="panel"><h2>Exportar progresso</h2><p class="muted">Copie este texto e guarde. Serve para levar o progresso para outro navegador (os prints não vão junto).</p>
@@ -688,7 +723,7 @@
           <textarea id="import-box" class="mono" rows="5" value=${txt} onInput=${(e) => setTxt(e.target.value)} placeholder="Cole o backup aqui"></textarea>
           <button class="btn ghost" disabled=${!txt.trim()} onClick=${doImport}>Importar</button></section>
       </div>
-      <section class="panel danger-zone"><h2>Recomeçar o curso</h2><p class="muted">Apaga fases concluídas, pontos, histórico e prints deste navegador.</p>
+      <section class="panel danger-zone"><h2>Recomeçar o curso</h2><p class="muted">Apaga fases concluídas, pontos, histórico e prints deste navegador e, se o Drive estiver conectado, o progresso salvo nele.</p>
         ${ask ? html`<div class="confirm"><span>Tem certeza? Isso não pode ser desfeito.</span><button class="btn danger" onClick=${reset}>Apagar tudo</button><button class="btn ghost" onClick=${() => setAsk(false)}>Cancelar</button></div>` : html`<button class="btn danger" onClick=${() => setAsk(true)}><${Icon} n="trash" s=${15}/> Apagar progresso</button>`}</section>
       ${msg ? html`<p class="ok-msg">${msg}</p>` : null}
     </div>`;

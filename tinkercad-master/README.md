@@ -57,6 +57,15 @@ O guia completo fica na página **Como se autoavaliar** do app.
 - Medalha por módulo (ouro ≥ 90%, prata ≥ 75%, bronze), 16 conquistas, indicador de domínio das
   ferramentas, histórico completo e certificado simbólico ao concluir a fase 100.
 
+## Progresso no Google Drive
+
+Aberto pelo link do Claude, o curso pode salvar o progresso no seu Google Drive (usa o conector Google Drive
+da sua conta Claude). Em **Progresso e backup → Conectar ao Google Drive**, o app cria ou lê o arquivo
+`tinkercad-master-progresso.json` no seu Drive. A cada alteração ele lê o arquivo, mescla com o progresso do
+aparelho (sem perder fases de nenhum dos lados) e grava a versão nova; a anterior vai para a lixeira do Drive.
+Em outro aparelho, basta abrir o mesmo link e conectar. Os prints ficam em cada aparelho.
+Na versão do GitHub Pages o Drive não está disponível; ali use o backup em texto.
+
 ## Armazenamento
 
 - Progresso, pontos, tentativas, dicas, checklist e autoavaliações: `localStorage` (chave `tinkercad-master.v1`).

@@ -485,3 +485,17 @@ table.hist a { text-decoration: none; color: var(--fg); font-weight: 500; }
 .selfcheck .fb p { color: var(--fg); }
 .selfcheck .fb .btn { align-self: flex-start; }
 @media (max-width: 640px) { .compare { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Google Drive ---------- */
+.drive-chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; font-size: .8rem; color: var(--side-muted); text-decoration: none; border: 1px solid var(--side-line); }
+.drive-chip:hover { color: var(--side-fg); background: var(--side-hi); }
+.drive-chip.d-ok .ic { color: #43c47b; }
+.drive-chip.d-erro .ic { color: #f06a59; }
+.drive-chip.d-desconectado .ic, .drive-chip.d-sincronizando .ic { color: var(--accent); }
+.drive-chip.d-sincronizando .ic { animation: pulse 1s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: .35; } }
+.drive-panel { border-left: 4px solid var(--plane); }
+.drive-panel.d-ok { border-left-color: var(--ok); }
+.drive-panel.d-erro { border-left-color: var(--redo); }
+.drive-state { font: 600 .78rem var(--f-mono); color: var(--muted); }
+.row-btns { display: flex; flex-wrap: wrap; gap: 10px; }

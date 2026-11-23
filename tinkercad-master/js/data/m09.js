@@ -242,7 +242,7 @@
         id: 90, nome: 'Projeto de produto: caixa de som', diff: 5,
         obj: 'Desafio do módulo: conduzir um projeto de produto completo, com medidas reais, função, ergonomia, detalhes de fabricação e acabamento.',
         desc: 'Uma caixa de som portátil de 16 cm: corpo cilíndrico deitado com tampas de borracha nas pontas e radiadores passivos rebaixados, grade frontal com furos em grade, botões no topo com anel de LED, alça de tecido presa numa ponta, pés antiderrapantes e entrada USB-C recortada.',
-        req: ['Medidas reais: corpo de Ø 60 mm e cerca de 160 mm de comprimento.', 'Grade frontal com pelo menos 27 furos regulares (Ctrl+D em X e Z).', 'Tampas laterais com radiador passivo rebaixado.', 'Botões no topo e anel de LED (Tubo).', 'Pés que impedem a caixa de rolar e entrada USB-C recortada.', 'Na mensagem ao professor: público-alvo, medidas e uma justificativa de design.'],
+        req: ['Medidas reais: corpo de Ø 60 mm e cerca de 160 mm de comprimento.', 'Grade frontal com pelo menos 27 furos regulares (Ctrl+D em X e Z).', 'Tampas laterais com radiador passivo rebaixado.', 'Botões no topo e anel de LED (Tubo).', 'Pés que impedem a caixa de rolar e entrada USB-C recortada.', 'Nas anotações da fase: público-alvo, medidas e uma justificativa de design.'],
         formas: ['cyl', 'cylh', 'tube', 'box', 'boxh', 'torus'], tools: ['duplicar', 'furo', 'alinhar', 'regua', 'agrupar', 'propriedades'],
         skills: ['Projeto de produto', 'Detalhes de fabricação', 'Comunicar decisões de design'],
         dicas: [

@@ -31,7 +31,7 @@ escolha a branch `main` e a pasta `/ (root)` e salve. Em alguns minutos o site f
 
 Curso interativo e gamificado de modelagem 3D no Tinkercad: 100 fases em 10 módulos, do primeiro cubo ao
 projeto autoral, usando só a aba Formas básicas. Referências 3D giratórias (com furos reais e vista explodida),
-dicas progressivas, entrega de prints, avaliação pelo professor Claude com código de registro, medalhas,
+dicas progressivas, entrega de prints com autoavaliação lado a lado, medalhas,
 histórico e certificado. Sem cadastro, progresso salvo no navegador.
 Veja [`tinkercad-master/README.md`](tinkercad-master/README.md).
 

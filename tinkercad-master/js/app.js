@@ -90,9 +90,9 @@
     { id: 'primeira', nome: 'Primeiro bloco', desc: 'Conclua a fase 1.', ok: (s) => !!s.concluidas[1] },
     { id: 'semdica5', nome: 'Olhar treinado', desc: 'Conclua 5 fases sem abrir nenhuma dica.', ok: (s) => Object.values(s.concluidas).filter((c) => !c.dicas).length >= 5 },
     { id: 'semdica25', nome: 'Autonomia', desc: 'Conclua 25 fases sem abrir nenhuma dica.', ok: (s) => Object.values(s.concluidas).filter((c) => !c.dicas).length >= 25 },
-    { id: 'persist', nome: 'Persistência', desc: 'Seja aprovado numa fase depois de um "Precisa refazer".', ok: (s) => Object.entries(s.avaliacoes).some(([id, l]) => l.some((a) => a.result === 'R') && s.concluidas[id]) },
+    { id: 'persist', nome: 'Persistência', desc: 'Conclua uma fase depois de marcar "Vou refazer".', ok: (s) => Object.entries(s.avaliacoes).some(([id, l]) => l.some((a) => a.result === 'R') && s.concluidas[id]) },
     { id: 'perfeito', nome: 'Aperfeiçoamento', desc: 'Refaça uma fase já aprovada e melhore a pontuação.', ok: (s) => s.historico.some((h) => h.tipo === 'melhora') },
-    { id: 'pleno10', nome: 'Dez aprovações plenas', desc: 'Receba APROVADO (sem observações) em 10 fases.', ok: (s) => Object.values(s.concluidas).filter((c) => c.result === 'A').length >= 10 },
+    { id: 'pleno10', nome: 'Dez conclusões plenas', desc: 'Conclua 10 fases com todos os requisitos (sem ressalvas).', ok: (s) => Object.values(s.concluidas).filter((c) => c.result === 'A').length >= 10 },
     { id: 'm1', nome: 'Formas dominadas', desc: 'Conclua o Módulo 1.', ok: (s) => [1,2,3,4,5,6,7,8,9,10].every((i) => s.concluidas[i]) },
     { id: 'm2', nome: 'Mestre dos furos', desc: 'Conclua o Módulo 2.', ok: (s) => range(11, 20).every((i) => s.concluidas[i]) },
     { id: 'm4', nome: 'Precisão milimétrica', desc: 'Conclua o Módulo 4.', ok: (s) => range(31, 40).every((i) => s.concluidas[i]) },
@@ -226,10 +226,10 @@
     const done = Object.keys(st.concluidas).length;
     const items = [
       ['painel', 'home', 'Painel'], ['mapa', 'map', 'Mapa das fases'], ['conquistas', 'medal', 'Medalhas e conquistas'],
-      ['historico', 'history', 'Histórico'], ['dominio', 'tools', 'Domínio das ferramentas'], ['protocolo', 'book', 'Protocolo do professor'],
+      ['historico', 'history', 'Histórico'], ['dominio', 'tools', 'Domínio das ferramentas'], ['guia', 'book', 'Como se autoavaliar'],
       ['certificado', 'cert', 'Certificado'], ['ajustes', 'gear', 'Progresso e backup']
     ];
-    const cur = route.startsWith('fase-') ? 'mapa' : route;
+    const cur = route.startsWith('fase-') ? 'mapa' : route === 'protocolo' ? 'guia' : route;
     return html`<aside class=${'side ' + (open ? 'open' : '')}>
       <a class="brand" href="#painel" onClick=${() => setOpen(false)}>
         <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3l12 7v14l-12 7-12-7V10z" fill="var(--accent)"/><path d="M17 17l12-7M17 17v14M17 17L5 10" stroke="var(--bg)" stroke-width="1.6" fill="none"/><path d="M17 3l12 7-12 7-12-7z" fill="var(--accent-2)" opacity=".9"/></svg>
@@ -259,7 +259,7 @@
         <div class="hero-text">
           <span class="eyebrow">Curso interativo · ${TOTAL} fases · 10 módulos</span>
           <h1>Do cubo ao projeto autoral, só com Formas básicas.</h1>
-          <p>Você constrói cada desafio no Tinkercad, envia o print e o professor Claude avalia. Cada aprovação libera a próxima fase.</p>
+          <p>Você constrói cada desafio no Tinkercad, compara com a referência e faz a sua autoavaliação. Cada fase concluída libera a próxima.</p>
           <div class="hero-actions">
             <a class="btn primary" href=${'#fase-' + nx.id}><${Icon} n="play" s=${16}/> ${done ? 'Continuar' : 'Começar'} pela fase ${nx.id}</a>
             <a class="btn ghost" href="#mapa"><${Icon} n="map" s=${16}/> Ver o mapa</a>
@@ -288,8 +288,8 @@
         <ol class="steps">
           <li><b>Estude a referência</b><span>Gire o modelo 3D, veja a vista explodida e identifique as formas.</span></li>
           <li><b>Construa no Tinkercad</b><span>Só com a aba Formas básicas. Dicas progressivas se precisar.</span></li>
-          <li><b>Envie o print</b><span>Capture a tela do seu modelo e carregue na área de entrega.</span></li>
-          <li><b>Avaliação do Claude</b><span>Envie o print e a mensagem pronta na conversa. Aprovado? Digite o código de registro.</span></li>
+          <li><b>Carregue o print</b><span>Capture a tela do seu modelo para comparar com a referência (opcional).</span></li>
+          <li><b>Autoavalie</b><span>Confira os requisitos, compare lado a lado e conclua a fase.</span></li>
         </ol>
       </section>
 
@@ -320,7 +320,7 @@
 
   const histLabel = (h) => ({
     print: 'Print enviado (tentativa ' + (h.detalhe || '') + ')',
-    pedido: 'Avaliação solicitada',
+    pedido: 'Avaliação solicitada (versão antiga)',
     aval: (TM.RESULTS[h.result] || {}).nome + (h.pontos ? ' · +' + h.pontos + ' pts' : ''),
     melhora: 'Pontuação melhorada para ' + h.pontos + ' pts',
     dica: 'Dica ' + h.detalhe + ' aberta',
@@ -335,7 +335,7 @@
   function MapPage({ st }) {
     return html`<div class="page">
       <header class="page-head"><span class="eyebrow">${TOTAL} fases progressivas</span><h1>Mapa das fases</h1><p>Cada fase só abre depois que a anterior é aprovada. Fases concluídas podem ser refeitas para aperfeiçoar a pontuação.</p>
-        <div class="legend"><span><i class="lg done"></i>Aprovada</span><span><i class="lg obs"></i>Com observações</span><span><i class="lg open"></i>Disponível</span><span><i class="lg lock"></i>Bloqueada</span></div>
+        <div class="legend"><span><i class="lg done"></i>Concluída</span><span><i class="lg obs"></i>Com ressalvas</span><span><i class="lg open"></i>Disponível</span><span><i class="lg lock"></i>Bloqueada</span></div>
       </header>
       ${TM.modules.map((m) => { const s = moduleStats(st, m); return html`<section key=${m.n} class="mod-sec" id=${'m' + m.n} style=${{ '--mc': m.cor }}>
         <div class="mod-head">
@@ -358,14 +358,12 @@
   /* ---------------- Tela do desafio ---------------- */
   function PhasePage({ st, update, id }) {
     const ph = BY_ID[id];
-    const [modal, setModal] = useState(false);
     const [confirmRedo, setConfirmRedo] = useState(false);
-    useEffect(() => { setModal(false); setConfirmRedo(false); }, [id]);
+    useEffect(() => { setConfirmRedo(false); }, [id]);
     if (!ph) return html`<div class="page"><p class="empty">Fase não encontrada. <a href="#mapa">Voltar ao mapa</a></p></div>`;
     if (!isUnlocked(st, id)) return html`<div class="page locked-page"><${Icon} n="lock" s=${40}/><h1>Fase ${id} bloqueada</h1><p>Conclua a fase ${id - 1} (${BY_ID[id - 1].nome}) para liberar este desafio. A progressão garante que cada ferramenta seja aprendida antes de ser exigida.</p><a class="btn primary" href=${'#fase-' + nextPhase(st).id}>Ir para a fase ${nextPhase(st).id}</a></div>`;
     const mod = TM.modules.find((m) => m.n === ph.mod);
     const comp = st.concluidas[id];
-    const lastEval = (st.avaliacoes[id] || []).slice(-1)[0];
     const redo = () => {
       update((s) => { s.checks[id] = {}; s.historico.push({ id, tipo: 'refazer', data: new Date().toISOString() }); return s; });
       TM.deletePrint(id).then(() => window.dispatchEvent(new CustomEvent('tm-print', { detail: id })));
@@ -411,33 +409,24 @@
       <div class="deliver-grid">
         <${Delivery} ph=${ph} st=${st} update=${update} />
         <section class="blk criteria">
-          <h3>Critérios de avaliação</h3>
+          <h3>Critérios para se autoavaliar</h3>
           <ul class="crit">${ph.crit.map((c, i) => html`<li key=${i}><span>${i + 1}</span>${c}</li>`)}</ul>
           <div class="results-legend">
-            <div class="rl ok"><b>APROVADO</b><span>Cumpriu os requisitos principais. ${TM.basePoints(ph)} pts (menos o desconto das dicas).</span></div>
-            <div class="rl obs"><b>APROVADO COM OBSERVAÇÕES</b><span>Construção correta, com detalhes a melhorar. 80% dos pontos.</span></div>
-            <div class="rl redo"><b>PRECISA REFAZER</b><span>Há erros importantes. Você recebe a explicação e corrige.</span></div>
+            <div class="rl ok"><b>CONCLUÍDA</b><span>Todos os requisitos conferidos. ${TM.basePoints(ph)} pts (menos o desconto das dicas).</span></div>
+            <div class="rl obs"><b>CONCLUÍDA COM RESSALVAS</b><span>Pelo menos metade dos requisitos; ainda há detalhes a melhorar. 80% dos pontos.</span></div>
+            <div class="rl redo"><b>VOU REFAZER</b><span>O modelo ainda não corresponde à referência. Fica registrado e você tenta de novo.</span></div>
           </div>
         </section>
       </div>
 
-      <section class="blk feedback">
-        <h3>Feedback</h3>
-        ${lastEval ? html`<div class=${'fb res-' + lastEval.result}>
-            <div class="fb-head"><b>${TM.RESULTS[lastEval.result].nome}</b><time>${fmtDate(lastEval.data)}</time>${lastEval.pontos ? html`<span class="chip">+${lastEval.pontos} pts</span>` : null}</div>
-            ${lastEval.parecer ? html`<p class="fb-text">${lastEval.parecer}</p>` : html`<p class="muted">Nenhum parecer colado. O parecer completo está na sua conversa com o Claude.</p>`}
-            ${lastEval.result === 'R' ? html`<p class="fb-next">Corrija os pontos indicados, envie um novo print e solicite outra avaliação.</p>` : null}
-          </div>` : html`<p class="empty">O feedback do professor Claude aparece aqui depois que você registrar a avaliação.</p>`}
-        ${(st.avaliacoes[id] || []).length > 1 ? html`<details class="fb-hist"><summary>Avaliações anteriores (${st.avaliacoes[id].length - 1})</summary><ul>${st.avaliacoes[id].slice(0, -1).reverse().map((a, i) => html`<li key=${i}><b class=${'t-' + a.result}>${TM.RESULTS[a.result].nome}</b> · ${fmtDate(a.data)}${a.parecer ? html`<p>${a.parecer}</p>` : null}</li>`)}</ul></details>` : null}
-      </section>
+      <${SelfCheck} ph=${ph} st=${st} update=${update} />
 
       <div class="action-bar">
-        <button class="btn primary big" onClick=${() => setModal(true)}><${Icon} n="send" s=${17}/> Solicitar avaliação</button>
+        <button class="btn primary big" onClick=${() => { const el = document.getElementById('autoavaliacao'); el && el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}><${Icon} n="check" s=${17}/> Autoavaliar e concluir</button>
         ${confirmRedo ? html`<span class="confirm"><span>Apagar o print e as marcações para refazer?</span><button class="btn danger" onClick=${redo}>Sim, refazer</button><button class="btn ghost" onClick=${() => setConfirmRedo(false)}>Cancelar</button></span>`
           : html`<button class="btn ghost big" onClick=${() => setConfirmRedo(true)}><${Icon} n="redo" s=${17}/> Refazer desafio</button>`}
         ${comp && id < TOTAL ? html`<a class="btn ghost big" href=${'#fase-' + (id + 1)}>Próxima fase <${Icon} n="right" s=${16}/></a>` : null}
       </div>
-      ${modal ? html`<${EvalModal} ph=${ph} st=${st} update=${update} close=${() => setModal(false)} />` : null}
     </div>`;
   }
 
@@ -447,7 +436,7 @@
     const toggle = (i) => update((s) => { s.checks[ph.id] = s.checks[ph.id] || {}; s.checks[ph.id][i] = !s.checks[ph.id][i]; return s; });
     return html`<section class="blk reqs"><h3>Requisitos obrigatórios <span class="count">${n}/${ph.req.length} conferidos</span></h3>
       <ul>${ph.req.map((r, i) => html`<li key=${i}><label><input id=${'req-' + ph.id + '-' + i} type="checkbox" checked=${!!ck[i]} onChange=${() => toggle(i)} /><span>${r}</span></label></li>`)}</ul>
-      <p class="note">Marque cada item ao conferir no seu modelo. É a sua autoavaliação antes de enviar ao professor.</p></section>`;
+      <p class="note">Marque cada item ao conferir no seu modelo. Compare o seu modelo com a referência 3D: esta lista é a base da sua autoavaliação.</p></section>`;
   }
 
   function Hints({ ph, st, update }) {
@@ -474,14 +463,14 @@
   function Delivery({ ph, st, update }) {
     const [rec, setRec] = useState(null); const [drag, setDrag] = useState(false); const [err, setErr] = useState('');
     const inp = useRef(null); const id = ph.id;
-    useEffect(() => { let a = true; setRec(null); setErr(''); TM.getPrint(id).then((r) => a && setRec(r)); const f = (e) => { if (e.detail === id) setRec(null); }; addEventListener('tm-print', f); return () => { a = false; removeEventListener('tm-print', f); }; }, [id]);
+    useEffect(() => { let a = true; setRec(null); setErr(''); TM.getPrint(id).then((r) => a && setRec(r)); const f = (e) => { if (e.detail === id) TM.getPrint(id).then((r) => a && setRec(r)); }; addEventListener('tm-print', f); return () => { a = false; removeEventListener('tm-print', f); }; }, [id]);
     const take = async (file) => {
       setErr('');
       try {
         const img = await TM.readImage(file);
         const n = (st.tentativas[id] || 0) + 1;
         const r = Object.assign(img, { fase: id, tentativa: n, quando: new Date().toISOString() });
-        await TM.savePrint(id, r); setRec(r);
+        await TM.savePrint(id, r); setRec(r); window.dispatchEvent(new CustomEvent('tm-print', { detail: id }));
         update((s) => { s.tentativas[id] = n; s.historico.push({ id, tipo: 'print', detalhe: n, data: r.quando }); return s; });
         toast('Print registrado como tentativa ' + n + ' da fase ' + id + '.');
       } catch (e) { setErr(e.message || 'Falha ao carregar a imagem.'); }
@@ -509,116 +498,66 @@
       <details class="print-tips"><summary>Como tirar um bom print</summary><ul>
         <li>Windows: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> · Mac: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>4</kbd> · Tablet: botões de captura do aparelho.</li>
         <li>Clique fora do modelo para tirar a seleção e use o cubo de vista para uma perspectiva que mostre as faces principais.</li>
-        <li>Se a fase pede furos, um segundo print desagrupado (furos visíveis) ajuda o professor a conferir.</li>
+        <li>Se a fase pede furos, um segundo print desagrupado (furos visíveis) ajuda você a conferir se os furos estão no lugar certo.</li>
       </ul></details>
     </section>`;
   }
 
-  /* Mensagem pronta para o professor Claude */
-  function evalMessage(ph, st) {
-    const mod = TM.modules.find((m) => m.n === ph.mod);
-    return [
-      'PROFESSOR CLAUDE — PEDIDO DE AVALIAÇÃO · TINKERCAD MASTER',
-      `Fase ${ph.id} de ${TOTAL} · Módulo ${mod.n} — ${mod.titulo}`,
-      `Desafio: ${ph.nome} (${TM.DIFF[ph.diff]})`,
-      `Tentativa nº ${st.tentativas[ph.id] || 1} · Dicas abertas: ${st.dicas[ph.id] || 0} de 3`,
-      'Em anexo: captura de tela do meu modelo no Tinkercad.',
-      '',
-      'OBJETIVO: ' + ph.obj,
-      'RESULTADO ESPERADO: ' + ph.desc,
-      '',
-      'REQUISITOS OBRIGATÓRIOS:',
-      ...ph.req.map((r, i) => `${i + 1}. ${r}`),
-      '',
-      'FORMAS ESPERADAS: ' + ph.formas.map((k) => TM.SHAPES[k].nome).join(', '),
-      'CRITÉRIOS DE AVALIAÇÃO:',
-      ...ph.crit.map((c) => '- ' + c),
-      '',
-      'PROTOCOLO (responda nesta ordem):',
-      '1. O objeto foi construído corretamente?',
-      '2. As formas solicitadas foram utilizadas?',
-      '3. Os furos foram aplicados corretamente? (se a fase usa furos)',
-      '4. Os agrupamentos estão corretos?',
-      '5. As proporções estão adequadas?',
-      '6. O resultado se parece com a referência?',
-      '7. Os requisitos obrigatórios foram atendidos? (item por item)',
-      'Depois: RESULTADO (APROVADO / APROVADO COM OBSERVAÇÕES / PRECISA REFAZER), justificativa e o que melhorar.',
-      'Se eu precisar refazer, explique o erro sem me dar a solução pronta.',
-      'Se eu for aprovado, gere o CÓDIGO DE REGISTRO executando este algoritmo (resultado A = aprovado, O = com observações, R = refazer):',
-      CODE_ALGO,
-      `Exemplo de chamada: codigo(${ph.id}, "A")`
-    ].join('\n');
-  }
-  const CODE_ALGO = 'function codigo(f,r){let h=0x811c9dc5,s="TINKERCAD-MASTER|"+f+"|"+r+"|formas-basicas";for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let c="";for(let i=0;i<4;i++){c+=A[h%32];h=Math.floor(h/32)}return "TM-"+String(f).padStart(3,"0")+"-"+r+"-"+c}';
-
-  function EvalModal({ ph, st, update, close }) {
-    const [code, setCode] = useState(''); const [parecer, setParecer] = useState(''); const [err, setErr] = useState(''); const [done, setDone] = useState(null);
-    const [rec, setRec] = useState(null);
-    const msg = useMemo(() => evalMessage(ph, st), [ph.id, st.tentativas[ph.id], st.dicas[ph.id]]);
-    useEffect(() => { TM.getPrint(ph.id).then(setRec); update((s) => { s.historico.push({ id: ph.id, tipo: 'pedido', data: new Date().toISOString() }); return s; }); const k = (e) => e.key === 'Escape' && close(); addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, []);
-    const copyImg = async () => {
-      try {
-        const blob = await (await fetch(rec.data)).blob();
-        const png = await new Promise((res) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); c.toBlob(res, 'image/png'); }; im.src = URL.createObjectURL(blob); });
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]); toast('Imagem copiada. Cole na conversa com Ctrl+V.');
-      } catch (e) { toast('Seu navegador não permite copiar imagens. Anexe o arquivo original do print na conversa.'); }
-    };
-    const submit = (e) => {
-      e.preventDefault(); setErr('');
-      const r = TM.parseCode(code);
-      if (!r.ok) return setErr(r.erro);
-      if (r.phase !== ph.id) return setErr(`Este código é da fase ${r.phase}, não da fase ${ph.id}. Abra a fase ${r.phase} para registrá-lo.`);
-      const lv = st.dicas[ph.id] || 0;
-      const prev = st.concluidas[ph.id];
-      const pts = r.result === 'R' ? 0 : TM.score(ph, r.result, prev ? Math.min(prev.dicas || 0, lv) : lv);
+  /* ---------------- Autoavaliação ---------------- */
+  function SelfCheck({ ph, st, update }) {
+    const id = ph.id;
+    const [rec, setRec] = useState(null); const [notas, setNotas] = useState(''); const [done, setDone] = useState(null);
+    useEffect(() => { let a = true; setDone(null); setNotas(''); TM.getPrint(id).then((r) => a && setRec(r)); const f = (e) => { if (e.detail === id) TM.getPrint(id).then((r) => a && setRec(r)); }; addEventListener('tm-print', f); return () => { a = false; removeEventListener('tm-print', f); }; }, [id]);
+    const ck = st.checks[id] || {};
+    const n = ph.req.filter((_, i) => ck[i]).length, N = ph.req.length;
+    const canA = n === N, canO = n >= Math.ceil(N / 2);
+    const lv = st.dicas[id] || 0;
+    const hist = st.avaliacoes[id] || [];
+    const register = (result) => {
+      const prev = st.concluidas[id];
+      const pts = result === 'R' ? 0 : TM.score(ph, result, prev ? Math.min(prev.dicas || 0, lv) : lv);
       update((s) => {
         const now = new Date().toISOString();
-        s.avaliacoes[ph.id] = s.avaliacoes[ph.id] || [];
-        s.avaliacoes[ph.id].push({ result: r.result, data: now, codigo: r.code, parecer: parecer.trim(), pontos: pts });
-        s.historico.push({ id: ph.id, tipo: 'aval', result: r.result, pontos: pts, data: now });
-        if (r.result !== 'R') {
-          const old = s.concluidas[ph.id];
+        s.avaliacoes[id] = s.avaliacoes[id] || [];
+        s.avaliacoes[id].push({ result, data: now, parecer: notas.trim(), pontos: pts });
+        s.historico.push({ id, tipo: 'aval', result, pontos: pts, data: now });
+        if (result !== 'R') {
+          const old = s.concluidas[id];
           if (!old || pts > old.pontos) {
-            if (old) s.historico.push({ id: ph.id, tipo: 'melhora', pontos: pts, data: now });
-            s.concluidas[ph.id] = { result: old && old.result === 'A' && r.result === 'O' ? 'A' : r.result, pontos: pts, data: now, codigo: r.code, dicas: old ? Math.min(old.dicas || 0, lv) : lv };
-          } else if (old && r.result === 'A' && old.result === 'O') { old.result = 'A'; }
-          const nx = ph.id + 1; if (nx <= TOTAL && !s.desbloqueadas.includes(nx)) s.desbloqueadas.push(nx);
+            if (old) s.historico.push({ id, tipo: 'melhora', pontos: pts, data: now });
+            s.concluidas[id] = { result: old && old.result === 'A' ? 'A' : result, pontos: pts, data: now, dicas: old ? Math.min(old.dicas || 0, lv) : lv };
+          } else if (old && result === 'A' && old.result === 'O') old.result = 'A';
+          if (id + 1 <= TOTAL && !s.desbloqueadas.includes(id + 1)) s.desbloqueadas.push(id + 1);
         }
         return s;
       });
-      setDone({ result: r.result, pts });
+      setDone({ result, pts }); setNotas('');
     };
-    return html`<div class="modal-back" onClick=${(e) => e.target === e.currentTarget && close()}>
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="eval-title">
-        <header><h2 id="eval-title">Solicitar avaliação · Fase ${ph.id}</h2><button class="icon-btn" onClick=${close} aria-label="Fechar"><${Icon} n="x"/></button></header>
-        ${done ? html`<div class=${'eval-done res-' + done.result}>
-            <${Icon} n=${done.result === 'R' ? 'redo' : 'check'} s=${40}/>
-            <h3>${TM.RESULTS[done.result].nome}</h3>
-            ${done.result === 'R' ? html`<p>Avaliação registrada. Releia o parecer do professor, corrija o modelo e envie um novo print. A fase continua aberta.</p><button class="btn primary" onClick=${close}>Voltar ao desafio</button>`
-              : html`<p>Fase ${ph.id} concluída com <b>${done.pts} pontos</b>.${ph.id < TOTAL ? ' A fase ' + (ph.id + 1) + ' foi desbloqueada.' : ' Você concluiu o projeto final!'}</p>
-                <div class="row">${ph.id < TOTAL ? html`<a class="btn primary" href=${'#fase-' + (ph.id + 1)} onClick=${close}>Ir para a fase ${ph.id + 1}</a>` : html`<a class="btn primary" href="#certificado" onClick=${close}>Ver certificado</a>`}<button class="btn ghost" onClick=${close}>Ficar nesta fase</button></div>`}
-          </div>`
-        : html`<div class="modal-body">
-          <div class="limit-note"><${Icon} n="eye" s=${18}/><p>Este aplicativo não analisa imagens sozinho. A avaliação visual é feita pelo <b>professor Claude</b>, na conversa. Siga os passos abaixo.</p></div>
-          <ol class="eval-steps">
-            <li><b>Anexe o print</b> da fase ${ph.id} numa conversa com o Claude.
-              ${rec ? html`<div class="mini-print"><img src=${rec.data} alt="Print desta fase"/><span>Tentativa ${rec.tentativa} · ${fmtDate(rec.quando)}</span><button class="btn ghost sm" onClick=${copyImg}><${Icon} n="copy" s=${14}/> Copiar imagem</button></div>`
-                : html`<p class="warn">Você ainda não carregou o print desta fase. Carregue na área de entrega para registrar a tentativa.</p>`}</li>
-            <li><b>Copie e envie esta mensagem</b> junto com a imagem. Ela traz o número da fase, os requisitos, os critérios e o protocolo de avaliação.
-              <div class="msg-box"><pre id="eval-msg">${msg}</pre><button class="btn primary sm" onClick=${() => copyText(msg)}><${Icon} n="copy" s=${14}/> Copiar mensagem</button></div></li>
-            <li><b>Registre o resultado.</b> O Claude responde com o parecer e um código como <code>TM-${String(ph.id).padStart(3, '0')}-A-XXXX</code>.
-              <form onSubmit=${submit} class="code-form">
-                <label for="eval-code">Código de registro</label>
-                <input id="eval-code" value=${code} onInput=${(e) => setCode(e.target.value)} placeholder=${'TM-' + String(ph.id).padStart(3, '0') + '-A-XXXX'} autocomplete="off" spellcheck="false" />
-                <label for="eval-parecer">Parecer do professor (opcional, para o seu histórico)</label>
-                <textarea id="eval-parecer" rows="4" value=${parecer} onInput=${(e) => setParecer(e.target.value)} placeholder="Cole aqui a justificativa e o que melhorar"></textarea>
-                ${err ? html`<p class="err">${err}</p>` : null}
-                <button class="btn primary" type="submit"><${Icon} n="check" s=${16}/> Registrar avaliação</button>
-              </form></li>
-          </ol>
-        </div>`}
+    return html`<section class="blk selfcheck" id="autoavaliacao">
+      <h3><${Icon} n="check" s=${18}/> Autoavaliação</h3>
+      <p class="muted">Compare o seu print com a referência, confira os requisitos acima e registre o resultado. Você é o avaliador: seja exigente.</p>
+      <div class="compare">
+        <figure><figcaption>Seu modelo</figcaption>${rec ? html`<img src=${rec.data} alt=${'Seu print da fase ' + id} />` : html`<div class="compare-empty">Sem print. Carregue um na área de entrega para comparar lado a lado (opcional).</div>`}</figure>
+        <figure><figcaption>Referência</figcaption><${Thumb} ph=${ph} /></figure>
       </div>
-    </div>`;
+      <ul class="self-q">
+        <li>As formas pedidas estão lá, com a mesma função da referência?</li>
+        <li>Os furos cortam onde devem (confira desagrupando)?</li>
+        <li>As proporções e a posição das peças batem com a referência?</li>
+        <li>Nada flutua, nada atravessa sem motivo, tudo está agrupado?</li>
+      </ul>
+      <p class="self-count"><b>${n} de ${N}</b> requisitos conferidos${canA ? ' — pode concluir.' : canO ? ' — dá para concluir com ressalvas.' : '.'}</p>
+      <label for=${'self-notes-' + id}>Anotações (o que ficou bom, o que melhorar)</label>
+      <textarea id=${'self-notes-' + id} rows="3" value=${notas} onInput=${(e) => setNotas(e.target.value)} placeholder="Ex.: as alturas ficaram certas; o cone saiu um pouco descentralizado"></textarea>
+      <div class="self-actions">
+        <button class="btn primary" disabled=${!canA} onClick=${() => register('A')} title=${canA ? '' : 'Marque todos os requisitos para concluir'}><${Icon} n="check" s=${16}/> Concluir fase</button>
+        <button class="btn ghost" disabled=${!canO} onClick=${() => register('O')} title=${canO ? '' : 'Marque pelo menos metade dos requisitos'}>Concluir com ressalvas</button>
+        <button class="btn ghost" onClick=${() => register('R')}><${Icon} n="redo" s=${16}/> Vou refazer</button>
+      </div>
+      ${done ? html`<div class=${'fb res-' + done.result}><div class="fb-head"><b>${TM.RESULTS[done.result].nome}</b>${done.pts ? html`<span class="chip">+${done.pts} pts</span>` : null}</div>
+        ${done.result === 'R' ? html`<p>Registrado. Ajuste o modelo, troque o print e faça a autoavaliação de novo.</p>` : html`<p>Fase ${id} concluída.${id < TOTAL ? ' A fase ' + (id + 1) + ' foi liberada.' : ' Você terminou o curso!'}</p>${id < TOTAL ? html`<a class="btn primary sm" href=${'#fase-' + (id + 1)}>Ir para a fase ${id + 1}</a>` : html`<a class="btn primary sm" href="#certificado">Ver certificado</a>`}`}</div>` : null}
+      ${hist.length ? html`<details class="fb-hist"><summary>Autoavaliações anteriores (${hist.length})</summary><ul>${hist.slice().reverse().map((a, i) => html`<li key=${i}><b class=${'t-' + a.result}>${TM.RESULTS[a.result].nome}</b> · ${fmtDate(a.data)}${a.pontos ? ' · ' + a.pontos + ' pts' : ''}${a.parecer ? html`<p>${a.parecer}</p>` : null}</li>`)}</ul></details>` : null}
+    </section>`;
   }
 
   /* ---------------- Conquistas ---------------- */
@@ -639,14 +578,14 @@
     const evals = Object.values(st.avaliacoes).flat();
     const cnt = (r) => evals.filter((a) => a.result === r).length;
     return html`<div class="page">
-      <header class="page-head"><span class="eyebrow">Desempenho</span><h1>Histórico</h1><p>Todas as entregas, avaliações e dicas, com data e pontuação.</p></header>
+      <header class="page-head"><span class="eyebrow">Desempenho</span><h1>Histórico</h1><p>Todos os prints, autoavaliações e dicas, com data e pontuação.</p></header>
       <section class="stats">
-        <div class="stat"><span>Avaliações registradas</span><b>${evals.length}</b></div>
-        <div class="stat ok"><span>Aprovado</span><b>${cnt('A')}</b></div>
-        <div class="stat obs"><span>Com observações</span><b>${cnt('O')}</b></div>
-        <div class="stat redo"><span>Precisa refazer</span><b>${cnt('R')}</b></div>
+        <div class="stat"><span>Autoavaliações</span><b>${evals.length}</b></div>
+        <div class="stat ok"><span>Concluídas</span><b>${cnt('A')}</b></div>
+        <div class="stat obs"><span>Com ressalvas</span><b>${cnt('O')}</b></div>
+        <div class="stat redo"><span>Vou refazer</span><b>${cnt('R')}</b></div>
       </section>
-      <div class="filters" role="tablist">${[['todos', 'Tudo'], ['aval', 'Avaliações'], ['print', 'Prints'], ['dica', 'Dicas'], ['refazer', 'Refazer']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${f === k} class=${'chip-btn ' + (f === k ? 'on' : '')} onClick=${() => setF(k)}>${l}</button>`)}</div>
+      <div class="filters" role="tablist">${[['todos', 'Tudo'], ['aval', 'Autoavaliações'], ['print', 'Prints'], ['dica', 'Dicas'], ['refazer', 'Refazer']].map(([k, l]) => html`<button key=${k} role="tab" aria-selected=${f === k} class=${'chip-btn ' + (f === k ? 'on' : '')} onClick=${() => setF(k)}>${l}</button>`)}</div>
       ${evs.length ? html`<div class="table-wrap"><table class="hist">
         <thead><tr><th>Data</th><th>Fase</th><th>Evento</th><th class="num">Pontos</th></tr></thead>
         <tbody>${evs.map((h, i) => html`<tr key=${i}><td>${fmtDate(h.data)}</td><td><a href=${'#fase-' + h.id}>${h.id} · ${BY_ID[h.id] ? BY_ID[h.id].nome : ''}</a></td><td><span class="ev"><${HistIcon} h=${h}/>${histLabel(h)}</span></td><td class="num">${h.pontos ? '+' + h.pontos : '—'}</td></tr>`)}</tbody>
@@ -669,33 +608,36 @@
     </div>`;
   }
 
-  /* ---------------- Protocolo ---------------- */
-  function Protocol() {
+  /* ---------------- Guia de autoavaliação ---------------- */
+  function Guide() {
     return html`<div class="page prose">
-      <header class="page-head"><span class="eyebrow">Para o professor Claude e para você</span><h1>Protocolo de avaliação</h1><p>Como cada print é avaliado, o que significa cada resultado e como o código de registro funciona.</p></header>
-      <section class="blk"><h3>Por que a avaliação acontece na conversa</h3><p>O aplicativo roda inteiro no seu navegador, sem servidor e sem inteligência artificial embutida. Ele não consegue "olhar" a imagem. Por isso, a análise visual é feita pelo Claude, que enxerga o print anexado e confere os critérios da fase. O app guarda o print, registra a tentativa e monta a mensagem com tudo o que o professor precisa saber.</p></section>
-      <section class="blk"><h3>As 7 perguntas do protocolo</h3><ol class="proto">
-        <li><b>O objeto foi construído corretamente?</b> Existe o objeto pedido, inteiro, sem peças flutuando ou atravessadas sem motivo.</li>
-        <li><b>As formas solicitadas foram utilizadas?</b> As formas da lista aparecem com a função esperada (ex.: cilindro como perna, toroide como borda).</li>
-        <li><b>Os furos foram aplicados corretamente?</b> Furos agrupados com o sólido, na profundidade certa, sem atravessar onde não devem.</li>
-        <li><b>Os agrupamentos estão corretos?</b> As peças que formam uma unidade estão agrupadas; cores preservadas com Multicor quando pedido.</li>
-        <li><b>As proporções estão adequadas?</b> As medidas relativas fazem sentido (uma cadeira não é mais alta que a mesa; a tampa cabe na caixa).</li>
-        <li><b>O resultado se parece com a referência?</b> A leitura geral do objeto bate com a referência, mesmo que os detalhes sejam autorais.</li>
-        <li><b>Os requisitos obrigatórios foram atendidos?</b> Um por um, citando o número do requisito.</li>
+      <header class="page-head"><span class="eyebrow">Você é o avaliador</span><h1>Como se autoavaliar</h1><p>Cada fase termina com uma autoavaliação: você compara o seu modelo com a referência 3D, confere os requisitos e decide se a fase está concluída.</p></header>
+      <section class="blk"><h3>Passo a passo</h3><ol>
+        <li>Construa o modelo no Tinkercad e tire um print em perspectiva (opcional, mas ajuda a comparar).</li>
+        <li>Carregue o print na área de entrega da fase.</li>
+        <li>Gire a referência 3D até a mesma vista do seu print e compare peça por peça. Use "Modo edição" para ver onde ficam os furos e "Vista explodida" para ver cada componente.</li>
+        <li>Marque na lista cada requisito que o seu modelo realmente cumpre.</li>
+        <li>Na seção Autoavaliação, escreva o que ficou bom e o que melhorar e escolha o resultado.</li>
+      </ol></section>
+      <section class="blk"><h3>Perguntas para conferir</h3><ol class="proto">
+        <li><b>O objeto está completo?</b> Inteiro, sem peças flutuando ou atravessadas sem motivo.</li>
+        <li><b>As formas pedidas foram usadas?</b> Cada forma da lista aparece com a função esperada.</li>
+        <li><b>Os furos estão certos?</b> Desagrupe e confira: agrupados com o sólido, na profundidade certa, sem películas.</li>
+        <li><b>Os agrupamentos estão corretos?</b> Peças de uma mesma unidade agrupadas; Multicor quando pedido.</li>
+        <li><b>As proporções estão boas?</b> Compare medidas com a Régua; as relações de tamanho batem com a referência.</li>
+        <li><b>Parece com a referência?</b> Olhando de longe, alguém reconheceria o mesmo objeto.</li>
       </ol></section>
       <section class="blk"><h3>Os três resultados</h3>
         <div class="results-legend wide">
-          <div class="rl ok"><b>APROVADO</b><span>Cumpriu os requisitos principais. Pontuação integral (menos o desconto das dicas abertas).</span></div>
-          <div class="rl obs"><b>APROVADO COM OBSERVAÇÕES</b><span>Construção correta, com detalhes que podem melhorar. 80% dos pontos. A fase seguinte é liberada.</span></div>
-          <div class="rl redo"><b>PRECISA REFAZER</b><span>Há erros importantes. O professor explica o erro e onde ele está, sem entregar a solução, e você tenta de novo.</span></div>
+          <div class="rl ok"><b>CONCLUÍDA</b><span>Todos os requisitos marcados. Pontuação integral (menos o desconto das dicas abertas).</span></div>
+          <div class="rl obs"><b>CONCLUÍDA COM RESSALVAS</b><span>Pelo menos metade dos requisitos. Vale 80% dos pontos e libera a próxima fase.</span></div>
+          <div class="rl redo"><b>VOU REFAZER</b><span>O modelo ainda não corresponde. Fica no histórico e você tenta de novo.</span></div>
         </div>
-        <p>Todo resultado vem com justificativa. "Precisa refazer" aponta exatamente o que corrigir; "com observações" diz o que faria o trabalho subir para "aprovado".</p></section>
-      <section class="blk"><h3>Código de registro</h3><p>Quando a fase é aprovada, o Claude devolve um código no formato <code>TM-FASE-RESULTADO-VERIFICAÇÃO</code>, por exemplo <code>TM-001-A-XXXX</code>. Ao digitar o código na janela de avaliação, o app confere a verificação, marca a fase, soma os pontos e libera a próxima. O código também pode registrar um "precisa refazer" (letra R) para o histórico.</p>
-      <p>É um sistema de confiança para quem estuda sozinho: o algoritmo está no próprio código do app. O valor do curso está em construir e receber a crítica, não no código.</p></section>
+        <p>Seja honesto consigo: o objetivo é aprender a observar e corrigir. Você pode refazer qualquer fase concluída para melhorar a pontuação.</p></section>
       <section class="blk"><h3>Pontuação</h3><ul>
         <li>Pontos base por fase: 80 + 20 × dificuldade (100 a 180).</li>
-        <li>Dicas: dica 1 reduz 10%, dica 2 reduz 25% no total, dica 3 reduz 50% no total. Abrir dicas nunca impede a aprovação.</li>
-        <li>"Com observações" vale 80%. Refazer uma fase concluída mantém a melhor pontuação.</li>
+        <li>Dicas: dica 1 reduz 10%, dica 2 reduz 25% no total, dica 3 reduz 50% no total. Abrir dicas nunca impede a conclusão.</li>
+        <li>"Com ressalvas" vale 80%. Refazer uma fase concluída mantém a melhor pontuação.</li>
       </ul></section>
     </div>`;
   }
@@ -763,7 +705,7 @@
     else if (route === 'conquistas') page = html`<${Achievements} st=${st} />`;
     else if (route === 'historico') page = html`<${History} st=${st} />`;
     else if (route === 'dominio') page = html`<${Mastery} st=${st} />`;
-    else if (route === 'protocolo') page = html`<${Protocol} />`;
+    else if (route === 'guia' || route === 'protocolo') page = html`<${Guide} />`;
     else if (route === 'certificado') page = html`<${Certificate} st=${st} update=${update} />`;
     else if (route === 'ajustes') page = html`<${Settings} st=${st} update=${update} />`;
     else page = html`<${Dashboard} st=${st} />`;

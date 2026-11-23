@@ -240,7 +240,7 @@
         id: 80, nome: 'Escultura geométrica autoral', diff: 5,
         obj: 'Desafio do módulo: criar uma escultura abstrata própria aplicando princípios de composição (equilíbrio, ritmo, contraste, proporção) só com formas básicas.',
         desc: 'Exemplo de escultura (a sua deve ser diferente): pedestal em dois níveis, uma coluna de cubos que giram progressivamente e diminuem, um anel inclinado orbitando a coluna, uma esfera equilibrada na ponta de um cone e seis pirâmides em ritmo radial na base.',
-        req: ['Composição autoral (não copie a referência) com pelo menos 15 formas.', 'Ao menos três tipos diferentes de forma básica.', 'Um elemento de ritmo (repetição com variação, Ctrl+D).', 'Um elemento de contraste (tamanho, cor ou forma).', 'Equilíbrio visual: a peça parece estável.', 'Pedestal e título pensado por você (descreva no envio).'],
+        req: ['Composição autoral (não copie a referência) com pelo menos 15 formas.', 'Ao menos três tipos diferentes de forma básica.', 'Um elemento de ritmo (repetição com variação, Ctrl+D).', 'Um elemento de contraste (tamanho, cor ou forma).', 'Equilíbrio visual: a peça parece estável.', 'Pedestal e título pensado por você (anote nas suas anotações da fase).'],
         formas: ['box', 'torus', 'cone', 'sphere', 'pyr', 'cyl'], tools: ['duplicar', 'rotacionar', 'alinhar', 'agrupar', 'cor'],
         skills: ['Composição', 'Autoria', 'Princípios visuais'],
         dicas: [

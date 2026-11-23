@@ -1,4 +1,4 @@
-/* Tinkercad Master — núcleo: catálogos, construtores de forma, pontuação, códigos.
+/* Tinkercad Master — núcleo: catálogos, construtores de forma, pontuação.
    Script clássico (funciona também abrindo o arquivo direto no navegador). */
 (function () {
   const TM = (window.TM = window.TM || {});
@@ -115,36 +115,9 @@
     return Math.round(TM.basePoints(ph) * mult * (1 - TM.HINT_PENALTY[hintLevel || 0]));
   };
   TM.RESULTS = {
-    A: { nome: 'APROVADO', cls: 'ok' },
-    O: { nome: 'APROVADO COM OBSERVAÇÕES', cls: 'obs' },
-    R: { nome: 'PRECISA REFAZER', cls: 'redo' }
-  };
-
-  /* ---------- Código de registro da avaliação ----------
-     Formato: TM-012-A-K3Q7  (fase, resultado, verificação)
-     O professor Claude gera com tools/gerar-codigo.js; o app confere aqui. */
-  TM.hash = (str) => {
-    let h = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 0x01000193) >>> 0;
-    }
-    return h >>> 0;
-  };
-  const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  TM.makeCode = (phase, result) => {
-    let h = TM.hash('TINKERCAD-MASTER|' + phase + '|' + result + '|formas-basicas');
-    let s = '';
-    for (let i = 0; i < 4; i++) { s += ALPH[h % 32]; h = Math.floor(h / 32); }
-    return 'TM-' + String(phase).padStart(3, '0') + '-' + result + '-' + s;
-  };
-  TM.parseCode = (raw) => {
-    const code = String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
-    const m = code.match(/^TM-(\d{3})-([AOR])-([A-Z0-9]{4})$/);
-    if (!m) return { ok: false, erro: 'Formato inválido. O código tem o formato TM-012-A-XXXX.' };
-    const phase = parseInt(m[1], 10);
-    if (code !== TM.makeCode(phase, m[2])) return { ok: false, erro: 'Código não confere. Verifique se copiou exatamente o código que o professor Claude enviou.' };
-    return { ok: true, phase, result: m[2], code };
+    A: { nome: 'CONCLUÍDA', cls: 'ok' },
+    O: { nome: 'CONCLUÍDA COM RESSALVAS', cls: 'obs' },
+    R: { nome: 'VOU REFAZER', cls: 'redo' }
   };
 
   /* Registro dos módulos (preenchido pelos arquivos js/data/m*.js) */

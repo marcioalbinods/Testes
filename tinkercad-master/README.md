@@ -2,7 +2,7 @@
 
 Curso interativo e gamificado para aprender a modelar no **Tinkercad** usando apenas a aba **Formas básicas**.
 São **100 fases em 10 módulos**. Em cada fase você estuda uma referência 3D, constrói o objeto no Tinkercad,
-envia o print e recebe a avaliação do **professor Claude**. A aprovação libera a fase seguinte.
+compara o seu print com a referência e faz a **autoavaliação**. Cada fase concluída libera a seguinte.
 
 ## Como abrir
 
@@ -33,37 +33,33 @@ Não há cadastro, servidor nem coleta de dados. O progresso fica salvo no próp
 Número e nome, dificuldade, objetivo de aprendizagem, **referência 3D** (girável, com modo edição mostrando
 os furos e vista explodida com nomes das peças), descrição do resultado, requisitos obrigatórios (com checklist),
 formas básicas, ferramentas do Tinkercad, habilidades, **três dicas progressivas** (pista, orientação, passo a passo),
-área de entrega do print, critérios de avaliação, feedback, botão **Solicitar avaliação** e botão **Refazer desafio**.
+área de entrega do print, critérios, **autoavaliação** com comparação lado a lado e anotações, e botão **Refazer desafio**.
 Fases que introduzem uma ferramenta nova trazem um quadro **Novo** explicando como ela funciona.
 
-## Como funciona a avaliação
+## Como funciona a autoavaliação
 
-O app não analisa imagens sozinho. A avaliação visual é feita pelo Claude, na conversa:
+Não há avaliação externa: você é o avaliador.
 
-1. Carregue o print na área de entrega da fase (arrastar, escolher arquivo ou colar com Ctrl+V).
-2. Clique em **Solicitar avaliação** e copie a mensagem pronta (fase, requisitos, critérios e protocolo).
-3. Envie a mensagem e o print numa conversa com o Claude.
-4. O Claude responde com o parecer (APROVADO, APROVADO COM OBSERVAÇÕES ou PRECISA REFAZER) e,
-   quando for o caso, um **código de registro** como `TM-012-A-XXXX`.
-5. Digite o código na janela de avaliação. O app confere, registra a pontuação e libera a próxima fase.
+1. Carregue o print do seu modelo na área de entrega (opcional, mas permite comparar lado a lado).
+2. Gire a referência 3D até a mesma vista e compare peça por peça (use "Modo edição" para ver os furos).
+3. Marque os requisitos que o seu modelo cumpre.
+4. Na seção **Autoavaliação**, anote o que ficou bom e o que melhorar e escolha:
+   **Concluir fase** (todos os requisitos), **Concluir com ressalvas** (pelo menos metade, 80% dos pontos)
+   ou **Vou refazer**.
 
-O protocolo completo está em [`PROTOCOLO-AVALIACAO.md`](PROTOCOLO-AVALIACAO.md). O código pode ser gerado com:
-
-```bash
-node tools/gerar-codigo.js 12 A
-```
+O guia completo fica na página **Como se autoavaliar** do app.
 
 ## Pontuação e conquistas
 
 - Pontos base por fase: 80 + 20 × dificuldade (100 a 180). Total possível: 15.580.
 - Dica 1 desconta 10%, dica 2 chega a 25% e dica 3 a 50%. Abrir dicas nunca impede a aprovação.
-- "Com observações" vale 80%. Refazer uma fase concluída mantém a melhor pontuação.
+- "Com ressalvas" vale 80%. Refazer uma fase concluída mantém a melhor pontuação.
 - Medalha por módulo (ouro ≥ 90%, prata ≥ 75%, bronze), 16 conquistas, indicador de domínio das
   ferramentas, histórico completo e certificado simbólico ao concluir a fase 100.
 
 ## Armazenamento
 
-- Progresso, pontos, tentativas, dicas, checklist e avaliações: `localStorage` (chave `tinkercad-master.v1`).
+- Progresso, pontos, tentativas, dicas, checklist e autoavaliações: `localStorage` (chave `tinkercad-master.v1`).
 - Prints: IndexedDB do navegador (reduzidos para até 1600 px).
 - Em **Progresso e backup** dá para exportar o progresso como texto, importar em outro navegador ou recomeçar.
 
@@ -73,13 +69,11 @@ node tools/gerar-codigo.js 12 A
 tinkercad-master/
 ├── index.html              página do app (React 18 + htm via CDN, sem etapa de build)
 ├── styles.css              identidade visual, tema claro/escuro, responsivo
-├── js/core.js              formas, ferramentas, pontuação e código de registro
+├── js/core.js              formas, ferramentas e pontuação
 ├── js/store.js             localStorage + IndexedDB
 ├── js/scene.js             visualizador 3D (Three.js + CSG para furos reais)
-├── js/app.js               interface (painel, mapa, fase, avaliação, conquistas, histórico...)
-├── js/data/m01.js … m10.js as 100 fases (conteúdo + modelo 3D de referência)
-├── tools/gerar-codigo.js   gerador do código de registro para o professor
-└── PROTOCOLO-AVALIACAO.md  protocolo de avaliação do professor Claude
+├── js/app.js               interface (painel, mapa, fase, autoavaliação, conquistas, histórico...)
+└── js/data/m01.js … m10.js as 100 fases (conteúdo + modelo 3D de referência)
 ```
 
 Os modelos de referência são descritos em milímetros no mesmo sistema do Tinkercad (X, Y no plano, Z para cima,

@@ -469,3 +469,19 @@ table.hist a { text-decoration: none; color: var(--fg); font-weight: 500; }
   .mini-tools em { display: none; }
   .action-bar .btn.big { flex: 1 1 140px; padding: 12px 14px; font-size: .92rem; }
 }
+
+/* ---------- Autoavaliação ---------- */
+.selfcheck { scroll-margin-top: 80px; border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.selfcheck h3 .ic { color: var(--ok); }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.compare figure { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.compare figcaption { font: 600 .74rem var(--f-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.compare img, .compare .thumb, .compare-empty { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.compare-empty { display: grid; place-items: center; text-align: center; padding: 16px; color: var(--muted); font-size: .86rem; border-style: dashed; }
+.self-q { color: var(--muted); font-size: .9rem; }
+.self-count { font-size: .92rem; }
+.selfcheck label { font-size: .82rem; font-weight: 600; color: var(--muted); }
+.self-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.selfcheck .fb p { color: var(--fg); }
+.selfcheck .fb .btn { align-self: flex-start; }
+@media (max-width: 640px) { .compare { grid-template-columns: minmax(0, 1fr); } }

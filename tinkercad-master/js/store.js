@@ -6,12 +6,12 @@
   const blank = () => ({
     v: 1,
     criado: new Date().toISOString(),
-    concluidas: {},   // id -> { result, pontos, data, codigo, dicas }
+    concluidas: {},   // id -> { result, pontos, data, dicas }
     desbloqueadas: [1],
     tentativas: {},   // id -> número de envios de print
     dicas: {},        // id -> nível de dica aberto (0–3)
     checks: {},       // id -> { índice do requisito: true }
-    avaliacoes: {},   // id -> [{ result, data, codigo, parecer, pontos }]
+    avaliacoes: {},   // id -> [{ result, data, parecer (anotações), pontos }] — autoavaliações
     historico: [],    // [{ id, tipo, data, result?, pontos?, detalhe? }]
     nome: ''
   });
